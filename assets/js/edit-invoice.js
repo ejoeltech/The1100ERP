@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         name="line_items[${lineItemCount}][description]"
                         rows="2"
                         required
-                        class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
+                        class="w-full min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
                     >${item.description}</textarea>
                 </td>
                 <td class="px-3 py-2">
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         step="0.01"
                         value="${item.unit_price}"
                         required
-                        class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
+                        class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
                         onchange="calculateLine(${lineItemCount})"
                     >
                 </td>

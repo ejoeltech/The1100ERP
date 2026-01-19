@@ -45,7 +45,7 @@ function addLineItem() {
                 rows="2"
                 required
                 placeholder="Enter item description"
-                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
+                class="w-full min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
             ></textarea>
         </td>
         <td class="px-3 py-2">
@@ -56,7 +56,7 @@ function addLineItem() {
                 step="0.01"
                 required
                 placeholder="0.00"
-                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
+                class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
                 onchange="calculateLine(${currentCount})"
             >
         </td>
