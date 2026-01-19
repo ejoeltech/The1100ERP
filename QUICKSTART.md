@@ -22,18 +22,18 @@
 ## STEP 3: Access Application
 
 1. Open browser
-2. Go to: http://localhost/bluedotserp/
+2. Go to: http://localhost/1100erp/
 3. You should see Bluedots landing page
 
 ## STEP 4: Test the System
 
 ### View Sample Quote
-- Go to: http://localhost/bluedotserp/pages/view-quotes.php
+- Go to: http://localhost/1100erp/pages/view-quotes.php
 - Click "View" on QT-0001
 - Click "Print Quote" to test
 
 ### Create New Quote
-- Go to: http://localhost/bluedotserp/pages/create-quote.php
+- Go to: http://localhost/1100erp/pages/create-quote.php
 - Fill in form
 - Add line items
 - Watch VAT calculate automatically

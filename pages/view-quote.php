@@ -12,7 +12,7 @@ if (!$quote_id) {
 
 // Fetch quote details
 $stmt = $pdo->prepare("
-    SELECT * FROM documents WHERE id = ?
+    SELECT *, quote_number as document_number FROM quotes WHERE id = ?
 ");
 $stmt->execute([$quote_id]);
 $quote = $stmt->fetch();
@@ -24,14 +24,14 @@ if (!$quote) {
 
 // Fetch line items
 $stmt = $pdo->prepare("
-    SELECT * FROM line_items 
-    WHERE document_id = ? 
+    SELECT * FROM quote_line_items 
+    WHERE quote_id = ? 
     ORDER BY item_number
 ");
 $stmt->execute([$quote_id]);
 $line_items = $stmt->fetchAll();
 
-$pageTitle = 'Quote ' . $quote['document_number'] . ' - Bluedots Technologies';
+$pageTitle = 'Quote ' . $quote['document_number'] . ' - ' . COMPANY_NAME;
 
 include '../includes/header.php';
 ?>
@@ -119,16 +119,16 @@ include '../includes/header.php';
                 </svg>
                 Export as JPEG
             </a>
-        
-            <a href="../api/export-quote-html.php?id=<?php echo $quote['id']; ?>" 
-               target="_blank"
-               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+
+            <a href="../api/export-quote-html.php?id=<?php echo $quote['id']; ?>" target="_blank"
+                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">
                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
                 </svg>
                 Export as HTML
             </a>
-</div>
+        </div>
     </div>
 
     <!-- Duplicate Button -->
@@ -146,7 +146,7 @@ include '../includes/header.php';
     <?php if ($quote['status'] === 'finalized'): ?>
         <?php
         // Check if already converted
-        $stmt = $pdo->prepare("SELECT id, document_number FROM documents WHERE parent_document_id = ? AND document_type = 'invoice'");
+        $stmt = $pdo->prepare("SELECT id, invoice_number FROM invoices WHERE quote_id = ?");
         $stmt->execute([$quote['id']]);
         $existing_invoice = $stmt->fetch();
         ?>
@@ -171,7 +171,7 @@ include '../includes/header.php';
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
-                View Invoice (<?php echo $existing_invoice['document_number']; ?>)
+                View Invoice (<?php echo $existing_invoice['invoice_number']; ?>)
             </a>
         <?php endif; ?>
     <?php endif; ?>
@@ -197,20 +197,20 @@ include '../includes/header.php';
 </div>
 
 <!-- Quote Display -->
-<div id="printableQuote" class="bg-white rounded-lg shadow-md p-12 max-w-4xl mx-auto">
+<div id="printableQuote" class="bg-white rounded-lg shadow-md p-4 md:p-8 max-w-4xl mx-auto">
 
     <!-- Header -->
     <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
         <div class="flex justify-center items-center gap-2 mb-3">
-            <div class="flex items-center gap-1">
-                <div class="w-3 h-3 bg-sky-500 rounded-full"></div>
-                <div class="w-5 h-5 bg-sky-600 rounded-full border-2 border-secondary"></div>
-                <div class="w-8 h-8 bg-sky-700 rounded-full"></div>
-                <div class="w-10 h-10 border-4 border-secondary rounded-full"></div>
-            </div>
+            <?php if (COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
+                <img src="../<?php echo COMPANY_LOGO; ?>" alt="<?php echo COMPANY_NAME; ?>" class="h-28 object-contain">
+            <?php else: ?>
+                <div class="flex flex-col items-center">
+                    <h1 class="text-3xl font-bold tracking-tight mb-1"><?php echo COMPANY_NAME; ?></h1>
+                    <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
+                </div>
+            <?php endif; ?>
         </div>
-        <h1 class="text-3xl font-bold tracking-tight mb-1">Bluedots</h1>
-        <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
         <div class="text-xs mt-4 space-y-1 text-gray-700">
             <p><strong>Contact Address:</strong>
                 <?php echo COMPANY_ADDRESS; ?>
@@ -234,7 +234,7 @@ include '../includes/header.php';
     </div>
 
     <!-- Quote Info -->
-    <div class="grid grid-cols-2 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
             <p class="text-sm font-bold text-gray-700 mb-2">Quote For:</p>
             <div class="border border-gray-300 p-3 rounded bg-gray-50">
@@ -324,9 +324,9 @@ include '../includes/header.php';
                     <?php echo formatNaira($quote['total_vat']); ?>
                 </span>
             </div>
-            <div class="flex justify-between items-center py-3 bg-primary text-white px-4 rounded">
+            <div class="flex justify-between items-center py-2 bg-primary text-white px-4 rounded">
                 <span class="text-lg font-bold">Grand Total:</span>
-                <span class="text-2xl font-bold">
+                <span class="text-xl font-bold">
                     <?php echo formatNaira($quote['grand_total']); ?>
                 </span>
             </div>
@@ -348,22 +348,30 @@ include '../includes/header.php';
         </p>
 
         <div class="bg-primary text-white text-center py-2 text-sm font-bold uppercase tracking-wider mb-2">
-            MAKE ALL PAYMENTS IN FAVOUR OF: Bluedots Technologies
+            MAKE ALL PAYMENTS IN FAVOUR OF: <?php echo htmlspecialchars(COMPANY_NAME); ?>
         </div>
 
         <div class="bg-blue-100 flex justify-around py-4 px-6 border-x border-gray-300 mb-2">
-            <div class="text-center">
-                <p class="font-bold text-sm text-gray-900">Access Bank</p>
-                <p class="text-sm text-gray-700">Account No:
-                    <?php echo BANK_ACCESS; ?>
-                </p>
-            </div>
-            <div class="text-center">
-                <p class="font-bold text-sm text-gray-900">United Bank For Africa (UBA)</p>
-                <p class="text-sm text-gray-700">Account No:
-                    <?php echo BANK_UBA; ?>
-                </p>
-            </div>
+            <?php
+            // Fetch dynamically configured bank accounts
+            $bankAccounts = getBankAccountsForDisplay();
+            if (!empty($bankAccounts)):
+                foreach ($bankAccounts as $account):
+                    ?>
+                    <div class="text-center">
+                        <p class="font-bold text-sm text-gray-900"><?php echo htmlspecialchars($account['bank_name']); ?></p>
+                        <p class="text-sm text-gray-700">Account No:
+                            <?php echo htmlspecialchars($account['account_number']); ?>
+                        </p>
+                    </div>
+                    <?php
+                endforeach;
+            else:
+                ?>
+                <div class="text-center w-full">
+                    <p class="text-sm text-gray-600 italic">Please contact us for payment details.</p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="bg-primary text-white text-right py-2 px-4 text-xs italic">

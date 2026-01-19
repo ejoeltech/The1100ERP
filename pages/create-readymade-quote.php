@@ -13,7 +13,7 @@ include '../includes/header.php';
         <p class="text-sm text-gray-600 mt-1">Create a reusable quote template for quick quote generation</p>
     </div>
 
-    <form id="readymadeQuoteForm" method="POST" action="../api/save-readymade-quote.php">
+    <form id="quoteForm" method="POST" action="../api/save-readymade-quote.php">
 
         <!-- Template Info Section -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
@@ -104,9 +104,9 @@ include '../includes/header.php';
                 </div>
             </div>
 
-            <input type="hidden" name="subtotal" id="subtotal">
-            <input type="hidden" name="total_vat" id="total_vat">
-            <input type="hidden" name="grand_total" id="grand_total">
+            <input type="hidden" name="subtotal" id="subtotalInput">
+            <input type="hidden" name="total_vat" id="vatInput">
+            <input type="hidden" name="grand_total" id="grandTotalInput">
         </div>
 
         <!-- Payment Terms -->

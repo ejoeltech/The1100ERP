@@ -30,12 +30,12 @@ if ($status_filter !== '') {
 $where_clause = implode(' AND ', $where);
 
 // Get products
-$stmt = $pdo->prepare("SELECT * FROM products WHERE $where_clause ORDER BY created_at DESC");
+$stmt = $pdo->prepare("SELECT * FROM products WHERE $where_clause AND deleted_at IS NULL ORDER BY created_at DESC");
 $stmt->execute($params);
 $products = $stmt->fetchAll();
 
 // Get stats
-$stmt = $pdo->query("SELECT COUNT(*) as total, SUM(is_active=1) as active FROM products");
+$stmt = $pdo->query("SELECT COUNT(*) as total, SUM(is_active=1) as active FROM products WHERE deleted_at IS NULL");
 $stats = $stmt->fetch();
 
 // Get categories
@@ -108,7 +108,7 @@ include '../../includes/header.php';
 </div>
 
 <!-- Products Table -->
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
+<div class="bg-white rounded-lg shadow-md overflow-hidden table-responsive">
     <table class="w-full">
         <thead class="bg-gray-50">
             <tr>
@@ -158,6 +158,9 @@ include '../../includes/header.php';
                                 class="text-yellow-600 hover:text-yellow-700 font-semibold text-sm">
                                 <?php echo $product['is_active'] ? 'Disable' : 'Enable'; ?>
                             </a>
+                            <span class="text-gray-300">|</span>
+                            <button onclick="deleteProduct(<?php echo $product['id']; ?>)"
+                                class="text-red-600 hover:text-red-800 font-semibold text-sm">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -171,3 +174,56 @@ include '../../includes/header.php';
 </div>
 
 <?php include '../../includes/footer.php'; ?>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function deleteProduct(id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('../../api/products/delete-product.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire(
+                            'Deleted!',
+                            'Product has been deleted.',
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error!',
+                            data.message || 'Something went wrong.',
+                            'error'
+                        );
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire(
+                        'Error!',
+                        'Failed to delete product.',
+                        'error'
+                    );
+                });
+            }
+        })
+    }
+</script>

@@ -10,7 +10,7 @@ if (!$template_id) {
 }
 
 // Fetch template
-$stmt = $pdo->prepare("SELECT * FROM quote_templates WHERE id = ? AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT * FROM readymade_quote_templates WHERE id = ? AND is_active = 1");
 $stmt->execute([$template_id]);
 $template = $stmt->fetch();
 
@@ -20,7 +20,7 @@ if (!$template) {
 }
 
 // Fetch template items
-$stmt = $pdo->prepare("SELECT * FROM quote_template_items WHERE template_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM readymade_quote_template_items WHERE template_id = ? ORDER BY item_number");
 $stmt->execute([$template_id]);
 $existingLineItems = $stmt->fetchAll();
 
@@ -54,11 +54,21 @@ include '../includes/header.php';
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Default Project Title
+                    </label>
+                    <input type="text" name="quote_title"
+                        value="<?php echo htmlspecialchars($template['default_project_title'] ?? ''); ?>"
+                        placeholder="e.g., Website Development"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
                         Description (Optional)
                     </label>
                     <textarea name="template_description" rows="2"
                         placeholder="Brief description of what this template is for"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"><?php echo htmlspecialchars($template['template_description']); ?></textarea>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"><?php echo htmlspecialchars($template['description']); ?></textarea>
                 </div>
             </div>
         </div>
@@ -123,9 +133,9 @@ include '../includes/header.php';
                 </div>
             </div>
 
-            <input type="hidden" name="subtotal" id="subtotal">
-            <input type="hidden" name="total_vat" id="total_vat">
-            <input type="hidden" name="grand_total" id="grand_total">
+            <input type="hidden" name="subtotal" id="subtotalInput">
+            <input type="hidden" name="total_vat" id="vatInput">
+            <input type="hidden" name="grand_total" id="grandTotalInput">
         </div>
 
         <!-- Action Buttons -->
@@ -147,6 +157,6 @@ include '../includes/header.php';
     const existingLineItems = <?php echo json_encode($existingLineItems); ?>;
 </script>
 <script src="../assets/js/quote-form.js?v=3"></script>
-<script src="../assets/js/edit-quote.js?v=2"></script>
+<script src="../assets/js/edit-quote.js?v=4"></script>
 
 <?php include '../includes/footer.php'; ?>

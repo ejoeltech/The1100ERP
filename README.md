@@ -1,66 +1,50 @@
-# 1100erp
+# 1100-ERP - Small Business Management System
 
-Enterprise Resource Planning System
-
-## Quick Start
-
-1. **Install Requirements:**
-   - PHP 7.4+
-   - MySQL 5.7+
-   - Apache/Nginx web server
-
-2. **Setup Database:**
-   ```bash
-   # Import database schema
-   mysql -u root -p < database/schema.sql
-   
-   # Run migrations
-   php run-bank-migration.php
-   ```
-
-3. **Configure:**
-   ```bash
-   # Edit config.php with your details
-   # Update company information in Settings
-   ```
-
-4. **Access:**
-   ```
-   http://localhost/1100erp/
-   Default login: admin / admin123
-   ```
+A simple, robust ERP system built with PHP, MySQL, and Tailwind CSS. Designed for small businesses to manage quotes, invoices, receipts, and payments.
 
 ## Features
+- **Quote Management**: Create, edit, and track quotes.
+- **Readymade Quotes**: Templates for quick quote generation.
+- **Invoicing**: Convert quotes to invoices with one click.
+- **Receipts**: Track payments and generate receipts.
+- **Customer Management**: CRM-lite features for tracking client details.
+- **Audit Logging**: Track all system activities.
+- **Dynamic PDF Generation**: High-quality PDF export for all documents.
 
-- ✅ Quote Management
-- ✅ Invoice Generation
-- ✅ Receipt Tracking
-- ✅ Customer Management
-- ✅ Product Inventory
-- ✅ Dynamic Bank Accounts
-- ✅ Audit Logging
-- ✅ Mobile Responsive
-- ✅ PDF Export
-- ✅ Email Integration
+## Installation
 
-## Documentation
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/yourusername/1100-erp.git
+    cd 1100-erp
+    ```
 
-- [CHANGELOG.md](CHANGELOG.md) - Version history
-- [CONFIGURATION.md](CONFIGURATION.md) - Setup guide
-- [GIT-PUSH-INSTRUCTIONS.md](GIT-PUSH-INSTRUCTIONS.md) - Deployment
+2.  **Database Setup**:
+    *   Create a database named `1100erp` (or your preferred name).
+    *   Import the schema from `database/install-schema.sql`.
 
-## Version
+3.  **Configuration**:
+    *   Rename `config.sample.php` to `config.php`.
+    *   Edit `config.php` with your database credentials and TinyMCE API key.
+    
+    ```php
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', '1100erp');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    ```
 
-**Current Version:** 2.0.0
+4.  **Run the Server**:
+    *   If using XAMPP/WAMP, place the folder in `htdocs` or `www`.
+    *   Or use the built-in PHP server: `php -S localhost:8000`
+
+5.  **First Login**:
+    *   The system uses the database users table. Ensure you insert your admin user directly into the database or use a registration script if available.
+
+## Credits
+*   Built with [Tailwind CSS](https://tailwindcss.com/)
+*   [Tom Select](https://tom-select.js.org/) for dropdowns
+*   [TinyMCE](https://www.tiny.cloud/) for rich text editing
 
 ## License
-
-Proprietary - All rights reserved
-
-## Support
-
-For issues and support, please open an issue on GitHub.
-
----
-
-**1100-ERP** - Enterprise Resource Planning Made Simple
+MIT License

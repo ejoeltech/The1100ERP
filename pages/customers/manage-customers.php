@@ -9,7 +9,7 @@ $where = ["1=1"];
 $params = [];
 
 if ($search) {
-    $where[] = "(name LIKE ? OR email LIKE ? OR phone LIKE ?)";
+    $where[] = "(customer_name LIKE ? OR email LIKE ? OR phone LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
@@ -21,11 +21,18 @@ if ($status_filter !== '') {
 
 $where_clause = implode(' AND ', $where);
 
-$stmt = $pdo->prepare("SELECT * FROM customers WHERE $where_clause ORDER BY created_at DESC");
+$stmt = $pdo->prepare("
+    SELECT c.*, 
+    (SELECT SUM(balance_due) FROM invoices WHERE customer_id = c.id AND status != 'paid' AND deleted_at IS NULL) as total_due
+    FROM customers c 
+    WHERE $where_clause 
+    AND c.deleted_at IS NULL 
+    ORDER BY c.created_at DESC
+");
 $stmt->execute($params);
 $customers = $stmt->fetchAll();
 
-$stats = $pdo->query("SELECT COUNT(*) as total, SUM(is_active=1) as active FROM customers")->fetch();
+$stats = $pdo->query("SELECT COUNT(*) as total, SUM(is_active=1) as active FROM customers WHERE deleted_at IS NULL")->fetch();
 
 include '../../includes/header.php';
 ?>
@@ -67,7 +74,7 @@ include '../../includes/header.php';
     </form>
 </div>
 
-<div class="bg-white rounded-lg shadow-md overflow-hidden">
+<div class="bg-white rounded-lg shadow-md overflow-hidden table-responsive">
     <table class="w-full">
         <thead class="bg-gray-50">
             <tr>
@@ -82,8 +89,20 @@ include '../../includes/header.php';
                 <tr class="border-b hover:bg-gray-50">
                     <td class="px-4 py-3">
                         <p class="font-semibold">
-                            <?php echo htmlspecialchars($customer['name']); ?>
+                            <?php echo htmlspecialchars($customer['customer_name']); ?>
                         </p>
+                        <div class="flex gap-2 mt-1">
+                            <?php if (!empty($customer['account_balance']) && $customer['account_balance'] > 0): ?>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">
+                                    Credit: <?php echo formatNaira($customer['account_balance']); ?>
+                                </span>
+                            <?php endif; ?>
+                            <?php if (!empty($customer['total_due']) && $customer['total_due'] > 0): ?>
+                                <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full font-medium">
+                                    Debit: <?php echo formatNaira($customer['total_due']); ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-sm">
                         <?php echo htmlspecialchars($customer['company'] ?? '—'); ?>
@@ -103,6 +122,9 @@ include '../../includes/header.php';
                             <span class="text-gray-300">|</span>
                             <a href="edit-customer.php?id=<?php echo $customer['id']; ?>"
                                 class="text-primary hover:text-blue-700 font-semibold text-sm">Edit</a>
+                            <span class="text-gray-300">|</span>
+                            <button onclick="deleteCustomer(<?php echo $customer['id']; ?>)"
+                                class="text-red-600 hover:text-red-800 font-semibold text-sm">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -115,3 +137,56 @@ include '../../includes/header.php';
 </div>
 
 <?php include '../../includes/footer.php'; ?>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function deleteCustomer(id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('../../api/customers/delete-customer.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: id
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire(
+                                'Deleted!',
+                                'Customer has been deleted.',
+                                'success'
+                            ).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                data.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire(
+                            'Error!',
+                            'Failed to delete customer.',
+                            'error'
+                        );
+                    });
+            }
+        })
+    }
+</script>

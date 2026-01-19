@@ -10,17 +10,14 @@ $userId = $_SESSION['user_id'];
 // Get role filter for queries
 $roleFilter = function_exists('getRoleFilter') ? getRoleFilter('d') : '';
 
-// Get stats for current month with role filtering
+// Get stats for current month
 $currentMonth = date('Y-m');
 
 // Quotes this month
 $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
-    FROM documents d
-    WHERE d.document_type = 'quote' 
-    AND DATE_FORMAT(d.created_at, '%Y-%m') = ?
-    AND d.deleted_at IS NULL
-    $roleFilter
+    FROM quotes
+    WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
 ");
 $stmt->execute([$currentMonth]);
 $quotes_count = $stmt->fetch()['count'];
@@ -28,11 +25,8 @@ $quotes_count = $stmt->fetch()['count'];
 // Invoices this month
 $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
-    FROM documents d
-    WHERE d.document_type = 'invoice' 
-    AND DATE_FORMAT(d.created_at, '%Y-%m') = ?
-    AND d.deleted_at IS NULL
-    $roleFilter
+    FROM invoices
+    WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
 ");
 $stmt->execute([$currentMonth]);
 $invoices_count = $stmt->fetch()['count'];
@@ -40,23 +34,17 @@ $invoices_count = $stmt->fetch()['count'];
 // Receipts this month
 $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
-    FROM documents d
-    WHERE d.document_type = 'receipt' 
-    AND DATE_FORMAT(d.created_at, '%Y-%m') = ?
-    AND d.deleted_at IS NULL
-    $roleFilter
+    FROM receipts
+    WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
 ");
 $stmt->execute([$currentMonth]);
 $receipts_count = $stmt->fetch()['count'];
 
 // Total revenue (from receipts)
 $stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(d.amount_paid), 0) as total 
-    FROM documents d
-    WHERE d.document_type = 'receipt' 
-    AND DATE_FORMAT(d.created_at, '%Y-%m') = ?
-    AND d.deleted_at IS NULL
-    $roleFilter
+    SELECT COALESCE(SUM(amount_paid), 0) as total 
+    FROM receipts
+    WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
 ");
 $stmt->execute([$currentMonth]);
 $total_revenue = $stmt->fetch()['total'];
@@ -64,59 +52,79 @@ $total_revenue = $stmt->fetch()['total'];
 // Conversion rate (quotes to invoices)
 $conversion_rate = $quotes_count > 0 ? round(($invoices_count / $quotes_count) * 100) : 0;
 
-// Phase 8: Additional stats
-// Total documents by status
-$stmt = $pdo->prepare("
-    SELECT status, COUNT(*) as count
-    FROM documents d
-    WHERE d.deleted_at IS NULL
-    $roleFilter
-    GROUP BY status
-");
-$stmt->execute();
-$status_counts = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+// Total documents by status (combining all three tables)
+$draft_count = 0;
+$finalized_count = 0;
 
-$draft_count = $status_counts['draft'] ?? 0;
-$finalized_count = $status_counts['finalized'] ?? 0;
-
-// Recent documents (last 10, role-filtered)
-$stmt = $pdo->prepare("
+// Count drafts and finalized from quotes
+$stmt = $pdo->query("
     SELECT 
-        d.id,
-        d.document_type,
-        d.document_number,
-        d.customer_name,
-        d.grand_total,
-        d.status,
-        d.created_at,
-        u.full_name as created_by_name
-    FROM documents d
-    LEFT JOIN users u ON d.created_by = u.id
-    WHERE d.deleted_at IS NULL
-    $roleFilter
-    ORDER BY d.created_at DESC
+        SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
+        SUM(CASE WHEN status IN ('finalized', 'approved') THEN 1 ELSE 0 END) as finalized
+    FROM quotes
+");
+$quote_counts = $stmt->fetch();
+$draft_count += $quote_counts['draft'];
+$finalized_count += $quote_counts['finalized'];
+
+// Count drafts and sent/paid from invoices
+$stmt = $pdo->query("
+    SELECT 
+        SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
+        SUM(CASE WHEN status IN ('sent', 'paid', 'partially_paid') THEN 1 ELSE 0 END) as finalized
+    FROM invoices
+");
+$invoice_counts = $stmt->fetch();
+$draft_count += $invoice_counts['draft'];
+$finalized_count += $invoice_counts['finalized'];
+
+// Recent documents (last 10) - Union of all three tables
+$stmt = $pdo->query("
+    (SELECT 
+        id,
+        'quote' as document_type,
+        quote_number as document_number,
+        customer_name,
+        grand_total,
+        status,
+        created_at
+    FROM quotes
+    ORDER BY created_at DESC
+    LIMIT 10)
+    UNION ALL
+    (SELECT 
+        id,
+        'invoice' as document_type,
+        invoice_number as document_number,
+        customer_name,
+        grand_total,
+        status,
+        created_at
+    FROM invoices
+    ORDER BY created_at DESC
+    LIMIT 10)
+    UNION ALL
+    (SELECT 
+        id,
+        'receipt' as document_type,
+        receipt_number as document_number,
+        customer_name,
+        amount_paid as grand_total,
+        'paid' as status,
+        created_at
+    FROM receipts
+    ORDER BY created_at DESC
+    LIMIT 10)
+    ORDER BY created_at DESC
     LIMIT 10
 ");
-$stmt->execute();
 $recent_documents = $stmt->fetchAll();
 
 // Phase 8: Admin-only stats
 if (function_exists('isAdmin') && isAdmin()) {
-    // User activity (top performers)
-    $stmt = $pdo->query("
-        SELECT 
-            u.full_name,
-            u.username,
-            COUNT(d.id) as document_count,
-            COALESCE(SUM(CASE WHEN d.document_type = 'receipt' THEN d.amount_paid ELSE 0 END), 0) as revenue
-        FROM users u
-        LEFT JOIN documents d ON u.id = d.created_by AND d.deleted_at IS NULL
-        WHERE u.is_active = 1
-        GROUP BY u.id
-        ORDER BY revenue DESC
-        LIMIT 5
-    ");
-    $top_users = $stmt->fetchAll();
+    // User activity is not tracked in the current schema
+    // Setting empty array for now
+    $top_users = [];
 
     // System health
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE is_active = 1");
@@ -148,7 +156,7 @@ include 'includes/header.php';
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
     <!-- Quotes Card -->
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Quotes</p>
@@ -166,7 +174,7 @@ include 'includes/header.php';
     </div>
 
     <!-- Invoices Card -->
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Invoices</p>
@@ -184,7 +192,7 @@ include 'includes/header.php';
     </div>
 
     <!-- Receipts Card -->
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Receipts</p>
@@ -201,7 +209,7 @@ include 'includes/header.php';
     </div>
 
     <!-- Revenue Card -->
-    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-primary">
+    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-primary">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Revenue</p>
@@ -223,7 +231,7 @@ include 'includes/header.php';
 <!-- Phase 8: Document Status Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
     <!-- Conversion Rate -->
-    <div class="bg-gradient-to-r from-primary to-blue-700 rounded-lg shadow-md p-6 text-white">
+    <div class="bg-gradient-to-r from-primary to-blue-700 rounded-lg shadow-md p-4 text-white">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold opacity-90">Conversion Rate</p>
@@ -238,7 +246,7 @@ include 'includes/header.php';
     </div>
 
     <!-- Status Overview -->
-    <div class="bg-gradient-to-r from-purple-600 to-purple-800 rounded-lg shadow-md p-6 text-white">
+    <div class="bg-gradient-to-r from-purple-600 to-purple-800 rounded-lg shadow-md p-4 text-white">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold opacity-90">Document Status</p>
@@ -381,9 +389,6 @@ include 'includes/header.php';
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Type</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Document #</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Customer</th>
-                        <?php if (isAdmin() || isManager()): ?>
-                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Created By</th>
-                        <?php endif; ?>
                         <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">Amount</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Status</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Date</th>
@@ -412,11 +417,6 @@ include 'includes/header.php';
                             <td class="px-4 py-3 text-sm text-gray-900">
                                 <?php echo htmlspecialchars($doc['customer_name']); ?>
                             </td>
-                            <?php if (isAdmin() || isManager()): ?>
-                                <td class="px-4 py-3 text-sm text-gray-600">
-                                    <?php echo htmlspecialchars($doc['created_by_name'] ?? 'Unknown'); ?>
-                                </td>
-                            <?php endif; ?>
                             <td class="px-4 py-3 text-sm font-bold text-gray-900 text-right">
                                 <?php echo formatNaira($doc['grand_total']); ?>
                             </td>

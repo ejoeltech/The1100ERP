@@ -6,20 +6,19 @@ $pageTitle = 'Archived Invoices - Bluedots Technologies';
 // Fetch all archived invoices (deleted_at IS NOT NULL)
 $stmt = $pdo->query("
     SELECT 
-        d.id,
-        d.document_number,
-        d.quote_title,
-        d.customer_name,
-        d.salesperson,
-        d.quote_date,
-        d.grand_total,
-        d.status,
-        d.created_at,
-        d.deleted_at
-    FROM documents d
-    WHERE d.document_type = 'invoice'
-    AND d.deleted_at IS NOT NULL
-    ORDER BY d.deleted_at DESC
+        i.id,
+        i.invoice_number as document_number,
+        i.invoice_title as quote_title,
+        i.customer_name,
+        i.salesperson,
+        i.invoice_date as quote_date,
+        i.grand_total,
+        i.status,
+        i.created_at,
+        i.deleted_at
+    FROM invoices i
+    WHERE i.deleted_at IS NOT NULL
+    ORDER BY i.deleted_at DESC
 ");
 
 $quotes = $stmt->fetchAll();

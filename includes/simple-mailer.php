@@ -24,9 +24,26 @@ function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipie
         }
 
         // Fetch document
-        $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = ? AND deleted_at IS NULL");
-        $stmt->execute([$documentId, $documentType]);
-        $document = $stmt->fetch();
+        // Fetch document
+        $document = null;
+        if ($documentType === 'quote') {
+            $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
+            $stmt->execute([$documentId]);
+            $document = $stmt->fetch();
+        } elseif ($documentType === 'invoice') {
+            $stmt = $pdo->prepare("SELECT *, invoice_number as document_number, invoice_title as quote_title FROM invoices WHERE id = ? AND deleted_at IS NULL");
+            $stmt->execute([$documentId]);
+            $document = $stmt->fetch();
+        } elseif ($documentType === 'receipt') {
+            $stmt = $pdo->prepare("
+                SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title 
+                FROM receipts r
+                LEFT JOIN invoices i ON r.invoice_id = i.id
+                WHERE r.id = ? AND r.deleted_at IS NULL
+            ");
+            $stmt->execute([$documentId]);
+            $document = $stmt->fetch();
+        }
 
         if (!$document) {
             throw new Exception('Document not found');
@@ -92,7 +109,7 @@ function generateDocumentPDF($documentType, $documentId)
     $pdfPath = $tempDir . '/' . $filename;
 
     // Call appropriate PDF export
-    $exportUrl = $_SERVER['DOCUMENT_ROOT'] . '/1100erp/api/export-' . $documentType . '-pdf.php';
+    $exportUrl = __DIR__ . '/../api/export-' . $documentType . '-pdf.php';
 
     // Create PDF using existing export
     $_GET['id'] = $documentId;

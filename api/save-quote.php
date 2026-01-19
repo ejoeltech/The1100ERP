@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+include '../includes/session-check.php'; // Ensure user is logged in
 
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -16,6 +17,7 @@ try {
     $customer_name = trim($_POST['customer_name']);
     $salesperson = trim($_POST['salesperson']);
     $quote_date = $_POST['quote_date'];
+    $delivery_period = trim($_POST['delivery_period'] ?? '10 Days');
     $payment_terms = trim($_POST['payment_terms']);
     $subtotal = floatval($_POST['subtotal']);
     $total_vat = floatval($_POST['total_vat']);
@@ -34,42 +36,55 @@ try {
     }
 
     // Save customer if new (INSERT IGNORE will skip if already exists)
+    $customer_id = null;
     if (!empty($customer_name)) {
-        $stmt = $pdo->prepare("
-            INSERT IGNORE INTO customers (name, created_at)
-            VALUES (?, NOW())
-        ");
+        // Check if customer exists to get ID
+        $stmt = $pdo->prepare("SELECT id FROM customers WHERE customer_name = ?");
         $stmt->execute([$customer_name]);
+        $customer = $stmt->fetch();
+
+        if ($customer) {
+            $customer_id = $customer['id'];
+        } else {
+            // Create new customer
+            $stmt = $pdo->prepare("INSERT INTO customers (customer_name, created_at) VALUES (?, NOW())");
+            $stmt->execute([$customer_name]);
+            $customer_id = $pdo->lastInsertId();
+        }
     }
 
     // Insert document
+    // Quotes table: quote_number, quote_title, customer_id, customer_name, salesperson, quote_date, subtotal, total_vat, grand_total, payment_terms, status, created_by
     $stmt = $pdo->prepare("
-        INSERT INTO documents (
-            document_number, quote_title, customer_name, salesperson,
-            quote_date, subtotal, total_vat, grand_total, 
-            payment_terms, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO quotes (
+            quote_number, quote_title, customer_id, customer_name, salesperson,
+            quote_date, delivery_period, subtotal, total_vat, grand_total, 
+            payment_terms, status, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
         $quote_number,
         $quote_title,
+        $customer_id,
         $customer_name,
         $salesperson,
         $quote_date,
+        $delivery_period,
         $subtotal,
         $total_vat,
         $grand_total,
         $payment_terms,
-        $status
+        $status,
+        $current_user['id']
     ]);
 
-    $document_id = $pdo->lastInsertId();
+    $quote_id = $pdo->lastInsertId();
 
     // Insert line items
     $stmt = $pdo->prepare("
-        INSERT INTO line_items (
-            document_id, item_number, quantity, description,
+        INSERT INTO quote_line_items (
+            quote_id, item_number, quantity, description,
             unit_price, vat_applicable, vat_amount, line_total
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
@@ -89,7 +104,7 @@ try {
         }
 
         $stmt->execute([
-            $document_id,
+            $quote_id,
             $item_number,
             $quantity,
             $description,
@@ -106,12 +121,14 @@ try {
     $pdo->commit();
 
     // Redirect to view quote
-    header("Location: ../pages/view-quote.php?id=" . $document_id . "&success=1");
+    header("Location: ../pages/view-quote.php?id=" . $quote_id . "&success=1");
     exit;
 
 } catch (Exception $e) {
     // Rollback transaction on error
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
 
     // Log error (in production, use proper logging)
     error_log("Quote save error: " . $e->getMessage());

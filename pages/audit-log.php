@@ -1,10 +1,5 @@
 <?php
-session_start();
-require_once '../config.php';
-require_once '../includes/auth.php';
-
-// Check if user is logged in
-requireLogin();
+include '../includes/session-check.php';
 
 // Check if user is admin (simplified)
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -133,20 +128,20 @@ include '../includes/header.php';
                 <p class="text-yellow-900 font-semibold mb-2">Solution:</p>
                 <p class="text-yellow-800 text-sm">The audit_log table may not exist. Please create it with this SQL:</p>
                 <pre class="bg-gray-900 text-green-400 p-3 rounded mt-2 text-xs overflow-x-auto">CREATE TABLE IF NOT EXISTS audit_log (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NULL,
-        action VARCHAR(50) NOT NULL,
-        resource_type VARCHAR(50) NULL,
-        resource_id INT NULL,
-        ip_address VARCHAR(45) NULL,
-        user_agent TEXT NULL,
-        details JSON NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_user_id (user_id),
-        INDEX idx_action (action),
-        INDEX idx_resource (resource_type, resource_id),
-        INDEX idx_created_at (created_at)
-    );</pre>
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NULL,
+                    action VARCHAR(50) NOT NULL,
+                    resource_type VARCHAR(50) NULL,
+                    resource_id INT NULL,
+                    ip_address VARCHAR(45) NULL,
+                    user_agent TEXT NULL,
+                    details JSON NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_user_id (user_id),
+                    INDEX idx_action (action),
+                    INDEX idx_resource (resource_type, resource_id),
+                    INDEX idx_created_at (created_at)
+                );</pre>
             </div>
         </div>
     </div>
@@ -296,14 +291,14 @@ include '../includes/header.php';
                                     <?php
                                     $details = json_decode($log['details'], true);
                                     if ($details && is_array($details)) {
-                                        $displayDetails = array_slice($details, 0, 2);
+                                        $displayDetails = array_slice($details, 0, 5);
                                         foreach ($displayDetails as $key => $value) {
                                             if (is_string($value)) {
                                                 echo '<div class="text-xs"><strong>' . htmlspecialchars($key) . ':</strong> ' . htmlspecialchars($value) . '</div>';
                                             }
                                         }
-                                        if (count($details) > 2) {
-                                            echo '<div class="text-xs text-gray-400">+' . (count($details) - 2) . ' more</div>';
+                                        if (count($details) > 5) {
+                                            echo '<div class="text-xs text-gray-400">+' . (count($details) - 5) . ' more</div>';
                                         }
                                     } else {
                                         echo '<span class="text-gray-400">—</span>';
@@ -322,7 +317,8 @@ include '../includes/header.php';
 
         <!-- Pagination -->
         <?php if ($totalPages > 1): ?>
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div
+                class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="text-sm text-gray-600">
                     Showing <?php echo number_format($offset + 1); ?> to
                     <?php echo number_format(min($offset + $perPage, $totalRecords)); ?>

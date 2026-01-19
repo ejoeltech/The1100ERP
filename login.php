@@ -15,23 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
 
-    // Check rate limiting
-    $rateLimitCheck = checkLoginAttempts($username);
-    if ($rateLimitCheck !== true) {
-        $error = $rateLimitCheck;
-        logAudit('login_ratelimit', 'user', null, ['username' => $username]);
+    // Attempt login
+    if (login($pdo, $username, $password)) {
+        header('Location: dashboard.php');
+        exit;
     } else {
-        // Attempt login
-        if (login($pdo, $username, $password)) {
-            clearLoginAttempts($username);
-            logAudit('login_success', 'user', $_SESSION['user_id'], ['username' => $username]);
-            header('Location: dashboard.php');
-            exit;
-        } else {
-            recordFailedLogin($username);
-            logAudit('login_failed', 'user', null, ['username' => $username]);
-            $error = 'Invalid username or password';
-        }
+        $error = 'Invalid username or password';
     }
 }
 ?>
@@ -58,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Responsive CSS -->
-    <link rel="stylesheet" href="/1100erp/assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
 
     <style>
         body {
@@ -120,14 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
 
-            <div class="mt-6 text-center text-sm text-gray-600">
-                <p>Default credentials:</p>
-                <p class="font-mono bg-gray-50 px-3 py-2 rounded mt-2">
-                    Username: <strong>admin</strong><br>
-                    Password: <strong>admin123</strong>
-                </p>
-                <p class="text-xs text-red-600 mt-2">⚠️ Change this password after first login!</p>
-            </div>
+
         </div>
 
         <div class="text-center mt-6 text-sm text-gray-600">

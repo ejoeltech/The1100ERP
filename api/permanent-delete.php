@@ -22,8 +22,28 @@ try {
     $document_type = $input['document_type'] ?? '';
     $ids = $input['ids'] ?? [];
 
-    if (!in_array($document_type, ['quote', 'invoice', 'receipt'])) {
-        throw new Exception('Invalid document type');
+    $table = '';
+    $lineItemTable = '';
+    $foreignKey = '';
+
+    switch ($document_type) {
+        case 'quote':
+            $table = 'quotes';
+            $lineItemTable = 'quote_line_items';
+            $foreignKey = 'quote_id';
+            break;
+        case 'invoice':
+            $table = 'invoices';
+            $lineItemTable = 'invoice_line_items';
+            $foreignKey = 'invoice_id';
+            break;
+        case 'receipt':
+            $table = 'receipts';
+            // Receipts typically don't own line items in this system (they reference invoices)
+            $lineItemTable = null;
+            break;
+        default:
+            throw new Exception('Invalid document type');
     }
 
     if (empty($ids) || !is_array($ids)) {
@@ -32,7 +52,8 @@ try {
 
     $ids = array_map('intval', $ids);
     $ids = array_filter($ids, function ($id) {
-        return $id > 0; });
+        return $id > 0;
+    });
 
     if (empty($ids)) {
         throw new Exception('Invalid item IDs');
@@ -40,24 +61,25 @@ try {
 
     $pdo->beginTransaction();
 
-    // First, delete associated line items
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $stmt = $pdo->prepare("
-        DELETE FROM line_items 
-        WHERE document_id IN ($placeholders)
-    ");
-    $stmt->execute($ids);
+
+    // First, delete associated line items if applicable
+    if ($lineItemTable) {
+        $stmt = $pdo->prepare("
+            DELETE FROM $lineItemTable 
+            WHERE $foreignKey IN ($placeholders)
+        ");
+        $stmt->execute($ids);
+    }
 
     // Then permanently delete the documents
     $stmt = $pdo->prepare("
-        DELETE FROM documents 
+        DELETE FROM $table 
         WHERE id IN ($placeholders) 
-        AND document_type = ?
         AND deleted_at IS NOT NULL
     ");
 
-    $params = array_merge($ids, [$document_type]);
-    $stmt->execute($params);
+    $stmt->execute($ids);
 
     $deleted_count = $stmt->rowCount();
 

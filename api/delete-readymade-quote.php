@@ -15,12 +15,12 @@ if (!$template_id) {
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE quote_templates SET deleted_at = NOW() WHERE id = ?");
+    $stmt = $pdo->prepare("UPDATE readymade_quote_templates SET is_active = 0 WHERE id = ?");
     $stmt->execute([$template_id]);
-    
+
     header('Location: ../pages/readymade-quotes.php?deleted=1');
     exit;
-    
+
 } catch (Exception $e) {
     error_log("Delete readymade quote error: " . $e->getMessage());
     header('Location: ../pages/readymade-quotes.php?error=' . urlencode($e->getMessage()));

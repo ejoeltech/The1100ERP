@@ -8,9 +8,9 @@ $stmt = $pdo->query("
     SELECT 
         qt.*,
         COUNT(qti.id) as item_count
-    FROM quote_templates qt
-    LEFT JOIN quote_template_items qti ON qt.id = qti.template_id
-    WHERE qt.deleted_at IS NULL
+    FROM readymade_quote_templates qt
+    LEFT JOIN readymade_quote_template_items qti ON qt.id = qti.template_id
+    WHERE qt.is_active = 1
     GROUP BY qt.id
     ORDER BY qt.created_at DESC
 ");
@@ -70,10 +70,10 @@ include '../includes/header.php';
                             <h3 class="text-lg font-bold text-gray-900 mb-2">
                                 <?php echo htmlspecialchars($template['template_name']); ?>
                             </h3>
-                            <?php if ($template['template_description']): ?>
+                            <?php if ($template['description']): ?>
                                 <p class="text-sm text-gray-600 mb-3">
-                                    <?php echo htmlspecialchars(substr($template['template_description'], 0, 100)); ?>
-                                    <?php echo strlen($template['template_description']) > 100 ? '...' : ''; ?>
+                                    <?php echo htmlspecialchars(substr($template['description'], 0, 100)); ?>
+                                    <?php echo strlen($template['description']) > 100 ? '...' : ''; ?>
                                 </p>
                             <?php endif; ?>
                         </div>
@@ -89,7 +89,7 @@ include '../includes/header.php';
                         </div>
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-gray-600">Est. Total:</span>
-                            <span class="font-bold text-primary"><?php echo formatNaira($template['estimated_total']); ?></span>
+                            <span class="font-bold text-primary"><?php echo formatNaira($template['grand_total']); ?></span>
                         </div>
                     </div>
 

@@ -7,8 +7,12 @@ if (!$invoice_id) {
     die('Invoice ID required');
 }
 
-// Fetch quote
-$stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'invoice' AND deleted_at IS NULL");
+// Fetch invoice
+$stmt = $pdo->prepare("
+    SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date 
+    FROM invoices 
+    WHERE id = ? AND deleted_at IS NULL
+");
 $stmt->execute([$invoice_id]);
 $invoice = $stmt->fetch();
 
@@ -17,7 +21,7 @@ if (!$invoice) {
 }
 
 // Fetch line items
-$stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
 

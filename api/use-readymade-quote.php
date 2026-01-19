@@ -15,7 +15,7 @@ if (!$template_id) {
 }
 
 // Fetch template and items
-$stmt = $pdo->prepare("SELECT * FROM quote_templates WHERE id = ? AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT * FROM readymade_quote_templates WHERE id = ? AND is_active = 1");
 $stmt->execute([$template_id]);
 $template = $stmt->fetch();
 
@@ -24,7 +24,7 @@ if (!$template) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM quote_template_items WHERE template_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM readymade_quote_template_items WHERE template_id = ? ORDER BY item_number");
 $stmt->execute([$template_id]);
 $items = $stmt->fetchAll();
 

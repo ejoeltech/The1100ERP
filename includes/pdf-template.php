@@ -1,283 +1,350 @@
+<?php
+// Quote PDF Template
+// Matches user's "Aligned Editable Quote Template"
+// Translated to DOMPDF-compatible Table Layouts
+
+$theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#0076BE'; // Primary Blue
+$light_bg = '#C1D8F0'; // Light Blue from user HTML
+
+$html = '
 <!DOCTYPE html>
 <html>
-
 <head>
+    <meta charset="UTF-8">
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
-            font-size: 11pt;
+            font-family: "Inter", sans-serif;
+            font-size: 13px;
+            color: #000;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            font-size: 12px;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #0076BE;
-            padding-bottom: 15px;
-        }
+        /* Helper Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .font-bold { font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
+        .italic { font-style: italic; }
+        .no-border { border: none !important; }
 
-        .company-name {
-            font-size: 24pt;
+        /* Colors */
+        .bg-primary { background-color: ' . $theme_color . '; color: white; }
+        .text-primary { color: ' . $theme_color . '; }
+        .bg-light { background-color: ' . $light_bg . '; }
+
+        /* Layout Specifics */
+        .header-title-large {
+            font-size: 36px;
             font-weight: bold;
-            color: #0076BE;
+            color: #1A1A1A;
+            margin: 0;
         }
-
-        .company-tagline {
-            font-size: 8pt;
+        .header-tech {
+            font-size: 11px;
             letter-spacing: 3px;
-            color: #666;
-        }
-
-        .company-details {
-            font-size: 9pt;
-            margin-top: 10px;
-            color: #666;
-        }
-
-        .document-title {
-            font-size: 32pt;
             font-weight: bold;
+            margin-top: -5px;
+            text-transform: uppercase;
+        }
+
+        .quote-label {
+            font-family: serif;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border: none;
+        }
+
+        /* Info Boxes */
+        .blue-label {
+            background-color: ' . $theme_color . ';
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 3px 8px;
+            display: block;
+            width: 80px;
             text-align: center;
-            margin: 20px 0;
+        }
+        
+        .border-bottom {
+            border-bottom: 1px solid #000;
         }
 
-        .quote-info {
-            margin-bottom: 20px;
-        }
-
-        .info-grid {
-            width: 100%;
-        }
-
-        .info-grid td {
+        /* Tables */
+        .main-table th {
+            background-color: ' . $theme_color . ';
+            color: white;
+            border: 1px solid #000;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
             padding: 5px;
-            font-size: 10pt;
         }
-
-        .label {
-            font-weight: bold;
-            color: #333;
+        .main-table td {
+            padding: 5px;
         }
-
-        table.line-items {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
+        .compact-row td {
+            padding: 4px;
         }
-
-        table.line-items th {
-            background-color: #0076BE;
+        
+        /* Footer Bank */
+        .payment-header {
+            background-color: ' . $theme_color . ';
             color: white;
-            padding: 8px;
-            text-align: left;
-            font-size: 10pt;
-        }
-
-        table.line-items td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            font-size: 10pt;
-        }
-
-        .totals {
-            width: 40%;
-            float: right;
-            margin-top: 20px;
-        }
-
-        .totals table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .totals td {
-            padding: 8px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .totals .grand-total {
-            background-color: #0076BE;
-            color: white;
-            font-weight: bold;
-            font-size: 12pt;
-        }
-
-        .footer {
-            margin-top: 40px;
-            border-top: 2px solid #0076BE;
-            padding-top: 15px;
-            text-align: center;
-            font-size: 9pt;
-        }
-
-        .bank-details {
-            background-color: #E3F2FD;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .bank-header {
-            background-color: #0076BE;
-            color: white;
-            padding: 8px;
             text-align: center;
             font-weight: bold;
-            margin-bottom: 10px;
+            font-size: 12px;
+            padding: 3px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .prepared-by {
+            background-color: ' . $theme_color . ';
+            color: white;
+            text-align: right;
+            font-size: 11px;
+            font-style: italic;
+            padding: 3px 10px;
         }
     </style>
 </head>
-
 <body>
 
-    <!-- Header -->
-    <div class="header">
-        <div class="company-name">Bluedots</div>
-        <div class="company-tagline">TECHNOLOGIES</div>
-        <div class="company-details">
-            <strong>Contact Address:</strong>
-            <?php echo COMPANY_ADDRESS; ?><br>
-            <strong>Phone:</strong>
-            <?php echo COMPANY_PHONE; ?> |
-            <strong>Email:</strong>
-            <?php echo COMPANY_EMAIL; ?> |
-            <?php echo COMPANY_WEBSITE; ?>
-        </div>
-    </div>
+    <!-- Header Section -->
+    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <td align="center" class="no-border">
+                ' . (defined('COMPANY_LOGO') && COMPANY_LOGO ?
+    '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 80px; margin-bottom: 10px;">' :
+    '<div class="header-title-large">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+                     <div class="header-tech">TECHNOLOGIES</div>'
+) . '
+                
+                <div style="margin-top: 5px; font-size: 11px;">
+                    <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>
+                    <strong>Phone:</strong> ' . COMPANY_PHONE . ' | <strong>Email:</strong> ' . COMPANY_EMAIL . '
+                </div>
+            </td>
+        </tr>
+    </table>
 
-    <!-- Document Title -->
-    <div class="document-title">QUOTE</div>
-    <div style="text-align: center; font-style: italic; color: #666; margin-bottom: 20px;">
-        <?php echo htmlspecialchars($quote['quote_title']); ?>
-    </div>
+    <!-- Quote Title Section -->
+    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <td align="center" class="no-border">
+                <div class="quote-label">QUOTE</div>
+                <table style="width: auto; margin: 0 auto;">
+                    <tr>
+                        <td class="no-border" style="font-weight: bold; font-size: 11px; text-transform: uppercase; color: #555; padding-right: 10px;">Quote Title:</td>
+                        <td class="no-border" style="border-bottom: 1px solid #000 !important; font-style: italic; min-width: 300px; text-align: center;">
+                            ' . htmlspecialchars($quote['quote_title']) . '
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <!-- Quote Info -->
-    <div class="quote-info">
-        <table class="info-grid">
-            <tr>
-                <td class="label" width="30%">Quote For:</td>
-                <td>
-                    <?php echo htmlspecialchars($quote['customer_name']); ?>
-                </td>
-                <td class="label" width="25%">Quote Number:</td>
-                <td>
-                    <?php echo htmlspecialchars($quote['document_number']); ?>
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Salesperson:</td>
-                <td>
-                    <?php echo htmlspecialchars($quote['salesperson']); ?>
-                </td>
-                <td class="label">Date:</td>
-                <td>
-                    <?php echo date('d/m/Y', strtotime($quote['quote_date'])); ?>
-                </td>
-            </tr>
-            <tr>
-                <td class="label">Payment Terms:</td>
-                <td colspan="3">
-                    <?php echo htmlspecialchars($quote['payment_terms']); ?>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <!-- Info Grid -->
+    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
+        <tr>
+            <!-- Left: Quote For -->
+            <td class="no-border" width="50%" style="vertical-align: top; padding-right: 20px;">
+                <table width="100%">
+                    <tr>
+                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Quote For:</div></td>
+                    </tr>
+                    <tr>
+                        <td style="padding:8px; border: 1px solid #000; height: 40px; font-style: italic; vertical-align: top;">
+                            ' . htmlspecialchars($quote['customer_name']) . '
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            
+            <!-- Right: Date & No -->
+            <td class="no-border" width="50%" style="vertical-align: bottom;">
+                <table width="100%" style="border-spacing: 0 5px;">
+                    <tr>
+                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Date:</div></td>
+                        <td style="border:none; border-bottom: 1px solid #000; padding-left: 10px;">
+                            ' . date('dS F Y', strtotime($quote['quote_date'])) . '
+                        </td>
+                    </tr>
+                    <tr><td colspan="2" height="5" style="border:none;"></td></tr>
+                    <tr>
+                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Quote No.:</div></td>
+                        <td style="border:none; border-bottom: 1px solid #000; padding-left: 10px;">
+                            ' . htmlspecialchars($quote['quote_number'] ?? $quote['document_number']) . '
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <!-- Line Items -->
-    <table class="line-items">
+    <!-- Meta Details Table -->
+    <table class="main-table" style="margin-bottom: 20px;">
         <thead>
             <tr>
-                <th width="5%">#</th>
-                <th width="8%">Qty</th>
-                <th width="45%">Description</th>
-                <th width="15%">Unit Price</th>
-                <th width="7%">VAT</th>
-                <th width="20%">Line Total</th>
+                <th width="18%">Salesperson</th>
+                <th width="15%">Delivery</th>
+                <th width="15%">Validity</th>
+                <th width="17%">Ship Date</th>
+                <th width="35%">Payment Terms</th>
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($line_items as $item): ?>
-                <tr>
-                    <td style="text-align: center;">
-                        <?php echo $item['item_number']; ?>
-                    </td>
-                    <td style="text-align: center;">
-                        <?php echo number_format($item['quantity'], 2); ?>
-                    </td>
-                    <td>
-                        <?php echo htmlspecialchars($item['description']); ?>
-                    </td>
-                    <td style="text-align: right;">
-                        <?php echo formatNaira($item['unit_price']); ?>
-                    </td>
-                    <td style="text-align: center;">
-                        <?php echo $item['vat_applicable'] ? '✓' : '—'; ?>
-                    </td>
-                    <td style="text-align: right; font-weight: bold;">
-                        <?php echo formatNaira($item['line_total']); ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
+            <tr class="compact-row">
+                <td class="text-center">' . htmlspecialchars($quote['salesperson']) . '</td>
+                <td class="text-center">' . htmlspecialchars($quote['delivery_period'] ?? '') . '</td>
+                <td class="text-center">30 Days</td>
+                <td class="text-center"> - </td>
+                <td class="text-center">' . htmlspecialchars($quote['payment_terms'] ?? DEFAULT_PAYMENT_TERMS) . '</td>
+            </tr>
         </tbody>
     </table>
 
-    <!-- Totals -->
-    <div class="totals">
-        <table>
+    <!-- Items Table -->
+    <table class="main-table" style="margin-bottom: 0;">
+        <thead>
             <tr>
-                <td><strong>Subtotal:</strong></td>
-                <td style="text-align: right;">
-                    <?php echo formatNaira($quote['subtotal']); ?>
-                </td>
+                <th width="8%">Item #</th>
+                <th width="8%">Qty</th>
+                <th width="44%">Product Description</th>
+                <th width="20%">Unit Price</th>
+                <th width="20%">Line Total</th>
             </tr>
-            <tr>
-                <td><strong>VAT (7.5%):</strong></td>
-                <td style="text-align: right;">
-                    <?php echo formatNaira($quote['total_vat']); ?>
-                </td>
-            </tr>
-            <tr class="grand-total">
-                <td><strong>Grand Total:</strong></td>
-                <td style="text-align: right; font-size: 14pt;">
-                    <?php echo formatNaira($quote['grand_total']); ?>
-                </td>
-            </tr>
-        </table>
+        </thead>
+        <tbody>';
+
+$i = 1;
+foreach ($line_items as $item) {
+    $html .= '
+            <tr class="compact-row">
+                <td class="text-center">' . $i++ . '</td>
+                <td class="text-center">' . number_format($item['quantity'], 0) . '</td>
+                <td class="text-left">' . htmlspecialchars($item['description']) . '</td>
+                <td class="text-right">' . formatNaira($item['unit_price']) . '</td>
+                <td class="text-right">' . formatNaira($item['line_total']) . '</td>
+            </tr>';
+}
+
+// Fill empty rows to make it look full (8 rows total)
+$rows_to_fill = max(0, 8 - count($line_items));
+for ($k = 0; $k < $rows_to_fill; $k++) {
+    $html .= '
+            <tr class="compact-row">
+                <td class="text-center">' . $i++ . '</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>';
+}
+
+$html .= '
+        </tbody>
+    </table>
+
+    <!-- Right Aligned Totals -->
+    <table class="no-border" width="100%" style="margin-top: 0;">
+        <tr>
+            <td width="60%" class="no-border"></td>
+            <td width="40%" class="no-border" style="padding: 0;">
+                <table class="main-table" style="border-top: none;">
+                    <tr class="compact-row">
+                        <td width="50%" class="text-center font-bold" style="border-top: none;">Subtotal</td>
+                        <td width="50%" class="text-right bg-primary font-bold" style="border-top: none;">' . formatNaira($quote['subtotal']) . '</td>
+                    </tr>
+                    <tr class="compact-row">
+                        <td class="text-center font-bold">Discount</td>
+                        <td class="text-right"> - </td>
+                    </tr>
+                    <tr class="compact-row">
+                        <td class="text-center font-bold">Tax ' . (isset($quote['vat_rate']) ? '(' . $quote['vat_rate'] . '%)' : '') . '</td>
+                        <td class="text-right">' . formatNaira($quote['total_vat']) . '</td>
+                    </tr>
+                    <tr class="compact-row">
+                        <td class="text-center font-bold bg-primary">Deposit Required</td>
+                        <td class="text-right bg-primary"> - </td>
+                    </tr>
+                    <tr><td colspan="2" height="5" class="no-border"></td></tr>
+                    <tr class="compact-row">
+                        <td class="text-center font-bold bg-primary">Total Quote</td>
+                        <td class="text-right bg-primary font-bold">' . formatNaira($quote['grand_total']) . '</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Signature Block -->
+    <div style="position: absolute; bottom: 150px; right: 40px; width: 200px; text-align: center;">
+        <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 5px;"></div>
+        <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Authorized Signature</div>
     </div>
 
-    <div style="clear: both;"></div>
-
-    <!-- Bank Details -->
-    <?php $bank_accounts = getBankAccountsForDisplay(); ?>
-    <?php if (!empty($bank_accounts)): ?>
-        <div class="bank-details">
-            <div class="bank-header">MAKE ALL PAYMENTS IN FAVOUR OF:
-                <?php echo htmlspecialchars($bank_accounts[0]['account_name'] ?? COMPANY_NAME); ?></div>
-            <table width="100%">
-                <tr>
-                    <?php
-                    $column_width = floor(100 / count($bank_accounts));
-                    foreach ($bank_accounts as $index => $account):
-                        ?>
-                        <td width="<?php echo $column_width; ?>%"
-                            style="text-align: center; <?php echo ($index < count($bank_accounts) - 1) ? 'border-right: 1px solid #0076BE;' : ''; ?> padding: 10px;">
-                            <strong><?php echo htmlspecialchars($account['bank_name']); ?></strong><br>
-                            Account No: <?php echo htmlspecialchars($account['account_number']); ?><br>
-                            <small><?php echo htmlspecialchars($account['account_name']); ?></small>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
-            </table>
+    <!-- Footer Section -->
+    <div style="position: absolute; bottom: 30px; left: 30px; right: 30px;">
+        
+        <div class="text-center italic font-bold" style="font-family: serif; font-size: 13px; margin-bottom: 10px;">
+            ' . nl2br(htmlspecialchars(getSetting('footer_text', 'We look forward to working with you! Thank you'))) . '
         </div>
-    <?php endif; ?>
 
-    <!-- Footer -->
-    <div class="footer">
-        <p style="font-style: italic; font-weight: bold;">We look forward to working with you! Thank you</p>
-        <p style="margin-top: 10px; font-size: 8pt; color: #666;">
-            Quote prepared by:
-            <?php echo htmlspecialchars($quote['salesperson']); ?>
-        </p>
+        <div style="border: 1px solid #000; width: 100%;">
+            <div class="payment-header">
+                MAKE ALL PAYMENTS IN FAVOUR OF: ' . strtoupper(COMPANY_NAME) . '
+            </div>
+            
+            <div class="bg-light" style="padding: 10px 0; border-bottom: 1px solid #000;">
+                <table class="no-border">
+                    <tr>';
+
+$bank_accounts = getBankAccountsForDisplay();
+if (empty($bank_accounts)) {
+    $html .= '<td align="center" class="no-border">No Bank Details Configured</td>';
+} else {
+    $width = floor(100 / count($bank_accounts));
+    foreach ($bank_accounts as $idx => $acc) {
+        // Add vertical divider if not first item
+        $border_style = ($idx > 0) ? 'border-left: 1px solid #000;' : '';
+
+        $html .= '<td width="' . $width . '%" align="center" style="vertical-align: top; border: none; ' . $border_style . '">
+                        <div class="font-bold text-center" style="font-size: 12px;">' . htmlspecialchars($acc['bank_name']) . '</div>
+                        <div class="text-center" style="font-size: 12px;">' . htmlspecialchars($acc['account_number']) . '</div>
+                     </td>';
+    }
+}
+
+$html .= '
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="prepared-by">
+                Quote prepared by: ' . htmlspecialchars($quote['salesperson']) . '
+            </div>
+        </div>
     </div>
 
 </body>
-
 </html>
+';
+
+echo $html;
+?>

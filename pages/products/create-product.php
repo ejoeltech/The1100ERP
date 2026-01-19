@@ -65,13 +65,13 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <div class="flex gap-4 justify-end mt-8">
+            <div class="flex flex-col md:flex-row gap-4 justify-end mt-8">
                 <a href="manage-products.php"
-                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-center">
                     Cancel
                 </a>
                 <button type="submit"
-                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
+                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold text-center">
                     Create Product
                 </button>
             </div>

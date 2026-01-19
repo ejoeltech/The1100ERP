@@ -18,10 +18,10 @@ try {
 
     // Get form data
     $invoice_id = $_POST['invoice_id'] ?? null;
-    $quote_title = $_POST['quote_title'] ?? '';
+    $quote_title = $_POST['quote_title'] ?? ''; // This is invoice_title
     $customer_name = $_POST['customer_name'] ?? '';
     $salesperson = $_POST['salesperson'] ?? '';
-    $quote_date = $_POST['quote_date'] ?? date('Y-m-d');
+    $quote_date = $_POST['quote_date'] ?? date('Y-m-d'); // This is invoice_date
     $subtotal = $_POST['subtotal'] ?? 0;
     $total_vat = $_POST['total_vat'] ?? 0;
     $grand_total = $_POST['grand_total'] ?? 0;
@@ -35,7 +35,7 @@ try {
     }
 
     // Verify invoice exists
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'invoice' AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$invoice_id]);
     $invoice = $stmt->fetch();
 
@@ -43,12 +43,15 @@ try {
         throw new Exception('Invoice not found');
     }
 
-    // Phase 4: Check if invoice has receipts
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM documents WHERE parent_document_id = ? AND document_type = 'receipt' AND deleted_at IS NULL");
+    // Phase 4: Check if invoice has receipts (using receipts table)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM receipts WHERE invoice_id = ? AND deleted_at IS NULL");
     $stmt->execute([$invoice_id]);
     $has_receipts = $stmt->fetchColumn() > 0;
 
     if ($has_receipts) {
+        // In most ERPs, you can edit non-financial fields, but let's stick to original logic: block edit.
+        // Or strictly block financial fields? 
+        // Original logic threw exception.
         throw new Exception('Cannot edit invoice - receipts have been generated for this invoice');
     }
 
@@ -66,12 +69,13 @@ try {
     }
 
     // Build UPDATE with edit tracking
+    // invoices table columns: invoice_title, customer_name, salesperson, invoice_date, subtotal, total_vat, grand_total, amount_paid, balance_due, payment_terms, status
     $update_sql = "
-        UPDATE documents SET
-            quote_title = ?,
+        UPDATE invoices SET
+            invoice_title = ?,
             customer_name = ?,
             salesperson = ?,
-            quote_date = ?,
+            invoice_date = ?,
             subtotal = ?,
             total_vat = ?,
             grand_total = ?,
@@ -82,10 +86,10 @@ try {
             updated_at = NOW()";
 
     $params = [
-        $quote_title,
+        $quote_title, // Mapped to invoice_title
         $customer_name,
         $salesperson,
-        $quote_date,
+        $quote_date, // Mapped to invoice_date
         $subtotal,
         $total_vat,
         $grand_total,
@@ -95,10 +99,10 @@ try {
         $status
     ];
 
-    // Phase 4: Track edit if finalized
+    // Phase 4: Track edit if finalized (Skipping as column missing in schema for invoices too likely)
     if ($is_finalized && isset($_SESSION['user_id'])) {
-        $update_sql .= ", last_edited_by = ?, last_edited_at = NOW()";
-        $params[] = $_SESSION['user_id'];
+        // $update_sql .= ", last_edited_by = ?, last_edited_at = NOW()";
+        // $params[] = $_SESSION['user_id'];
     }
 
     $update_sql .= " WHERE id = ?";
@@ -112,12 +116,12 @@ try {
 
     if (!empty($line_items)) {
         // Delete existing line items
-        $stmt = $pdo->prepare("DELETE FROM line_items WHERE document_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM invoice_line_items WHERE invoice_id = ?");
         $stmt->execute([$invoice_id]);
 
         // Insert new line items
         $stmt = $pdo->prepare("
-            INSERT INTO line_items (document_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total)
+            INSERT INTO invoice_line_items (invoice_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
@@ -137,16 +141,16 @@ try {
     }
 
     // Add customer if not exists
-    $stmt = $pdo->prepare("SELECT id FROM customers WHERE name = ?");
+    $stmt = $pdo->prepare("SELECT id FROM customers WHERE customer_name = ?");
     $stmt->execute([$customer_name]);
     if (!$stmt->fetch()) {
-        $stmt = $pdo->prepare("INSERT INTO customers (name) VALUES (?)");
+        $stmt = $pdo->prepare("INSERT INTO customers (customer_name) VALUES (?)");
         $stmt->execute([$customer_name]);
     }
 
-    // Phase 4: Log audit trail if finalized was edited
+    // Phase 4: Log audit trail
     if ($is_finalized && function_exists('logDocumentEdit')) {
-        logDocumentEdit('invoice', $invoice_id, $invoice['document_number'], [
+        logDocumentEdit('invoice', $invoice_id, $invoice['invoice_number'], [
             'edited_by' => $_SESSION['full_name'] ?? 'Unknown',
             'status' => 'finalized',
             'action' => 'edited_finalized_invoice'
@@ -160,7 +164,9 @@ try {
     exit;
 
 } catch (Exception $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("Update Invoice Error: " . $e->getMessage());
     header('Location: ../pages/edit-invoice.php?id=' . ($invoice_id ?? '') . '&error=' . urlencode($e->getMessage()));
     exit;

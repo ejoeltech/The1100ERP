@@ -16,12 +16,7 @@ try {
     $settings_rows = [];
 }
 
-// Helper function to get setting value
-function getSetting($key, $default = '')
-{
-    global $settings_rows;
-    return $settings_rows[$key] ?? $default;
-}
+// Helper function to get setting value is now in config.php
 
 include '../includes/header.php';
 ?>
@@ -45,8 +40,8 @@ include '../includes/header.php';
 
 <div class="bg-white rounded-lg shadow-md">
     <!-- Tabs -->
-    <div class="border-b border-gray-200">
-        <nav class="flex -mb-px">
+    <div class="border-b border-gray-200 overflow-x-auto">
+        <nav class="flex -mb-px min-w-max">
             <button onclick="switchTab('company')" id="tab-company"
                 class="tab-button active px-6 py-4 text-sm font-semibold border-b-2 border-primary text-primary">
                 Company Info
@@ -71,10 +66,14 @@ include '../includes/header.php';
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Audit Settings
             </button>
+            <button onclick="switchTab('appendices')" id="tab-appendices"
+                class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
+                Quote Appendices
+            </button>
         </nav>
     </div>
 
-    <form method="POST" action="../api/save-settings.php" class="p-8" enctype="multipart/form-data">
+    <form id="settingsForm" method="POST" action="../api/save-settings.php" class="p-8" enctype="multipart/form-data">
 
         <!-- Company Info Tab -->
         <div id="content-company" class="tab-content">
@@ -302,6 +301,14 @@ include '../includes/header.php';
                 </div>
 
                 <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">TinyMCE API Key</label>
+                    <input type="text" name="tinymce_api_key"
+                        value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    <p class="text-xs text-gray-500 mt-1">Get your free key at <a href="https://www.tiny.cloud/" target="_blank" class="text-blue-600 hover:underline">tiny.cloud</a> to remove the warning.</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Date Format</label>
                     <select name="date_format"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
@@ -319,6 +326,23 @@ include '../includes/header.php';
                             class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
                         <span class="text-sm font-semibold text-gray-700">Auto-archive documents after 90 days</span>
                     </label>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="mt-12 pt-8 border-t border-red-200">
+                <h4 class="text-xl font-bold text-red-600 mb-4">Danger Zone</h4>
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <h5 class="font-bold text-gray-900 mb-2">Factory Reset</h5>
+                    <p class="text-sm text-gray-700 mb-4">
+                        This action will <strong>permanently delete all data</strong>, including users, documents, settings, and logs. 
+                        The application will be reset to its initial state, ready for a fresh installation. 
+                        <strong>This cannot be undone.</strong>
+                    </p>
+                    <button type="button" onclick="showResetModal()" 
+                            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">
+                        Reset Application
+                    </button>
                 </div>
             </div>
         </div>
@@ -373,7 +397,7 @@ include '../includes/header.php';
                     <?php foreach ($bank_accounts as $account): ?>
                         <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                             id="bank-<?= $account['id'] ?>">
-                            <div class="flex items-center justify-between">
+                            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-3 mb-3">
                                         <input type="checkbox" <?= $account['show_on_documents'] ? 'checked' : '' ?>
@@ -461,6 +485,31 @@ include '../includes/header.php';
                     </select>
                 </div>
             </div>
+                <div class="border-t border-gray-200 pt-6 mt-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">Document Styling</h4>
+                    <p class="text-sm text-gray-600 mb-4">Customize the look of your Quotes, Invoices, and Receipts.</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Theme Color</label>
+                            <div class="flex items-center gap-3">
+                                <input type="color" name="theme_color" 
+                                       value="<?php echo htmlspecialchars(getSetting('theme_color', '#0076BE')); ?>"
+                                       class="h-10 w-20 border border-gray-300 rounded cursor-pointer">
+                                <span class="text-sm text-gray-500">Pick a primary brand color</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Footer Text</label>
+                            <textarea name="footer_text" rows="3"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                                      placeholder="e.g. We appreciate your business!"><?php echo htmlspecialchars(getSetting('footer_text', 'We appreciate your business! Thank you')); ?></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Appears at the bottom of all PDF documents</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Audit Settings Tab -->
@@ -473,7 +522,7 @@ include '../includes/header.php';
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <h4 class="font-semibold text-gray-900 mb-4">📊 Audit Log Actions</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <a href="/1100erp/pages/audit-log.php" 
+                        <a href="audit-log.php" 
                            class="block px-4 py-3 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 font-semibold">
                             View Audit Log
                         </a>
@@ -630,16 +679,63 @@ include '../includes/header.php';
                     </p>
                 </div>
             </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quote Appendices Tab -->
+        <div id="content-appendices" class="tab-content hidden">
+            <h3 class="text-xl font-bold text-gray-900 mb-6">Quote Appendices</h3>
+            <p class="text-gray-600 mb-6">Content added here will be appended as separate pages to the end of every PDF Quote.</p>
+
+            <div class="space-y-8 max-w-4xl">
+                <div>
+                    <label class="block text-lg font-semibold text-gray-900 mb-2">Terms & Conditions</label>
+                    <p class="text-sm text-gray-500 mb-2">Appears on a new page after the quote.</p>
+                    <textarea name="quote_terms" id="quote_terms" rows="10"
+                        class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_terms', '')); ?></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-lg font-semibold text-gray-900 mb-2">Warranty Information</label>
+                    <p class="text-sm text-gray-500 mb-2">Appears on the last page.</p>
+                    <textarea name="quote_warranty" id="quote_warranty" rows="10" 
+                        class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_warranty', '')); ?></textarea>
+                </div>
+            </div>
         </div>
 
         <!-- Save Button -->
         <div class="mt-8 pt-6 border-t border-gray-200">
-            <button type="submit" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
+            <button type="button" onclick="document.getElementById('settingsForm').submit()" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
                 Save Settings
             </button>
         </div>
     </form>
 </div>
+
+<!-- TinyMCE -->
+<!-- TinyMCE -->
+<script src="https://cdn.tiny.cloud/1/<?php echo TINYMCE_API_KEY; ?>/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+    tinymce.init({
+        selector: '#quote_terms, #quote_warranty',
+        height: 600,
+        menubar: false,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'table', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+        setup: function(editor) {
+            editor.on('change', function () {
+                editor.save();
+            });
+        },
+        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
+    });
+</script>
 
 <script>
     function switchTab(tabName) {
@@ -689,6 +785,80 @@ include '../includes/header.php';
 </script>
 
 <!-- Bank Account Modal -->
+<!-- Factory Reset Modal -->
+<div id="resetModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full border-t-4 border-red-600">
+        <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">⚠️ Factory Reset</h3>
+            <p class="text-gray-600 mb-6">
+                Are you absolutely sure? This will <strong>wipe everything</strong>. 
+                Enter your admin password to confirm.
+            </p>
+
+            <form id="resetForm" onsubmit="performFactoryReset(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Password</label>
+                    <input type="password" id="resetPassword" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeResetModal()"
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                        Confirm Reset
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showResetModal() {
+        document.getElementById('resetModal').classList.remove('hidden');
+        document.getElementById('resetPassword').value = '';
+        document.getElementById('resetPassword').focus();
+    }
+
+    function closeResetModal() {
+        document.getElementById('resetModal').classList.add('hidden');
+    }
+
+    async function performFactoryReset(event) {
+        event.preventDefault();
+        const password = document.getElementById('resetPassword').value;
+
+        if (!confirm('Final Warning: This will delete ALL data. Continue?')) {
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('password', password);
+
+            const response = await fetch('../api/factory-reset.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('System reset successfully. Redirecting to setup...');
+                window.location.href = '../index.php';
+            } else {
+                alert('Reset Failed: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    }
+</script>
+
 <div id="bankModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div class="p-6">

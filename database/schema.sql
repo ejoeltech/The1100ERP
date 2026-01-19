@@ -68,3 +68,50 @@ INSERT INTO line_items (document_id, item_number, quantity, description, unit_pr
 (@doc_id, 1, 1.00, 'Custom Website Design & Development', 100000.00, 1, 7500.00, 107500.00),
 (@doc_id, 2, 1.00, 'Domain Name Registration (.com.ng)', 5000.00, 0, 0.00, 5000.00),
 (@doc_id, 3, 1.00, 'Web Hosting (Annual)', 20000.00, 1, 1500.00, 21500.00);
+
+-- --------------------------------------------------------
+-- Phase 2/3 Updates (Payments, Soft Deletes, etc.)
+-- --------------------------------------------------------
+
+-- Payments Table
+CREATE TABLE IF NOT EXISTS `payments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `customer_id` int(11) NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `payment_date` date NOT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `reference` varchar(100) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Receipts Table (If not already created by install logic, usually needs definition)
+CREATE TABLE IF NOT EXISTS `receipts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `receipt_number` varchar(50) DEFAULT NULL,
+  `payment_id` int(11) DEFAULT NULL,
+  `customer_id` int(11) NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `receipt_date` date NOT NULL,
+  `status` enum('valid','void') DEFAULT 'valid',
+  `is_archived` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_receipt_number` (`receipt_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Updates to Documents/Invoices (Soft Delete & Archive)
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS is_archived TINYINT(1) DEFAULT 0;
+ALTER TABLE documents MODIFY COLUMN status ENUM('draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial', 'finalized') DEFAULT 'draft';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS delivery_period VARCHAR(255) DEFAULT NULL;
+
+-- Updates to Customers (Soft Delete & Extra Fields)
+-- Note: 'customers' table definition might be missing in this file if it was created by a separate script?
+-- Assuming standard customers table exists or will be created by other parts. 
+-- If this schema.sql is the ONLY source, we should define customers fully.
+-- Checking lines 1-12... 'documents' is line 13. 'customers' table is NOT defined in lines 1-32.
+-- It seems schema.sql might be incomplete or relies on 'users' table?
+-- Let's just add ALTERs to be safe for now, as the wizard might run other SQLs.
+

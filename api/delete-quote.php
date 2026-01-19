@@ -9,8 +9,8 @@ if (!$quote_id) {
 }
 
 try {
-    // Soft Delete (recommended)
-    $stmt = $pdo->prepare("UPDATE documents SET deleted_at = NOW() WHERE id = ?");
+    // Soft Delete from quotes table
+    $stmt = $pdo->prepare("UPDATE quotes SET deleted_at = NOW() WHERE id = ?");
     $stmt->execute([$quote_id]);
 
     header('Location: ../pages/view-quotes.php?deleted=1');

@@ -66,4 +66,4 @@
 </div>
 
 <!-- Include email modal script -->
-<script src="/1100erp/assets/js/email-modal.js"></script>
+<script src="<?php echo isset($base_path) ? $base_path : '.'; ?>/assets/js/email-modal.js"></script>

@@ -4,28 +4,29 @@ include '../includes/session-check.php';
 $pageTitle = 'View Receipts - Bluedots Technologies';
 
 // Build role-based filter
-$role_filter = getRoleFilter('d');
+$role_filter = getRoleFilter('r');
 
 // Fetch receipts
 $query = "
     SELECT 
-        d.id,
-        d.document_number,
-        d.quote_title,
-        d.customer_name,
-        d.quote_date,
-        d.amount_paid,
-        d.payment_method,
-        d.payment_reference,
-        d.created_at,
-        d.created_by,
+        r.id,
+        r.receipt_number as document_number,
+        COALESCE(i.invoice_title, CONCAT('Receipt ', r.receipt_number)) as quote_title,
+        r.customer_name,
+        r.payment_date as quote_date,
+        r.amount_paid,
+        r.payment_method,
+        r.reference_number as payment_reference,
+        r.created_at,
+        r.created_by,
         u.full_name as creator_name
-    FROM documents d
-    LEFT JOIN users u ON d.created_by = u.id
-    WHERE d.document_type = 'receipt'
-    AND d.deleted_at IS NULL
+    FROM receipts r
+    LEFT JOIN invoices i ON r.invoice_id = i.id
+    LEFT JOIN users u ON r.created_by = u.id
+    WHERE 1=1
+    AND r.deleted_at IS NULL
     $role_filter
-    ORDER BY d.created_at DESC
+    ORDER BY r.created_at DESC
 ";
 
 $stmt = $pdo->query($query);

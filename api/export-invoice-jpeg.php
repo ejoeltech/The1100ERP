@@ -8,8 +8,12 @@ if (!$invoice_id) {
 }
 
 try {
-    // Fetch quote
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'invoice' AND deleted_at IS NULL");
+    // Fetch invoice
+    $stmt = $pdo->prepare("
+        SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date 
+        FROM invoices 
+        WHERE id = ? AND deleted_at IS NULL
+    ");
     $stmt->execute([$invoice_id]);
     $invoice = $stmt->fetch();
 
@@ -18,7 +22,7 @@ try {
     }
 
     // Fetch line items
-    $stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+    $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
     $stmt->execute([$invoice_id]);
     $line_items = $stmt->fetchAll();
 
@@ -110,7 +114,7 @@ try {
     $y += 60;
 
     imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Date:');
-    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, date('d/m/Y', strtotime($invoice['invoice_date'])));
+    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, date('d/m/Y', strtotime($invoice['quote_date'])));
     $y += 60;
 
     imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Customer:');
@@ -123,7 +127,7 @@ try {
     $y = $boxY + 280;
 
     // Document title
-    imagettftext($image, 36, 0, $margin, $y, $black, $fontBoldPath, 'Project: ' . substr($invoice['invoice_title'], 0, 50));
+    imagettftext($image, 36, 0, $margin, $y, $black, $fontBoldPath, 'Project: ' . substr($invoice['quote_title'], 0, 50));
     $y += 100;
 
     // Line items section header

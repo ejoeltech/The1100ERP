@@ -11,7 +11,7 @@ if (!$quote_id) {
 }
 
 // Fetch quote
-$stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
 $stmt->execute([$quote_id]);
 $quote = $stmt->fetch();
 
@@ -34,7 +34,7 @@ if (!canEditDocument($quote)) {
 }
 
 // Fetch line items
-$stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");
 $stmt->execute([$quote_id]);
 $line_items = $stmt->fetchAll();
 
@@ -198,17 +198,17 @@ include '../includes/header.php';
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-4 justify-end">
+        <div class="flex flex-col md:flex-row gap-4 justify-end">
             <button type="button" onclick="window.location.href='view-quotes.php'"
-                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-center">
                 Cancel
             </button>
             <button type="submit" name="status" value="draft"
-                class="px-6 py-3 border border-primary text-primary rounded-lg hover:bg-blue-50 font-semibold">
+                class="px-6 py-3 border border-primary text-primary rounded-lg hover:bg-blue-50 font-semibold text-center">
                 Update Draft
             </button>
             <button type="submit" name="status" value="finalized"
-                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
+                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold text-center">
                 Update & Finalize
             </button>
         </div>

@@ -10,7 +10,14 @@ function requireLogin()
 {
     if (!isLoggedIn()) {
         // Redirect to login page with absolute path
-        header('Location: /1100erp/login.php');
+        // Redirect to login page with dynamic path
+        $redirect = 'login.php';
+        if (!file_exists($redirect) && file_exists('../' . $redirect)) {
+            $redirect = '../' . $redirect;
+        } elseif (!file_exists($redirect) && file_exists('../../' . $redirect)) {
+            $redirect = '../../' . $redirect;
+        }
+        header('Location: ' . $redirect);
         exit;
     }
 }
@@ -32,7 +39,7 @@ function login($pdo, $username, $password)
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    if ($user && password_verify($password, $user['password_hash'])) {
+    if ($user && password_verify($password, $user['password'])) {
         // Set session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];

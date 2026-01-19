@@ -2,6 +2,8 @@
 session_start();
 require_once '../../config.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/permissions.php';
+require_once '../../includes/audit.php';
 
 // Check if user is logged in and has admin permission
 requireLogin();

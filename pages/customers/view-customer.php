@@ -18,13 +18,19 @@ if (!$customer) {
 }
 
 // Get documents for this customer
+// Get documents for this customer (Union of Quotes, Invoices, Receipts)
 $stmt = $pdo->prepare("
-    SELECT id, quote_number as doc_number, document_type, quote_date as doc_date, total_amount, status 
-    FROM documents 
-    WHERE customer_id = ? AND deleted_at IS NULL
+    (SELECT id, quote_number as doc_number, 'quote' as document_type, quote_date as doc_date, grand_total as total_amount, status, created_at 
+     FROM quotes WHERE customer_id = ? AND deleted_at IS NULL)
+    UNION ALL
+    (SELECT id, invoice_number as doc_number, 'invoice' as document_type, invoice_date as doc_date, grand_total as total_amount, status, created_at 
+     FROM invoices WHERE customer_id = ? AND deleted_at IS NULL)
+    UNION ALL
+    (SELECT id, receipt_number as doc_number, 'receipt' as document_type, payment_date as doc_date, amount_paid as total_amount, 'paid' as status, created_at 
+     FROM receipts WHERE customer_id = ? AND deleted_at IS NULL)
     ORDER BY created_at DESC LIMIT 10
 ");
-$stmt->execute([$id]);
+$stmt->execute([$id, $id, $id]);
 $documents = $stmt->fetchAll();
 
 $pageTitle = 'View Customer - Bluedots Technologies';
@@ -49,7 +55,7 @@ include '../../includes/header.php';
                 <div>
                     <p class="text-sm text-gray-600">Name</p>
                     <p class="font-semibold">
-                        <?php echo htmlspecialchars($customer['name']); ?>
+                        <?php echo htmlspecialchars($customer['customer_name']); ?>
                     </p>
                 </div>
                 <?php if ($customer['company']): ?>

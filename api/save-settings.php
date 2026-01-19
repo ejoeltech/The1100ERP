@@ -12,6 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
 }
 
+// DEBUG LOGGING
+file_put_contents('debug_post_log.txt', print_r($_POST, true), FILE_APPEND);
+// END DEBUG LOGGING
+
 // Handle logo upload separately if file is present
 if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
     include 'upload-logo.php';
@@ -60,6 +64,13 @@ try {
         'show_dashboard_charts' => isset($_POST['show_dashboard_charts']) ? '1' : '0',
         'show_recent_activity' => isset($_POST['show_recent_activity']) ? '1' : '0',
         'pdf_quality' => $_POST['pdf_quality'] ?? 'high',
+        'theme_color' => $_POST['theme_color'] ?? '#0076BE',
+        'footer_text' => $_POST['footer_text'] ?? 'We appreciate your business! Thank you',
+        'tinymce_api_key' => $_POST['tinymce_api_key'] ?? 'no-api-key',
+
+        // Quote Appendices
+        'quote_terms' => $_POST['quote_terms'] ?? '',
+        'quote_warranty' => $_POST['quote_warranty'] ?? '',
     ];
 
     // Create settings table if it doesn't exist
@@ -85,7 +96,7 @@ try {
 
     // Log audit if function exists
     if (function_exists('logAudit')) {
-        logAudit('update', 'settings', null, null, ['settings_updated' => count($settings)]);
+        logAudit('update', 'settings', null, ['settings_updated' => count($settings)]);
     }
 
     header('Location: ../pages/settings.php?success=1');

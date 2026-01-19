@@ -9,7 +9,7 @@ if (!$invoice_id) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'invoice' AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT *, invoice_number as document_number, invoice_title as quote_title FROM invoices WHERE id = ? AND deleted_at IS NULL");
 $stmt->execute([$invoice_id]);
 $invoice = $stmt->fetch();
 
@@ -18,22 +18,22 @@ if (!$invoice) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
 
 // Fetch parent quote
 $parent_quote = null;
-if ($invoice['parent_document_id']) {
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ?");
-    $stmt->execute([$invoice['parent_document_id']]);
+if ($invoice['quote_id']) {
+    $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ?");
+    $stmt->execute([$invoice['quote_id']]);
     $parent_quote = $stmt->fetch();
 }
 
 // Phase 6: Fetch payment history (receipts)
 $stmt = $pdo->prepare("
-    SELECT * FROM documents 
-    WHERE parent_document_id = ? AND document_type = 'receipt' AND deleted_at IS NULL
+    SELECT *, receipt_number as document_number FROM receipts 
+    WHERE invoice_id = ? AND deleted_at IS NULL
     ORDER BY created_at ASC
 ");
 $stmt->execute([$invoice_id]);
@@ -49,7 +49,7 @@ foreach ($receipts as $receipt) {
 $actual_balance = $invoice['grand_total'] - $total_paid_from_receipts;
 $payment_progress = $invoice['grand_total'] > 0 ? ($total_paid_from_receipts / $invoice['grand_total']) * 100 : 0;
 
-$pageTitle = 'Invoice ' . $invoice['document_number'] . ' - Bluedots Technologies';
+$pageTitle = 'Invoice ' . $invoice['document_number'] . ' - ' . COMPANY_NAME;
 include '../includes/header.php';
 ?>
 
@@ -89,41 +89,46 @@ include '../includes/header.php';
         ✏️ Edit Invoice
     </a>
 
+    <?php if ($invoice['status'] === 'draft'): ?>
+        <form method="POST" action="../api/finalize-invoice.php"
+            onsubmit="return confirm('Are you sure you want to finalize this invoice? It cannot be edited afterwards.');"
+            class="inline">
+            <input type="hidden" name="invoice_id" value="<?php echo $invoice_id; ?>">
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+                🔒 Finalize Invoice
+            </button>
+        </form>
+    <?php endif; ?>
+
     <?php
     // Check if invoice is finalized and has balance
     if ($invoice['status'] === 'finalized' && $invoice['balance_due'] > 0):
-        // Check if receipt already exists
-        $stmt = $pdo->prepare("SELECT id FROM documents WHERE parent_document_id = ? AND document_type = 'receipt'");
-        $stmt->execute([$invoice_id]);
-        $existing_receipt = $stmt->fetch();
-
-        if (!$existing_receipt):
-            ?>
-            <a href="create-receipt.php?invoice_id=<?php echo $invoice_id; ?>"
-                class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">
-                💳 Generate Receipt
-            </a>
-        <?php endif; endif; ?>
+        ?>
+        <a href="payments/record-payment.php?invoice_id=<?php echo $invoice_id; ?>"
+            class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">
+            💳 Record Payment
+        </a>
+    <?php endif; ?>
 
     <a href="view-invoices.php"
         class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">← Back to
         Invoices</a>
 </div>
 
-<div id="printableInvoice" class="bg-white rounded-lg shadow-md p-12 max-w-4xl mx-auto">
+<div id="printableInvoice" class="bg-white rounded-lg shadow-md p-4 md:p-8 max-w-4xl mx-auto">
     <!-- Same structure as view-quote.php but with INVOICE title and balance_due -->
 
     <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
         <div class="flex justify-center items-center gap-2 mb-3">
-            <div class="flex items-center gap-1">
-                <div class="w-3 h-3 bg-sky-500 rounded-full"></div>
-                <div class="w-5 h-5 bg-sky-600 rounded-full border-2 border-secondary"></div>
-                <div class="w-8 h-8 bg-sky-700 rounded-full"></div>
-                <div class="w-10 h-10 border-4 border-secondary rounded-full"></div>
-            </div>
+            <?php if (COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
+                <img src="../<?php echo COMPANY_LOGO; ?>" alt="<?php echo COMPANY_NAME; ?>" class="h-28 object-contain">
+            <?php else: ?>
+                <div class="flex flex-col items-center">
+                    <h1 class="text-3xl font-bold tracking-tight mb-1"><?php echo COMPANY_NAME; ?></h1>
+                    <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
+                </div>
+            <?php endif; ?>
         </div>
-        <h1 class="text-3xl font-bold tracking-tight mb-1">Bluedots</h1>
-        <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
         <div class="text-xs mt-4 space-y-1 text-gray-700">
             <p><strong>Contact Address:</strong>
                 <?php echo COMPANY_ADDRESS; ?>
@@ -143,7 +148,7 @@ include '../includes/header.php';
         </p>
     </div>
 
-    <div class="grid grid-cols-2 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div>
             <p class="text-sm font-bold text-gray-700 mb-2">Bill To:</p>
             <div class="border border-gray-300 p-3 rounded bg-gray-50">
@@ -162,7 +167,7 @@ include '../includes/header.php';
             <div class="flex items-center justify-between">
                 <span class="text-sm font-bold text-gray-700">Date:</span>
                 <span class="text-gray-900">
-                    <?php echo date('d/m/Y', strtotime($invoice['quote_date'])); ?>
+                    <?php echo date('d/m/Y', strtotime($invoice['invoice_date'])); ?>
                 </span>
             </div>
             <div class="flex items-center justify-between">
@@ -227,9 +232,9 @@ include '../includes/header.php';
                     <?php echo formatNaira($invoice['total_vat']); ?>
                 </span>
             </div>
-            <div class="flex justify-between items-center py-3 bg-primary text-white px-4 rounded">
+            <div class="flex justify-between items-center py-2 bg-primary text-white px-4 rounded">
                 <span class="text-lg font-bold">Grand Total:</span>
-                <span class="text-2xl font-bold">
+                <span class="text-xl font-bold">
                     <?php echo formatNaira($invoice['grand_total']); ?>
                 </span>
             </div>
@@ -239,9 +244,9 @@ include '../includes/header.php';
                     <?php echo formatNaira($invoice['amount_paid']); ?>
                 </span>
             </div>
-            <div class="flex justify-between items-center py-3 bg-red-600 text-white px-4 rounded">
+            <div class="flex justify-between items-center py-2 bg-red-600 text-white px-4 rounded">
                 <span class="text-lg font-bold">Balance Due:</span>
-                <span class="text-2xl font-bold">
+                <span class="text-xl font-bold">
                     <?php echo formatNaira($invoice['balance_due']); ?>
                 </span>
             </div>
@@ -252,21 +257,28 @@ include '../includes/header.php';
     <div class="border-t-2 border-gray-200 pt-6">
         <p class="text-center font-serif italic font-bold mb-6 text-gray-700">We appreciate your business! Thank you</p>
         <div class="bg-primary text-white text-center py-2 text-sm font-bold uppercase tracking-wider mb-2">
-            MAKE ALL PAYMENTS IN FAVOUR OF: Bluedots Technologies
+            MAKE ALL PAYMENTS IN FAVOUR OF: <?php echo htmlspecialchars(COMPANY_NAME); ?>
         </div>
         <div class="bg-blue-100 flex justify-around py-4 px-6 border-x border-gray-300 mb-2">
-            <div class="text-center">
-                <p class="font-bold text-sm text-gray-900">Access Bank</p>
-                <p class="text-sm text-gray-700">Account No:
-                    <?php echo BANK_ACCESS; ?>
-                </p>
-            </div>
-            <div class="text-center">
-                <p class="font-bold text-sm text-gray-900">United Bank For Africa (UBA)</p>
-                <p class="text-sm text-gray-700">Account No:
-                    <?php echo BANK_UBA; ?>
-                </p>
-            </div>
+            <?php
+            $bankAccounts = getBankAccountsForDisplay();
+            if (!empty($bankAccounts)):
+                foreach ($bankAccounts as $account):
+                    ?>
+                    <div class="text-center">
+                        <p class="font-bold text-sm text-gray-900"><?php echo htmlspecialchars($account['bank_name']); ?></p>
+                        <p class="text-sm text-gray-700">Account No:
+                            <?php echo htmlspecialchars($account['account_number']); ?>
+                        </p>
+                    </div>
+                    <?php
+                endforeach;
+            else:
+                ?>
+                <div class="text-center w-full">
+                    <p class="text-sm text-gray-600 italic">Please contact us for payment details.</p>
+                </div>
+            <?php endif; ?>
         </div>
         <div class="bg-primary text-white text-right py-2 px-4 text-xs italic">
             Invoice prepared by:

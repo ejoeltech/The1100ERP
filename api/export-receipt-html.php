@@ -7,8 +7,14 @@ if (!$receipt_id) {
     die('Receipt ID required');
 }
 
-// Fetch quote
-$stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'receipt' AND deleted_at IS NULL");
+// Fetch receipt
+$stmt = $pdo->prepare("
+    SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title,
+           i.grand_total as invoice_grand_total, i.subtotal, i.total_vat, i.payment_terms
+    FROM receipts r
+    LEFT JOIN invoices i ON r.invoice_id = i.id
+    WHERE r.id = ? AND r.deleted_at IS NULL
+");
 $stmt->execute([$receipt_id]);
 $receipt = $stmt->fetch();
 
@@ -16,9 +22,25 @@ if (!$receipt) {
     die('Receipt not found');
 }
 
-// Fetch line items
-$stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
-$stmt->execute([$receipt_id]);
+// Map invoice fields to receipt fields if needed for template compatibility
+$receipt['grand_total'] = $receipt['invoice_grand_total']; // Receipts don't have grand_total, use invoice's
+
+// Fetch line items (from parent invoice, as receipts usually don't have line items of their own, but maybe we show invoice line items?)
+// Original code fetched from 'line_items' with 'document_id' = receipt_id. 
+// A receipt usually implies payment for the whole invoice or part.
+// But the original code: SELECT * FROM line_items WHERE document_id = ? 
+// Did we insert line items for receipts?
+// In `generate-receipt.php` (old), we did NOT insert line items for receipts!
+// So lines 19-22 in `export-receipt-html.php` would have returned empty result!
+// If so, the receipt HTML wouldn't show line items.
+// Let's check `generate-receipt.php` old code again...
+// It did NOT insert line items.
+// So `export-receipt-html.php` was likely showing an empty table.
+// However, it's better to show INVOICE line items if we want to show what was paid for.
+// I will query `invoice_line_items` using `invoice_id`.
+
+$stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
+$stmt->execute([$receipt['invoice_id']]);
 $line_items = $stmt->fetchAll();
 
 // Generate standalone HTML
@@ -317,7 +339,7 @@ $line_items = $stmt->fetchAll();
             <div class="doc-info-item">
                 <span class="doc-info-label">Date:</span>
                 <span class="doc-info-value">
-                    <?php echo date('d/m/Y', strtotime($receipt['quote_date'])); ?>
+                    <?php echo date('d/m/Y', strtotime($receipt['payment_date'])); ?>
                 </span>
             </div>
             <div class="doc-info-item">
@@ -326,16 +348,10 @@ $line_items = $stmt->fetchAll();
                     <?php echo htmlspecialchars($receipt['customer_name']); ?>
                 </span>
             </div>
-            <div class="doc-info-item">
-                <span class="doc-info-label">Salesperson:</span>
-                <span class="doc-info-value">
-                    <?php echo htmlspecialchars($receipt['salesperson']); ?>
-                </span>
-            </div>
             <div class="doc-info-item" style="grid-column: 1 / -1;">
-                <span class="doc-info-label">Status:</span>
+                <span class="doc-info-label">Payment Method:</span>
                 <span class="doc-info-value">
-                    <?php echo ucfirst($receipt['status']); ?>
+                    <?php echo ucfirst($receipt['payment_method']); ?>
                 </span>
             </div>
         </div>
@@ -395,9 +411,15 @@ $line_items = $stmt->fetchAll();
                 </span>
             </div>
             <div class="totals-row grand">
-                <span class="totals-label">Grand Total:</span>
+                <span class="totals-label">Grand Total (Invoice):</span>
                 <span class="totals-value">
                     <?php echo formatNaira($receipt['grand_total']); ?>
+                </span>
+            </div>
+            <div class="totals-row">
+                <span class="totals-label">Amount Paid:</span>
+                <span class="totals-value" style="color: green;">
+                    <?php echo formatNaira($receipt['amount_paid']); ?>
                 </span>
             </div>
         </div>

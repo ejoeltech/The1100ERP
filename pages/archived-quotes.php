@@ -6,20 +6,19 @@ $pageTitle = 'Archived Quotes - Bluedots Technologies';
 // Fetch all archived quotes (deleted_at IS NOT NULL)
 $stmt = $pdo->query("
     SELECT 
-        d.id,
-        d.document_number,
-        d.quote_title,
-        d.customer_name,
-        d.salesperson,
-        d.quote_date,
-        d.grand_total,
-        d.status,
-        d.created_at,
-        d.deleted_at
-    FROM documents d
-    WHERE d.document_type = 'quote'
-    AND d.deleted_at IS NOT NULL
-    ORDER BY d.deleted_at DESC
+        q.id,
+        q.quote_number as document_number,
+        q.quote_title,
+        q.customer_name,
+        q.salesperson,
+        q.quote_date,
+        q.grand_total,
+        q.status,
+        q.created_at,
+        q.deleted_at
+    FROM quotes q
+    WHERE q.deleted_at IS NOT NULL
+    ORDER BY q.deleted_at DESC
 ");
 
 $quotes = $stmt->fetchAll();

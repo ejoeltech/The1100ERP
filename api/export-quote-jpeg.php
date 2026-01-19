@@ -9,7 +9,7 @@ if (!$quote_id) {
 
 try {
     // Fetch quote
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'quote' AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$quote_id]);
     $quote = $stmt->fetch();
 
@@ -18,7 +18,7 @@ try {
     }
 
     // Fetch line items
-    $stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+    $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");
     $stmt->execute([$quote_id]);
     $line_items = $stmt->fetchAll();
 

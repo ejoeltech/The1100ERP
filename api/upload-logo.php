@@ -169,16 +169,5 @@ try {
     exit;
 }
 
-function getSetting($key, $default = '')
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
-        $stmt->execute([$key]);
-        $result = $stmt->fetchColumn();
-        return $result !== false ? $result : $default;
-    } catch (Exception $e) {
-        return $default;
-    }
-}
+
 ?>

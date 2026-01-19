@@ -10,8 +10,8 @@ if (!isset($_GET['id'])) {
 $template_id = intval($_GET['id']);
 
 try {
-    // Get original template
-    $stmt = $pdo->prepare("SELECT * FROM quote_templates WHERE id = ?");
+    // Fetch original template
+    $stmt = $pdo->prepare("SELECT * FROM readymade_quote_templates WHERE id = ?");
     $stmt->execute([$template_id]);
     $template = $stmt->fetch();
 
@@ -20,29 +20,36 @@ try {
     }
 
     // Get template items
-    $stmt = $pdo->prepare("SELECT * FROM quote_template_items WHERE template_id = ? ORDER BY item_number");
+    $stmt = $pdo->prepare("SELECT * FROM readymade_quote_template_items WHERE template_id = ? ORDER BY item_number");
     $stmt->execute([$template_id]);
     $items = $stmt->fetchAll();
 
-    // Create duplicate template
-    $new_name = $template['template_name'] . ' (Copy)';
+    // Create duplicate
     $stmt = $pdo->prepare("
-        INSERT INTO quote_templates (template_name, template_description, payment_terms, estimated_total, created_by)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO readymade_quote_templates 
+        (template_name, description, payment_terms, grand_total, is_active, default_project_title, subtotal, total_vat, category_id)
+        VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
     ");
+
+    // Check if category_id exists in the source template, otherwise use default 1
+    $category_id = isset($template['category_id']) ? $template['category_id'] : 1;
+
     $stmt->execute([
-        $new_name,
-        $template['template_description'],
+        $template['template_name'] . ' (Copy)',
+        $template['description'],
         $template['payment_terms'],
-        $template['estimated_total'],
-        $_SESSION['user_id']
+        $template['grand_total'],
+        $template['default_project_title'],
+        $template['subtotal'],
+        $template['total_vat'],
+        $category_id
     ]);
 
     $new_template_id = $pdo->lastInsertId();
 
     // Copy all items
     $stmt = $pdo->prepare("
-        INSERT INTO quote_template_items (template_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total)
+        INSERT INTO readymade_quote_template_items (template_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 

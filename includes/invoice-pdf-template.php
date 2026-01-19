@@ -18,12 +18,12 @@ $html = '
             text-align: center;
             margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 3px solid #0076BE;
+            border-bottom: 3px solid ' . THEME_COLOR . ';
         }
         .logo {
             font-size: 28px;
             font-weight: bold;
-            color: #0076BE;
+            color: ' . THEME_COLOR . ';
             margin-bottom: 5px;
         }
         .subtitle {
@@ -42,7 +42,7 @@ $html = '
             font-size: 32px;
             font-weight: bold;
             margin: 20px 0;
-            color: #0076BE;
+            color: ' . THEME_COLOR . ';
         }
         .document-subtitle {
             text-align: center;
@@ -85,7 +85,7 @@ $html = '
             clear: both;
         }
         .line-items-table th {
-            background: #0076BE;
+            background: ' . THEME_COLOR . ';
             color: white;
             padding: 10px 8px;
             text-align: left;
@@ -129,7 +129,7 @@ $html = '
             color: #000;
         }
         .grand-total-row {
-            background: #0076BE;
+            background: ' . THEME_COLOR . ';
             color: white;
             padding: 12px;
             border-radius: 5px;
@@ -146,7 +146,7 @@ $html = '
             clear: both;
             margin-top: 50px;
             padding-top: 20px;
-            border-top: 3px solid #0076BE;
+            border-top: 3px solid ' . THEME_COLOR . ';
         }
         .thank-you {
             text-align: center;
@@ -157,7 +157,7 @@ $html = '
             color: #555;
         }
         .payment-header {
-            background: #0076BE;
+            background: ' . THEME_COLOR . ';
             color: white;
             text-align: center;
             padding: 8px;
@@ -187,7 +187,7 @@ $html = '
             color: #555;
         }
         .prepared-by {
-            background: #0076BE;
+            background: ' . THEME_COLOR . ';
             color: white;
             text-align: right;
             padding: 8px 15px;
@@ -207,9 +207,17 @@ $html = '
 </head>
 <body>
     <!-- Header -->
-    <div class="header">
-        <div class="logo">Bluedots</div>
-        <div class="subtitle">TECHNOLOGIES</div>
+    <div class="header">';
+
+// Logo Logic
+if (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)) {
+    $html .= '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 60px; max-width: 200px;">';
+} else {
+    $html .= '<div class="logo">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+                  <div class="subtitle">TECHNOLOGIES</div>';
+}
+
+$html .= '
         <div class="company-info">
             <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>
             <strong>Phone:</strong> ' . COMPANY_PHONE . ' | 
@@ -312,7 +320,7 @@ $html .= '
 
   <!-- Footer -->
     <div class="footer">
-        <div class="thank-you">We appreciate your business! Thank you</div>';
+        <div class="thank-you">' . nl2br(htmlspecialchars(getSetting('footer_text', 'We appreciate your business! Thank you'))) . '</div>';
 
 $bank_accounts = getBankAccountsForDisplay();
 if (!empty($bank_accounts)) {
@@ -323,12 +331,11 @@ if (!empty($bank_accounts)) {
 
     $column_width = floor(100 / count($bank_accounts));
     foreach ($bank_accounts as $index => $account) {
-        $border_style = ($index < count($bank_accounts) - 1) ? 'border-right: 1px solid #0076BE;' : '';
+        $border_style = ($index < count($bank_accounts) - 1) ? 'border-right: 1px solid ' . THEME_COLOR . ';' : '';
         $html .= '
-            <div class="bank-item" style="width: ' . $column_width . '%; ' . $border_style . '">
-                <div class="bank-name">' . htmlspecialchars($account['bank_name']) . '</div>
-                <div class="bank-account">Account No: ' . htmlspecialchars($account['account_number']) . '</div>
-                <div class="bank-account" style="font-size: 9px; margin-top: 3px;">' . htmlspecialchars($account['account_name']) . '</div>
+            <div class="bank-item" style="width: ' . $column_width . '%; ' . $border_style . ' vertical-align: middle;">
+                <span class="bank-name" style="font-size: 11px;">' . htmlspecialchars($account['bank_name']) . ':</span>
+                <span class="bank-account" style="font-size: 11px; font-weight: bold;">' . htmlspecialchars($account['account_number']) . '</span>
             </div>';
     }
 

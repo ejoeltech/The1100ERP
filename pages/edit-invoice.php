@@ -9,7 +9,7 @@ if (!$invoice_id) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'invoice' AND deleted_at IS NULL");
+$stmt = $pdo->prepare("SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date FROM invoices WHERE id = ? AND deleted_at IS NULL");
 $stmt->execute([$invoice_id]);
 $invoice = $stmt->fetch();
 
@@ -19,7 +19,8 @@ if (!$invoice) {
 }
 
 // Phase 4: Check if invoice has receipts - cannot edit if receipts exist
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM documents WHERE parent_document_id = ? AND document_type = 'receipt' AND deleted_at IS NULL");
+// Phase 4: Check if invoice has receipts - cannot edit if receipts exist
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM receipts WHERE invoice_id = ? AND deleted_at IS NULL");
 $stmt->execute([$invoice_id]);
 $has_receipts = $stmt->fetchColumn() > 0;
 
@@ -40,7 +41,7 @@ if (!canEditDocument($invoice)) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+$stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
 
@@ -153,12 +154,11 @@ include '../includes/header.php';
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     Status
                 </label>
-                <select name="status"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                    <option value="draft" <?php echo $invoice['status'] === 'draft' ? 'selected' : ''; ?>>Draft</option>
-                    <option value="finalized" <?php echo $invoice['status'] === 'finalized' ? 'selected' : ''; ?>>
-                        Finalized</option>
-                </select>
+                <div
+                    class="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium capitalize">
+                    <?php echo $invoice['status']; ?>
+                </div>
+                <input type="hidden" name="status" id="statusInput" value="<?php echo $invoice['status']; ?>">
             </div>
         </div>
 
@@ -231,14 +231,21 @@ include '../includes/header.php';
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-4 justify-end">
+        <div class="flex flex-col md:flex-row gap-4 justify-end">
             <button type="button" onclick="window.location.href='view-invoice.php?id=<?php echo $invoice_id; ?>'"
-                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-center">
                 Cancel
             </button>
-            <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
+            <button type="submit"
+                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold text-center">
                 Update Invoice
             </button>
+            <?php if ($invoice['status'] === 'draft'): ?>
+                <button type="button" onclick="confirmFinalize()"
+                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-center">
+                    ✓ Finalize Invoice
+                </button>
+            <?php endif; ?>
         </div>
 
     </form>
@@ -269,6 +276,14 @@ include '../includes/header.php';
         originalCalculateTotals();
         updateBalanceDue();
     };
+
+    function confirmFinalize() {
+        if (confirm('Are you sure you want to finalize this invoice? It cannot be edited afterwards.')) {
+            document.getElementById('statusInput').value = 'finalized';
+            // Submit the form
+            document.getElementById('invoiceForm').submit();
+        }
+    }
 </script>
 
 <?php include '../includes/footer.php'; ?>

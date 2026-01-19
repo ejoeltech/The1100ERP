@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST')
 
 try {
     $id = intval($_POST['id'] ?? 0);
-    $name = trim($_POST['name'] ?? '');
+    $name = trim($_POST['customer_name'] ?? '');
     $company = trim($_POST['company'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
@@ -18,7 +18,7 @@ try {
     if (!$id)
         throw new Exception('Invalid customer ID');
     if (empty($name) || empty($email))
-        throw new Exception('Name and email required');
+        throw new Exception('Customer name and email required');
     if (!filter_var($email, FILTER_VALIDATE_EMAIL))
         throw new Exception('Invalid email');
 
@@ -28,11 +28,11 @@ try {
     if ($stmt->fetch())
         throw new Exception('Email already exists');
 
-    $stmt = $pdo->prepare("UPDATE customers SET name=?, company=?, email=?, phone=?, address=?, city=?, notes=? WHERE id=?");
+    $stmt = $pdo->prepare("UPDATE customers SET customer_name=?, company=?, email=?, phone=?, address=?, city=?, notes=? WHERE id=?");
     $stmt->execute([$name, $company, $email, $phone, $address, $city, $notes, $id]);
 
     if (function_exists('logAudit')) {
-        logAudit('update', 'customer', $id, ['name' => $name]);
+        logAudit('update', 'customer', $id, ['customer_name' => $name]);
     }
 
     header('Location: ../../pages/customers/manage-customers.php?updated=1');

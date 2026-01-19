@@ -11,7 +11,7 @@ $role_filter = getRoleFilter('d');
 $query = "
     SELECT 
         d.id,
-        d.document_number,
+        d.quote_number as document_number,
         d.quote_title,
         d.customer_name,
         d.salesperson,
@@ -22,11 +22,11 @@ $query = "
         d.created_by,
         u.full_name as creator_name,
         inv.id AS invoice_id,
-        inv.document_number AS invoice_number
-    FROM documents d
+        inv.invoice_number AS invoice_number
+    FROM quotes d
     LEFT JOIN users u ON d.created_by = u.id
-    LEFT JOIN documents inv ON inv.parent_document_id = d.id AND inv.document_type = 'invoice' AND inv.deleted_at IS NULL
-    WHERE d.document_type = 'quote' AND d.deleted_at IS NULL
+    LEFT JOIN invoices inv ON inv.quote_id = d.id AND inv.deleted_at IS NULL
+    WHERE d.deleted_at IS NULL
     $role_filter
     ORDER BY d.created_at DESC
 ";

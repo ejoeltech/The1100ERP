@@ -10,9 +10,8 @@ $my_invoices = 0;
 if (function_exists('isSalesRep') && isSalesRep()) {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as count 
-        FROM documents 
+        FROM quotes 
         WHERE created_by = ? 
-        AND document_type = 'quote'
         AND deleted_at IS NULL
     ");
     $stmt->execute([$current_user['id']]);
@@ -20,9 +19,8 @@ if (function_exists('isSalesRep') && isSalesRep()) {
 
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as count 
-        FROM documents 
+        FROM invoices 
         WHERE created_by = ? 
-        AND document_type = 'invoice'
         AND deleted_at IS NULL
     ");
     $stmt->execute([$current_user['id']]);

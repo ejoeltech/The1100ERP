@@ -1,0 +1,20 @@
+# Error logs
+logs/*.log
+
+# Vendor directories (Composer)
+vendor/
+
+# Temporary files
+*.tmp
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Config files (should be created locally)
+config.php

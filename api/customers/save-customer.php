@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST')
     die('Invalid request');
 
 try {
-    $name = trim($_POST['name'] ?? '');
+    $name = trim($_POST['customer_name'] ?? '');
     $company = trim($_POST['company'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
@@ -15,7 +15,7 @@ try {
     $notes = trim($_POST['notes'] ?? '');
 
     if (empty($name) || empty($email))
-        throw new Exception('Name and email required');
+        throw new Exception('Customer name and email required');
     if (!filter_var($email, FILTER_VALIDATE_EMAIL))
         throw new Exception('Invalid email');
 
@@ -25,11 +25,11 @@ try {
     if ($stmt->fetch())
         throw new Exception('Email already exists');
 
-    $stmt = $pdo->prepare("INSERT INTO customers (name, company, email, phone, address, city, notes, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
+    $stmt = $pdo->prepare("INSERT INTO customers (customer_name, company, email, phone, address, city, notes, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
     $stmt->execute([$name, $company, $email, $phone, $address, $city, $notes]);
 
     if (function_exists('logAudit')) {
-        logAudit('create', 'customer', $pdo->lastInsertId(), ['name' => $name]);
+        logAudit('create', 'customer', $pdo->lastInsertId(), ['customer_name' => $name]);
     }
 
     header('Location: ../../pages/customers/manage-customers.php?created=1');

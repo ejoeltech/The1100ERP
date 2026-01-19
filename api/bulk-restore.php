@@ -15,8 +15,19 @@ try {
     $document_type = $input['document_type'] ?? '';
     $ids = $input['ids'] ?? [];
 
-    if (!in_array($document_type, ['quote', 'invoice', 'receipt'])) {
-        throw new Exception('Invalid document type');
+    $table = '';
+    switch ($document_type) {
+        case 'quote':
+            $table = 'quotes';
+            break;
+        case 'invoice':
+            $table = 'invoices';
+            break;
+        case 'receipt':
+            $table = 'receipts';
+            break;
+        default:
+            throw new Exception('Invalid document type');
     }
 
     if (empty($ids) || !is_array($ids)) {
@@ -25,7 +36,8 @@ try {
 
     $ids = array_map('intval', $ids);
     $ids = array_filter($ids, function ($id) {
-        return $id > 0; });
+        return $id > 0;
+    });
 
     if (empty($ids)) {
         throw new Exception('Invalid item IDs');
@@ -35,17 +47,17 @@ try {
 
     // Restore: clear deleted_at timestamp
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+    // Whitelisted table name used directly
     $stmt = $pdo->prepare("
-        UPDATE documents 
+        UPDATE $table 
         SET deleted_at = NULL,
             updated_at = NOW()
         WHERE id IN ($placeholders) 
-        AND document_type = ? 
         AND deleted_at IS NOT NULL
     ");
 
-    $params = array_merge($ids, [$document_type]);
-    $stmt->execute($params);
+    $stmt->execute($ids);
 
     $restored_count = $stmt->rowCount();
 

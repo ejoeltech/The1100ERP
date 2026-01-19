@@ -10,7 +10,12 @@ if (!$receipt_id) {
 
 try {
     // Fetch receipt
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = 'receipt' AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("
+        SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title
+        FROM receipts r
+        LEFT JOIN invoices i ON r.invoice_id = i.id
+        WHERE r.id = ? AND r.deleted_at IS NULL
+    ");
     $stmt->execute([$receipt_id]);
     $receipt = $stmt->fetch();
 
@@ -20,9 +25,9 @@ try {
 
     // Fetch parent invoice
     $parent_invoice = null;
-    if ($receipt['parent_document_id']) {
-        $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ?");
-        $stmt->execute([$receipt['parent_document_id']]);
+    if ($receipt['invoice_id']) {
+        $stmt = $pdo->prepare("SELECT *, invoice_number as document_number FROM invoices WHERE id = ?");
+        $stmt->execute([$receipt['invoice_id']]);
         $parent_invoice = $stmt->fetch();
     }
 

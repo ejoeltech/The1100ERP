@@ -1,11 +1,18 @@
 <?php
 session_start();
-require_once '../config.php';
-require_once '../includes/auth.php';
+include '../includes/session-check.php';
 
 // Check if user is logged in and is admin
 requireLogin();
-requirePermission('manage_settings');
+
+// Verify permission (admin or manage_settings)
+if (function_exists('requirePermission')) {
+    requirePermission('manage_settings');
+} elseif (!function_exists('isAdmin') || !isAdmin()) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Access Denied']);
+    exit;
+}
 
 header('Content-Type: application/json');
 
@@ -32,11 +39,15 @@ try {
     $deleted_count = $stmt->rowCount();
 
     // Log this action
-    logAudit('clear_audit_logs', 'system', null, [
-        'retention_days' => $retention_days,
-        'cutoff_date' => $cutoff_date,
-        'deleted_count' => $deleted_count
-    ]);
+    // Log this action with user details
+    if (function_exists('logAudit')) {
+        logAudit('clear_audit_logs', 'system', null, [
+            'retention_days' => $retention_days,
+            'cutoff_date' => $cutoff_date,
+            'deleted_count' => $deleted_count,
+            'cleared_by' => $current_user['full_name'] ?? 'Unknown User'
+        ]);
+    }
 
     echo json_encode([
         'success' => true,

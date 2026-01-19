@@ -1,5 +1,5 @@
 // Line item counter
-let lineItemCount = 0;
+window.lineItemCount = 0;
 
 // Add initial line item on page load (only if no existing items AND not from template)
 document.addEventListener('DOMContentLoaded', function () {
@@ -17,30 +17,31 @@ document.addEventListener('DOMContentLoaded', function () {
 document.getElementById('addLineBtn').addEventListener('click', addLineItem);
 
 function addLineItem() {
-    lineItemCount++;
+    window.lineItemCount++;
+    const currentCount = window.lineItemCount;
 
     const container = document.getElementById('lineItemsContainer');
     const row = document.createElement('tr');
     row.className = 'border-b border-gray-200 hover:bg-gray-50';
-    row.id = `line-${lineItemCount}`;
+    row.id = `line-${currentCount}`;
 
     row.innerHTML = `
-        <td class="px-3 py-2 text-center font-semibold text-gray-700">${lineItemCount}</td>
+        <td class="px-3 py-2 text-center font-semibold text-gray-700">${currentCount}</td>
         <td class="px-3 py-2">
             <input 
                 type="number" 
-                name="line_items[${lineItemCount}][quantity]"
+                name="line_items[${currentCount}][quantity]"
                 min="0.01"
                 step="0.01"
                 value="1"
                 required
                 class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                onchange="calculateLine(${lineItemCount})"
+                onchange="calculateLine(${currentCount})"
             >
         </td>
         <td class="px-3 py-2">
             <textarea 
-                name="line_items[${lineItemCount}][description]"
+                name="line_items[${currentCount}][description]"
                 rows="2"
                 required
                 placeholder="Enter item description"
@@ -50,33 +51,33 @@ function addLineItem() {
         <td class="px-3 py-2">
             <input 
                 type="number" 
-                name="line_items[${lineItemCount}][unit_price]"
+                name="line_items[${currentCount}][unit_price]"
                 min="0"
                 step="0.01"
                 required
                 placeholder="0.00"
                 class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                onchange="calculateLine(${lineItemCount})"
+                onchange="calculateLine(${currentCount})"
             >
         </td>
         <td class="px-3 py-2 text-center">
             <input 
                 type="checkbox" 
-                name="line_items[${lineItemCount}][vat_applicable]"
+                name="line_items[${currentCount}][vat_applicable]"
                 value="1"
                 class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary"
-                onchange="calculateLine(${lineItemCount})"
+                onchange="calculateLine(${currentCount})"
             >
         </td>
         <td class="px-3 py-2 text-right">
-            <span id="lineTotal-${lineItemCount}" class="font-bold text-gray-900">₦0.00</span>
-            <input type="hidden" name="line_items[${lineItemCount}][line_total]" id="lineTotalInput-${lineItemCount}">
-            <input type="hidden" name="line_items[${lineItemCount}][vat_amount]" id="vatAmountInput-${lineItemCount}">
+            <span id="lineTotal-${currentCount}" class="font-bold text-gray-900">₦0.00</span>
+            <input type="hidden" name="line_items[${currentCount}][line_total]" id="lineTotalInput-${currentCount}">
+            <input type="hidden" name="line_items[${currentCount}][vat_amount]" id="vatAmountInput-${currentCount}">
         </td>
         <td class="px-3 py-2 text-center">
             <button 
                 type="button" 
-                onclick="removeLine(${lineItemCount})"
+                onclick="removeLine(${currentCount})"
                 class="text-red-500 hover:text-red-700"
                 title="Remove line"
             >
@@ -88,6 +89,7 @@ function addLineItem() {
     `;
 
     container.appendChild(row);
+    return row;
 }
 
 function removeLine(lineNumber) {

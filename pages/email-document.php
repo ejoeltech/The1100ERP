@@ -10,14 +10,26 @@ if (!$document_id || !$document_type) {
 }
 
 // Fetch document
-$stmt = $pdo->prepare("
-    SELECT * FROM documents 
-    WHERE id = ? 
-    AND document_type = ?
-    AND deleted_at IS NULL
-");
-$stmt->execute([$document_id, $document_type]);
-$document = $stmt->fetch();
+// Fetch document
+$document = null;
+if ($document_type === 'quote') {
+    $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
+    $stmt->execute([$document_id]);
+    $document = $stmt->fetch();
+} elseif ($document_type === 'invoice') {
+    $stmt = $pdo->prepare("SELECT *, invoice_number as document_number, invoice_title as quote_title FROM invoices WHERE id = ? AND deleted_at IS NULL");
+    $stmt->execute([$document_id]);
+    $document = $stmt->fetch();
+} elseif ($document_type === 'receipt') {
+    $stmt = $pdo->prepare("
+        SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title, r.amount_paid as grand_total 
+        FROM receipts r 
+        LEFT JOIN invoices i ON r.invoice_id = i.id 
+        WHERE r.id = ? AND r.deleted_at IS NULL
+    ");
+    $stmt->execute([$document_id]);
+    $document = $stmt->fetch();
+}
 
 if (!$document) {
     header('Location: ../dashboard.php?error=Document not found');
@@ -122,7 +134,7 @@ include '../includes/header.php';
                     <input type="checkbox" name="bcc_salesperson" value="1" checked
                         class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
                     <span class="text-sm font-semibold text-gray-700">Send a copy to salesperson (
-                        <?php echo htmlspecialchars($document['salesperson']); ?>)
+                        <?php echo htmlspecialchars($document['salesperson'] ?? 'N/A'); ?>)
                     </span>
                 </label>
             </div>

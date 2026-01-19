@@ -35,9 +35,21 @@ try {
     }
 
     // Verify document exists and user has permission to view it
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND document_type = ? AND deleted_at IS NULL");
-    $stmt->execute([$documentId, $documentType]);
-    $document = $stmt->fetch();
+    // Verify document exists and user has permission to view it
+    $document = null;
+    if ($documentType === 'quote') {
+        $stmt = $pdo->prepare("SELECT * FROM quotes WHERE id = ? AND deleted_at IS NULL");
+        $stmt->execute([$documentId]);
+        $document = $stmt->fetch();
+    } elseif ($documentType === 'invoice') {
+        $stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL");
+        $stmt->execute([$documentId]);
+        $document = $stmt->fetch();
+    } elseif ($documentType === 'receipt') {
+        $stmt = $pdo->prepare("SELECT * FROM receipts WHERE id = ? AND deleted_at IS NULL");
+        $stmt->execute([$documentId]);
+        $document = $stmt->fetch();
+    }
 
     if (!$document) {
         throw new Exception('Document not found');

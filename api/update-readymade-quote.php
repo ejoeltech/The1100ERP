@@ -17,7 +17,7 @@ try {
 
     $template_id = $_POST['template_id'] ?? null;
     $template_name = $_POST['template_name'] ?? '';
-    $template_description = $_POST['template_description'] ?? '';
+    $description = $_POST['template_description'] ?? '';
     $payment_terms = $_POST['payment_terms'] ?? DEFAULT_PAYMENT_TERMS;
     $subtotal = $_POST['subtotal'] ?? 0;
     $total_vat = $_POST['total_vat'] ?? 0;
@@ -27,29 +27,40 @@ try {
         throw new Exception('Template ID required');
     }
 
-    // Update template record
+    // Update template
     $stmt = $pdo->prepare("
-        UPDATE quote_templates 
-        SET template_name = ?, 
-            template_description = ?, 
-            payment_terms = ?, 
-            estimated_total = ?,
-            updated_at = NOW()
-        WHERE id = ? AND deleted_at IS NULL
+        UPDATE readymade_quote_templates 
+        SET 
+            template_name = ?, 
+            description = ?, 
+            payment_terms = ?,
+            grand_total = ?,
+            default_project_title = ?,
+            subtotal = ?,
+            total_vat = ?
+        WHERE id = ?
     ");
-    $stmt->execute([$template_name, $template_description, $payment_terms, $grand_total, $template_id]);
+    $stmt->execute([
+        $template_name,
+        $description,
+        $payment_terms,
+        $grand_total,
+        $_POST['quote_title'] ?? '',
+        $subtotal,
+        $total_vat,
+        $template_id
+    ]);
 
-    // Delete existing line items
-    $stmt = $pdo->prepare("DELETE FROM quote_template_items WHERE template_id = ?");
+    // Clear existing items
+    $stmt = $pdo->prepare("DELETE FROM readymade_quote_template_items WHERE template_id = ?");
     $stmt->execute([$template_id]);
 
     // Insert new line items
     if (isset($_POST['line_items']) && is_array($_POST['line_items'])) {
         $stmt = $pdo->prepare("
-            INSERT INTO quote_template_items (
-                template_id, item_number, quantity, description, 
-                unit_price, vat_applicable, vat_amount, line_total
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO readymade_quote_template_items 
+            (template_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $item_number = 1;

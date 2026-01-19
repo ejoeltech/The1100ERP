@@ -14,9 +14,20 @@ try {
     $document_type = $input['document_type'] ?? '';
     $ids = $input['ids'] ?? [];
 
-    // Validate input
-    if (!in_array($document_type, ['quote', 'invoice', 'receipt'])) {
-        throw new Exception('Invalid document type');
+    // Map document type to table name
+    $table = '';
+    switch ($document_type) {
+        case 'quote':
+            $table = 'quotes';
+            break;
+        case 'invoice':
+            $table = 'invoices';
+            break;
+        case 'receipt':
+            $table = 'receipts';
+            break;
+        default:
+            throw new Exception('Invalid document type');
     }
 
     if (empty($ids) || !is_array($ids)) {
@@ -26,7 +37,8 @@ try {
     // Sanitize IDs
     $ids = array_map('intval', $ids);
     $ids = array_filter($ids, function ($id) {
-        return $id > 0; });
+        return $id > 0;
+    });
 
     if (empty($ids)) {
         throw new Exception('Invalid item IDs');
@@ -36,17 +48,17 @@ try {
     $pdo->beginTransaction();
 
     // Soft delete: set deleted_at timestamp
+    // We cannot use prepared statements for the table name, but we validated it above via whitelist.
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
     $stmt = $pdo->prepare("
-        UPDATE documents 
+        UPDATE $table 
         SET deleted_at = NOW() 
         WHERE id IN ($placeholders) 
-        AND document_type = ? 
         AND deleted_at IS NULL
     ");
 
-    $params = array_merge($ids, [$document_type]);
-    $stmt->execute($params);
+    $stmt->execute($ids);
 
     $deleted_count = $stmt->rowCount();
 

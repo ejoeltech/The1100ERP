@@ -16,7 +16,7 @@ require_once '../vendor/autoload.php';
 
 try {
     // Fetch quote
-    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ? AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
     $stmt->execute([$quote_id]);
     $quote = $stmt->fetch();
 
@@ -25,12 +25,13 @@ try {
     }
 
     // Fetch line items
-    $stmt = $pdo->prepare("SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number");
+    $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");
     $stmt->execute([$quote_id]);
     $line_items = $stmt->fetchAll();
 
     // Generate HTML for PDF
     ob_start();
+    require_once '../includes/helpers.php';
     include '../includes/pdf-template.php';
     $html = ob_get_clean();
 
@@ -44,6 +45,22 @@ try {
     ]);
 
     $mpdf->WriteHTML($html);
+
+    // Append Terms & Conditions if set
+    $terms = getSetting('quote_terms', '');
+    if (!empty(trim($terms))) {
+        $mpdf->AddPage();
+        $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Terms & Conditions</h2>');
+        $mpdf->WriteHTML($terms);
+    }
+
+    // Append Warranty Information if set
+    $warranty = getSetting('quote_warranty', '');
+    if (!empty(trim($warranty))) {
+        $mpdf->AddPage();
+        $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Warranty Information</h2>');
+        $mpdf->WriteHTML($warranty);
+    }
 
     // Output PDF
     $filename = $quote['document_number'] . '_' . date('Ymd') . '.pdf';

@@ -11,11 +11,11 @@ $role_filter = getRoleFilter('d');
 $query = "
     SELECT 
         d.id,
-        d.document_number,
-        d.quote_title,
+        d.invoice_number as document_number,
+        d.invoice_title as quote_title,
         d.customer_name,
         d.salesperson,
-        d.quote_date,
+        d.invoice_date as quote_date,
         d.grand_total,
         d.amount_paid,
         d.balance_due,
@@ -24,11 +24,11 @@ $query = "
         d.created_by,
         u.full_name as creator_name,
         rec.id AS receipt_id,
-        rec.document_number AS receipt_number
-    FROM documents d
+        rec.receipt_number AS receipt_number
+    FROM invoices d
     LEFT JOIN users u ON d.created_by = u.id
-    LEFT JOIN documents rec ON rec.parent_document_id = d.id AND rec.document_type = 'receipt' AND rec.deleted_at IS NULL
-    WHERE d.document_type = 'invoice'
+    LEFT JOIN receipts rec ON rec.invoice_id = d.id AND rec.deleted_at IS NULL
+    WHERE 1=1
     AND d.deleted_at IS NULL
     $role_filter
     ORDER BY d.created_at DESC

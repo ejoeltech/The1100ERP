@@ -8,21 +8,53 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $document_type = $_POST['document_type'] ?? '';
+    // Handle both JSON string (if sent via JS) or array (if sent via HTML form, though JSON is likely from earlier script logic)
+    // Original code: $ids = json_decode($_POST['ids'] ?? '[]', true);
     $ids = json_decode($_POST['ids'] ?? '[]', true);
 
-    // Validate input
-    if (!in_array($document_type, ['quote', 'invoice', 'receipt'])) {
-        throw new Exception('Invalid document type');
+    $table = '';
+    $lineItemTable = '';
+    $foreignKey = '';
+    $docNumberAlias = '';
+    $titleAlias = '';
+    $dateAlias = '';
+
+    switch ($document_type) {
+        case 'quote':
+            $table = 'quotes';
+            $lineItemTable = 'quote_line_items';
+            $foreignKey = 'quote_id';
+            $docNumberAlias = 'quote_number as document_number';
+            $titleAlias = 'quote_title'; // No alias needed if same, but useful for generic access
+            $dateAlias = 'quote_date';
+            break;
+        case 'invoice':
+            $table = 'invoices';
+            $lineItemTable = 'invoice_line_items';
+            $foreignKey = 'invoice_id';
+            $docNumberAlias = 'invoice_number as document_number';
+            $titleAlias = 'invoice_title as quote_title';
+            $dateAlias = 'invoice_date as quote_date';
+            break;
+        case 'receipt':
+            $table = 'receipts';
+            $lineItemTable = null; // Special handling for receipts (fetch from parent invoice)
+            $docNumberAlias = 'receipt_number as document_number';
+            $titleAlias = ''; // joined from invoice
+            $dateAlias = 'payment_date as quote_date';
+            break;
+        default:
+            throw new Exception('Invalid document type');
     }
 
     if (empty($ids) || !is_array($ids)) {
         throw new Exception('No items selected');
     }
 
-    // Sanitize IDs
     $ids = array_map('intval', $ids);
     $ids = array_filter($ids, function ($id) {
-        return $id > 0; });
+        return $id > 0;
+    });
 
     if (empty($ids)) {
         throw new Exception('Invalid item IDs');
@@ -34,53 +66,75 @@ try {
 
     $pdfFiles = [];
 
-    // Generate PDF for each document
     foreach ($ids as $id) {
         try {
-            // Fetch document
-            $stmt = $pdo->prepare("
-                SELECT * FROM documents 
-                WHERE id = ? AND document_type = ? AND deleted_at IS NULL
-            ");
-            $stmt->execute([$id, $document_type]);
-            $document = $stmt->fetch();
+            $document = null;
+            $line_items = [];
 
-            if (!$document)
-                continue;
+            if ($document_type === 'receipt') {
+                // Special Receipt Logic
+                $stmt = $pdo->prepare("
+                    SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title, 
+                           r.payment_date as quote_date, i.grand_total as invoice_grand_total
+                    FROM receipts r
+                    LEFT JOIN invoices i ON r.invoice_id = i.id
+                    WHERE r.id = ? AND r.deleted_at IS NULL
+                ");
+                $stmt->execute([$id]);
+                $document = $stmt->fetch();
 
-            // Fetch line items
-            $stmt = $pdo->prepare("
-                SELECT * FROM line_items WHERE document_id = ? ORDER BY item_number
-            ");
-            $stmt->execute([$id]);
-            $line_items = $document['line_items'] = $stmt->fetchAll();
+                if (!$document)
+                    continue;
 
-            // Fetch parent documents for breadcrumb (if applicable)
-            $parent_invoice = null;
-            $parent_quote = null;
+                // Map invoice grand_total
+                $document['grand_total'] = $document['invoice_grand_total'];
 
-            if ($document_type === 'receipt' && $document['parent_document_id']) {
-                $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ?");
-                $stmt->execute([$document['parent_document_id']]);
-                $parent_invoice = $stmt->fetch();
-
-                if ($parent_invoice && $parent_invoice['parent_document_id']) {
-                    $stmt = $pdo->prepare("SELECT * FROM documents WHERE id = ?");
-                    $stmt->execute([$parent_invoice['parent_document_id']]);
-                    $parent_quote = $stmt->fetch();
+                // Parent invoice for template
+                $parent_invoice = null;
+                if ($document['invoice_id']) {
+                    $stmt = $pdo->prepare("SELECT *, invoice_number as document_number FROM invoices WHERE id = ?");
+                    $stmt->execute([$document['invoice_id']]);
+                    $parent_invoice = $stmt->fetch();
                 }
+
+                $receipt = $document; // Template expects $receipt
+                // No line items usually for receipts in this system logic so far
+
+            } else {
+                // Quote or Invoice
+                $query = "SELECT *, $docNumberAlias";
+                if ($titleAlias && strpos($titleAlias, 'as') !== false)
+                    $query .= ", $titleAlias";
+                if ($dateAlias && strpos($dateAlias, 'as') !== false)
+                    $query .= ", $dateAlias";
+
+                $query .= " FROM $table WHERE id = ? AND deleted_at IS NULL";
+
+                $stmt = $pdo->prepare($query);
+                $stmt->execute([$id]);
+                $document = $stmt->fetch();
+
+                if (!$document)
+                    continue;
+
+                // Fetch line items
+                $stmt = $pdo->prepare("SELECT * FROM $lineItemTable WHERE $foreignKey = ? ORDER BY item_number");
+                $stmt->execute([$id]);
+                $line_items = $stmt->fetchAll();
             }
 
-            // Generate HTML based on document type
+            // Generate HTML
             ob_start();
             if ($document_type === 'quote') {
                 $quote = $document;
+                // Template expects $quote and $line_items
                 include '../includes/quote-pdf-template.php';
             } elseif ($document_type === 'invoice') {
                 $invoice = $document;
+                // Template expects $invoice and $line_items
                 include '../includes/invoice-pdf-template.php';
             } else { // receipt
-                $receipt = $document;
+                // $receipt and $parent_invoice already set
                 include '../includes/receipt-pdf-template.php';
             }
             $html = ob_get_clean();

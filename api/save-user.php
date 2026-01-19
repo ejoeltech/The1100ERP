@@ -56,7 +56,7 @@ try {
 
     // Insert user
     $stmt = $pdo->prepare("
-        INSERT INTO users (username, password_hash, full_name, email, phone, role, is_active)
+        INSERT INTO users (username, password, full_name, email, phone, role, is_active)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ");
 

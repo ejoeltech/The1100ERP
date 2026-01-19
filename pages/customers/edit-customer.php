@@ -32,7 +32,8 @@ include '../../includes/header.php';
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Name <span
                             class="text-red-500">*</span></label>
-                    <input type="text" name="name" required value="<?php echo htmlspecialchars($customer['name']); ?>"
+                    <input type="text" name="customer_name" required
+                        value="<?php echo htmlspecialchars($customer['customer_name']); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
 
@@ -78,11 +79,11 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <div class="flex gap-4 justify-end mt-8">
+            <div class="flex flex-col md:flex-row gap-4 justify-end mt-8">
                 <a href="manage-customers.php"
-                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">Cancel</a>
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-center">Cancel</a>
                 <button type="submit"
-                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">Update
+                    class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold text-center">Update
                     Customer</button>
             </div>
         </form>

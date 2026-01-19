@@ -1,22 +1,21 @@
 # Bluedots Quote Management - Phase 1 Setup
 
 ## mPDF Installation
-
 ### Option 1: Using Composer (Recommended)
 
 If you have Composer installed:
 
 ```bash
-cd c:\xampp\htdocs\bluedotserp
-composer install
+cd c:\xampp\htdocs\1100erp
+mysql -u root -p bluedots_quotes < database/schema.sql
 ```
 
-### Option 2: Manual Installation (No Composer)
+### Step 2: Set Up Dependencies
 
-If you don't have Composer:
+The system uses mPDF for PDF generation. Follow these steps:
 
-1. Download mPDF from: https://github.com/mpdf/mpdf/releases/latest
-2. Extract the contents to `c:\xampp\htdocs\bluedotserp\vendor\mpdf\`
+1. Download mPDF from: https://github.com/mpdf/mpdf/releases
+2. Extract the contents to `c:\xampp\htdocs\1100erp\vendor\mpdf\`
 3. The autoload file will be at: `vendor/autoload.php`
 
 Note: PDF export will not work until mPDF is installed.

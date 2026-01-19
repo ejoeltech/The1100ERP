@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/auth.php';
 
 requireLogin();
@@ -44,49 +45,49 @@ if ($roleColumnExists && file_exists(__DIR__ . '/permissions.php')) {
         }
     }
     */
-} else {
-    // Phase 3A not active - provide fallback functions
-    if (!function_exists('getRoleFilter')) {
-        function getRoleFilter($tableName = 'd')
-        {
-            return '';
-        }
+}
+
+// Fallback functions (Always available if not defined above)
+if (!function_exists('getRoleFilter')) {
+    function getRoleFilter($tableName = 'd')
+    {
+        return '';
     }
-    if (!function_exists('hasPermission')) {
-        function hasPermission($action, $resource = null, $ownerId = null)
-        {
-            return true;
-        }
+}
+if (!function_exists('hasPermission')) {
+    function hasPermission($action, $resource = null, $ownerId = null)
+    {
+        return true;
     }
-    if (!function_exists('requirePermission')) {
-        function requirePermission($action, $resource = null, $ownerId = null)
-        {
-            return true;
-        }
+}
+if (!function_exists('requirePermission')) {
+    function requirePermission($action, $resource = null, $ownerId = null)
+    {
+        return true;
     }
-    if (!function_exists('isAdmin')) {
-        function isAdmin()
-        {
-            return true;
-        }
+}
+if (!function_exists('isAdmin')) {
+    function isAdmin()
+    {
+        return true;
     }
-    if (!function_exists('getRoleBadge')) {
-        function getRoleBadge($role)
-        {
-            return '';
-        }
+}
+if (!function_exists('getRoleBadge')) {
+    function getRoleBadge($role)
+    {
+        return '';
     }
-    if (!function_exists('logAudit')) {
-        function logAudit($action, $resourceType, $resourceId = null, $details = [])
-        {
-            return;
-        }
+}
+if (!function_exists('logAudit')) {
+    function logAudit($action, $resourceType, $resourceId = null, $details = [])
+    {
+        return;
     }
-    if (!function_exists('logUserLogin')) {
-        function logUserLogin($userId, $username)
-        {
-            return;
-        }
+}
+if (!function_exists('logUserLogin')) {
+    function logUserLogin($userId, $username)
+    {
+        return;
     }
 }
 ?>
