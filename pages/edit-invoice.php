@@ -45,7 +45,7 @@ $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORD
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
 
-$pageTitle = 'Edit Invoice ' . $invoice['document_number'] . ' - Bluedots Technologies';
+$pageTitle = 'Edit Invoice ' . $invoice['document_number'] . ' - ERP System';
 include '../includes/header.php';
 ?>
 

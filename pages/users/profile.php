@@ -1,7 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 
-$pageTitle = 'My Profile - Bluedots Technologies';
+$pageTitle = 'My Profile - ERP System';
 
 // Get stats for current user
 $my_quotes = 0;

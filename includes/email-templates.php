@@ -41,7 +41,7 @@ function getQuoteEmailTemplate($data)
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bluedots Technologies</h1>
+            <h1>Your Company Name</h1>
             <p>Quote for Your Review</p>
         </div>
         
@@ -104,7 +104,7 @@ function getInvoiceEmailTemplate($data)
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bluedots Technologies</h1>
+            <h1>Your Company Name</h1>
             <p>Invoice for Payment</p>
         </div>
         
@@ -122,9 +122,9 @@ function getInvoiceEmailTemplate($data)
             
             <div class="payment-box">
                 <h4 style="margin-top: 0;">Payment Information:</h4>
-                <p><strong>Access Bank:</strong> 0107309773</p>
-                <p><strong>UBA:</strong> 1023821430</p>
-                <p><strong>Account Name:</strong> Bluedots Technologies</p>
+                <p><strong>Bank 1:</strong> [Account Number]</p>
+                <p><strong>Bank 2:</strong> [Account Number]</p>
+                <p><strong>Account Name:</strong> [Your Company Name]</p>
             </div>
             
             <p>Please process payment at your earliest convenience. Once payment is received, we will send you an official receipt.</p>
@@ -133,12 +133,12 @@ function getInvoiceEmailTemplate($data)
         </div>
         
         <div class="footer">
-            <p><strong>Bluedots Technologies</strong></p>
+            <p><strong>Your Company Name</strong></p>
             <p>Your Company Address, City, State/Province, Country</p>
             <p>Phone: +1234567890 | Email: contact@yourcompany.com</p>
-            <p>www.bluedots.com.ng</p>
+            <p>www.yourcompany.com</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-            <p style="font-size: 11px;">This is an automated email from Bluedots Technologies Quote Management System</p>
+            <p style="font-size: 11px;">This is an automated email from 1100-ERP System</p>
         </div>
     </div>
 </body>
@@ -173,7 +173,7 @@ function getReceiptEmailTemplate($data)
 <body>
     <div class="container">
         <div class="header">
-            <h1>Bluedots Technologies</h1>
+            <h1>Your Company Name</h1>
             <p>Payment Receipt</p>
         </div>
         
@@ -200,12 +200,12 @@ function getReceiptEmailTemplate($data)
         </div>
         
         <div class="footer">
-            <p><strong>Bluedots Technologies</strong></p>
+            <p><strong>Your Company Name</strong></p>
             <p>Your Company Address, City, State/Province, Country</p>
             <p>Phone: +1234567890 | Email: contact@yourcompany.com</p>
-            <p>www.bluedots.com.ng</p>
+            <p>www.yourcompany.com</p>
             <hr style="margin: 15px 0; border: none; border-top: 1px solid #ddd;">
-            <p style="font-size: 11px;">This is an automated email from Bluedots Technologies Quote Management System</p>
+            <p style="font-size: 11px;">This is an automated email from 1100-ERP System</p>
         </div>
     </div>
 </body>

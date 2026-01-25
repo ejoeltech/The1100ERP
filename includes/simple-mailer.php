@@ -59,7 +59,7 @@ function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipie
         // Build email
         $subject = getEmailSubject($documentType, $document);
         $body = getEmailBody($documentType, $document, $recipientName, $customMessage);
-        $fromEmail = 'noreply@bluedots.com.ng';
+        $fromEmail = 'noreply@yourcompany.com';
         $fromName = 'Your Company Name';
 
         // Send email with attachment
@@ -156,7 +156,7 @@ Total Amount: ₦" . number_format($document['grand_total'], 2) . "
 If you have any questions, please don't hesitate to contact us.
 
 Best regards,
-Bluedots Technologies
+Your Company Name
 ",
         'invoice' => "
 $greeting
@@ -173,7 +173,7 @@ Payment Terms: {$document['payment_terms']}
 Thank you for your business!
 
 Best regards,
-Bluedots Technologies
+Your Company Name
 ",
         'receipt' => "
 $greeting
@@ -187,11 +187,11 @@ Payment Method: {$document['payment_method']}
 We appreciate your business.
 
 Best regards,
-Bluedots Technologies
+Your Company Name
 "
     ];
 
-    return $bodies[$documentType] ?? "Please find attached document from Bluedots Technologies.";
+    return $bodies[$documentType] ?? "Please find attached document from Your Company.";
 }
 
 /**

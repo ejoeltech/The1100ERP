@@ -1,7 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 requirePermission('manage_customers');
-$pageTitle = 'Manage Customers - Bluedots Technologies';
+$pageTitle = 'Manage Customers - ERP System';
 $search = $_GET['search'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 

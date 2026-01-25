@@ -1,7 +1,7 @@
 <?php
 include '../includes/session-check.php';
 
-$pageTitle = 'Readymade Quotes - Bluedots Technologies';
+$pageTitle = 'Readymade Quotes - ERP System';
 
 // Fetch all readymade quotes
 $stmt = $pdo->query("

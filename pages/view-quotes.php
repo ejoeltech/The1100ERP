@@ -2,7 +2,7 @@
 <?php
 require_once '../config.php';
 
-$pageTitle = 'View Quotes - Bluedots Technologies';
+$pageTitle = 'View Quotes - ERP System';
 
 // Build role-based filter
 $role_filter = getRoleFilter('d');

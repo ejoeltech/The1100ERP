@@ -16,7 +16,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 
 require_once '../includes/ai-rate-limiter.php';
 
-$pageTitle = 'AI Settings & Analytics - Bluedots Technologies';
+$pageTitle = 'AI Settings & Analytics - ERP System';
 include '../includes/header.php';
 
 

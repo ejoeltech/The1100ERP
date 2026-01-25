@@ -1,7 +1,7 @@
 <?php
 include '../includes/session-check.php';
 
-$pageTitle = 'Archived Quotes - Bluedots Technologies';
+$pageTitle = 'Archived Quotes - ERP System';
 
 // Fetch all archived quotes (deleted_at IS NOT NULL)
 $stmt = $pdo->query("

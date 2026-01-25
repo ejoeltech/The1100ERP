@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>
-        <?= $pageTitle ?? 'Bluedots Technologies' ?>
+        <?= $pageTitle ?? 'ERP System' ?>
     </title>
     <link rel="stylesheet" href="../assets/css/main.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,7 +17,7 @@
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-4">
                 <h1 class="text-xl font-bold text-gray-900">
-                    <?= COMPANY_NAME ?? 'Bluedots Technologies' ?>
+                    <?= COMPANY_NAME ?? 'Your Company' ?>
                 </h1>
             </div>
             <div class="flex items-center gap-3">

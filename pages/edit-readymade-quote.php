@@ -24,7 +24,7 @@ $stmt = $pdo->prepare("SELECT * FROM readymade_quote_template_items WHERE templa
 $stmt->execute([$template_id]);
 $existingLineItems = $stmt->fetchAll();
 
-$pageTitle = 'Edit Readymade Quote - Bluedots Technologies';
+$pageTitle = 'Edit Readymade Quote - ERP System';
 include '../includes/header.php';
 ?>
 

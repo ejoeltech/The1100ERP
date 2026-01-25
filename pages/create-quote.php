@@ -2,7 +2,7 @@
 <?php
 require_once '../config.php';
 
-$pageTitle = 'Create Quote - Bluedots Technologies';
+$pageTitle = 'Create Quote - ERP System';
 $nextQuoteNumber = generateQuoteNumber($pdo);
 $todayDate = date('Y-m-d');
 

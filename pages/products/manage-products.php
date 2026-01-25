@@ -2,7 +2,7 @@
 include '../../includes/session-check.php';
 requirePermission('manage_products');
 
-$pageTitle = 'Manage Products - Bluedots Technologies';
+$pageTitle = 'Manage Products - ERP System';
 
 // Search and filter
 $search = $_GET['search'] ?? '';

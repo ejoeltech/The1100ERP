@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $pageTitle ?? 'Bluedots Technologies'; ?></title>
+    <title><?php echo $pageTitle ?? 'ERP System'; ?></title>
 
     <?php
     // Determine base path for relative links

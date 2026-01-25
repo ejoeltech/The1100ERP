@@ -38,7 +38,7 @@ $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER B
 $stmt->execute([$quote_id]);
 $line_items = $stmt->fetchAll();
 
-$pageTitle = 'Edit Quote ' . $quote['document_number'] . ' - Bluedots Technologies';
+$pageTitle = 'Edit Quote ' . $quote['document_number'] . ' - ERP System';
 
 include '../includes/header.php';
 ?>

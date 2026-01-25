@@ -53,7 +53,7 @@ $line_items = $stmt->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt
         <?php echo htmlspecialchars($receipt['document_number']); ?> -
-        <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots Technologies'; ?>
+        <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Your Company'; ?>
     </title>
     <style>
         * {
@@ -435,7 +435,7 @@ $line_items = $stmt->fetchAll();
                 <?php echo htmlspecialchars($receipt['payment_terms']); ?>
             </p>
             <p style="margin-top: 15px;">This is a computer-generated receipt from
-                <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots Technologies'; ?>
+                <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Your Company'; ?>
             </p>
             <p>For any questions, please contact us at
                 <?php echo COMPANY_EMAIL; ?>

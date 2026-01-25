@@ -2,8 +2,8 @@
 // Email configuration for PHPMailer or native PHP mail()
 
 // Email settings
-define('EMAIL_FROM_ADDRESS', 'noreply@bluedots.com.ng');
-define('EMAIL_FROM_NAME', 'Bluedots Technologies');
+define('EMAIL_FROM_ADDRESS', 'noreply@yourcompany.com');
+define('EMAIL_FROM_NAME', 'Your Company Name');
 define('EMAIL_BCC_SALESPERSON', true); // BCC salesperson on emails
 
 // SMTP Configuration (Optional - for production use)

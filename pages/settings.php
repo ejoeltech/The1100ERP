@@ -5,7 +5,7 @@ include '../includes/session-check.php';
 // Note: requirePermission() always exists (defined as fallback in session-check.php)
 requirePermission('manage_settings');
 
-$pageTitle = 'System Settings - Bluedots Technologies';
+$pageTitle = 'System Settings - ERP System';
 
 // Fetch current settings from database
 try {
@@ -187,14 +187,14 @@ include '../includes/header.php';
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">From Email</label>
                         <input type="email" name="email_from_address"
-                            value="<?php echo htmlspecialchars(getSetting('email_from_address', 'noreply@bluedots.com.ng')); ?>"
+                            value="<?php echo htmlspecialchars(getSetting('email_from_address', 'noreply@yourcompany.com')); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">From Name</label>
                         <input type="text" name="email_from_name"
-                            value="<?php echo htmlspecialchars(getSetting('email_from_name', 'Bluedots Technologies')); ?>"
+                            value="<?php echo htmlspecialchars(getSetting('email_from_name', 'Your Company Name')); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                     </div>
                 </div>
@@ -712,92 +712,102 @@ include '../includes/header.php';
 </div>
 
 <!-- Integrations Tab -->
-        <div id="content-integrations" class="tab-content hidden">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">API Integrations</h3>
-            
-            <div class="space-y-6 max-w-2xl">
-                <!-- AI Integration -->
-                <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-purple-100 rounded-full p-2">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                        </div>
-                        <h4 class="font-semibold text-gray-900">Artificial Intelligence (AI)</h4>
-                    </div>
+<div id="content-integrations" class="tab-content hidden">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">API Integrations</h3>
 
-                    <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            Groq API Key
-                        </label>
-                        <div class="relative">
-                            <input type="password" name="groq_api_key" 
-                                value="<?php echo htmlspecialchars(getSetting('groq_api_key', '')); ?>"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10">
-                            <button type="button" onclick="togglePasswordVisibility(this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">
-                            Required for AI Quote Descriptions and Solar System Design. 
-                            <a href="https://console.groq.com" target="_blank" class="text-primary hover:underline">Get a free key here</a>.
-                        </p>
-                    </div>
+    <div class="space-y-6 max-w-2xl">
+        <!-- AI Integration -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-purple-100 rounded-full p-2">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
                 </div>
-
-                <!-- Editor Integration -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="bg-blue-100 rounded-full p-2">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                        </div>
-                        <h4 class="font-semibold text-gray-900">Rich Text Editor</h4>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            TinyMCE API Key
-                        </label>
-                        <div class="relative">
-                            <input type="text" name="tinymce_api_key" 
-                                value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">
-                            Required for the rich text editor on quote/invoice pages.
-                        </p>
-                    </div>
-                </div>
+                <h4 class="font-semibold text-gray-900">Artificial Intelligence (AI)</h4>
             </div>
-            
-            <script>
-                function togglePasswordVisibility(btn) {
-                    const input = btn.previousElementSibling;
-                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-                    input.setAttribute('type', type);
-                    btn.classList.toggle('text-primary');
-                }
-            </script>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    Groq API Key
+                </label>
+                <div class="relative">
+                    <input type="password" name="groq_api_key"
+                        value="<?php echo htmlspecialchars(getSetting('groq_api_key', '')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10">
+                    <button type="button" onclick="togglePasswordVisibility(this)"
+                        class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    Required for AI Quote Descriptions and Solar System Design.
+                    <a href="https://console.groq.com" target="_blank" class="text-primary hover:underline">Get a free
+                        key here</a>.
+                </p>
+            </div>
         </div>
 
-        <!-- Save Button -->
-        <div class="mt-8 pt-6 border-t border-gray-200">
-            <button type="button" onclick="document.getElementById('settingsForm').submit()" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
-                Save Settings
-            </button>
+        <!-- Editor Integration -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="bg-blue-100 rounded-full p-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                        </path>
+                    </svg>
+                </div>
+                <h4 class="font-semibold text-gray-900">Rich Text Editor</h4>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    TinyMCE API Key
+                </label>
+                <div class="relative">
+                    <input type="text" name="tinymce_api_key"
+                        value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                    Required for the rich text editor on quote/invoice pages.
+                </p>
+            </div>
         </div>
-    </form>
+    </div>
+
+    <script>
+        function togglePasswordVisibility(btn) {
+            const input = btn.previousElementSibling;
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            btn.classList.toggle('text-primary');
+        }
+    </script>
+</div>
+
+<!-- Save Button -->
+<div class="mt-8 pt-6 border-t border-gray-200">
+    <button type="button" onclick="document.getElementById('settingsForm').submit()"
+        class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
+        Save Settings
+    </button>
+</div>
+</form>
 </div>
 
 <!-- TinyMCE -->
 <!-- TinyMCE -->
-<script src="https://cdn.tiny.cloud/1/<?php echo TINYMCE_API_KEY; ?>/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script src="https://cdn.tiny.cloud/1/<?php echo TINYMCE_API_KEY; ?>/tinymce/6/tinymce.min.js"
+    referrerpolicy="origin"></script>
 <script>
     tinymce.init({
         selector: '#quote_terms, #quote_warranty',
@@ -809,7 +819,7 @@ include '../includes/header.php';
             'insertdatetime', 'table', 'help', 'wordcount'
         ],
         toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
-        setup: function(editor) {
+        setup: function (editor) {
             editor.on('change', function () {
                 editor.save();
             });
@@ -872,7 +882,7 @@ include '../includes/header.php';
         <div class="p-6">
             <h3 class="text-xl font-bold text-gray-900 mb-2">⚠️ Factory Reset</h3>
             <p class="text-gray-600 mb-6">
-                Are you absolutely sure? This will <strong>wipe everything</strong>. 
+                Are you absolutely sure? This will <strong>wipe everything</strong>.
                 Enter your admin password to confirm.
             </p>
 
@@ -880,16 +890,16 @@ include '../includes/header.php';
                 <div class="mb-4">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Password</label>
                     <input type="password" id="resetPassword" required
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                 </div>
 
                 <div class="flex gap-3 justify-end">
                     <button type="button" onclick="closeResetModal()"
-                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
                         Cancel
                     </button>
                     <button type="submit"
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
                         Confirm Reset
                     </button>
                 </div>
@@ -1110,61 +1120,61 @@ include '../includes/header.php';
         }
     });
 
-// Audit Log Management Functions
-async function exportAuditLog() {
-    if (!confirm('Export all audit logs to CSV file?')) {
-        return;
-    }
-    
-    try {
-        window.location.href = '../api/export-audit-log.php';
-        alert('Audit log export started. Your download will begin shortly.');
-    } catch (error) {
-        alert('Error exporting audit log: ' + error.message);
-    }
-}
-
-async function confirmClearLogs() {
-    const retention = document.querySelector('select[name="audit_retention_days"]').value;
-    
-    if (retention == '0') {
-        alert('Please set a retention period before clearing logs.');
-        return;
-    }
-    
-    const days = retention;
-    const message = `This will permanently delete all audit logs older than ${days} days.\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`;
-    
-    if (!confirm(message)) {
-        return;
-    }
-    
-    // Second confirmation
-    if (!confirm('Final confirmation: Delete old audit logs?')) {
-        return;
-    }
-    
-    try {
-        const formData = new FormData();
-        formData.append('retention_days', days);
-        
-        const response = await fetch('../api/clear-audit-logs.php', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`Successfully deleted ${result.deleted_count} old audit log entries.`);
-            location.reload();
-        } else {
-            alert('Error: ' + result.message);
+    // Audit Log Management Functions
+    async function exportAuditLog() {
+        if (!confirm('Export all audit logs to CSV file?')) {
+            return;
         }
-    } catch (error) {
-        alert('Error clearing logs: ' + error.message);
+
+        try {
+            window.location.href = '../api/export-audit-log.php';
+            alert('Audit log export started. Your download will begin shortly.');
+        } catch (error) {
+            alert('Error exporting audit log: ' + error.message);
+        }
     }
-}
+
+    async function confirmClearLogs() {
+        const retention = document.querySelector('select[name="audit_retention_days"]').value;
+
+        if (retention == '0') {
+            alert('Please set a retention period before clearing logs.');
+            return;
+        }
+
+        const days = retention;
+        const message = `This will permanently delete all audit logs older than ${days} days.\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`;
+
+        if (!confirm(message)) {
+            return;
+        }
+
+        // Second confirmation
+        if (!confirm('Final confirmation: Delete old audit logs?')) {
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('retention_days', days);
+
+            const response = await fetch('../api/clear-audit-logs.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Successfully deleted ${result.deleted_count} old audit log entries.`);
+                location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error clearing logs: ' + error.message);
+        }
+    }
 </script>
 
 <style>

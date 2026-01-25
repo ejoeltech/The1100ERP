@@ -11,7 +11,7 @@ if (function_exists('requirePermission')) {
     }
 }
 
-$pageTitle = 'Manage Users - Bluedots Technologies';
+$pageTitle = 'Manage Users - ERP System';
 
 // Fetch all users - backward compatible query
 try {

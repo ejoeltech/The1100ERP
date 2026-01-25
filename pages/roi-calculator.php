@@ -1,6 +1,6 @@
 <?php
 include '../includes/public-init.php';
-$pageTitle = 'Solar ROI Calculator - Bluedots Technologies';
+$pageTitle = 'Solar ROI Calculator - ERP System';
 include '../includes/public-header.php';
 ?>
 

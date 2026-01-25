@@ -1,7 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 requirePermission('manage_products');
-$pageTitle = 'Create Product - Bluedots Technologies';
+$pageTitle = 'Create Product - ERP System';
 
 // Get categories for dropdown
 $categories = $pdo->query("SELECT DISTINCT category FROM products ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);

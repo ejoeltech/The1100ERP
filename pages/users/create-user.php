@@ -2,7 +2,7 @@
 include '../../includes/session-check.php';
 requirePermission('create_user');
 
-$pageTitle = 'Create User - Bluedots Technologies';
+$pageTitle = 'Create User - ERP System';
 
 include '../../includes/header.php';
 ?>

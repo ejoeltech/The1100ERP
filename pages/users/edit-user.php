@@ -19,7 +19,7 @@ if (!$user) {
     exit;
 }
 
-$pageTitle = 'Edit User - Bluedots Technologies';
+$pageTitle = 'Edit User - ERP System';
 
 include '../../includes/header.php';
 ?>

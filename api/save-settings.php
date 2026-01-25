@@ -12,10 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
 }
 
-// DEBUG LOGGING
-file_put_contents('debug_post_log.txt', print_r($_POST, true), FILE_APPEND);
-// END DEBUG LOGGING
-
 // Handle logo upload separately if file is present
 if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
     include 'upload-logo.php';

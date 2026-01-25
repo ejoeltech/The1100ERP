@@ -1,7 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 requirePermission('manage_customers');
-$pageTitle = 'Create Customer - Bluedots Technologies';
+$pageTitle = 'Create Customer - ERP System';
 include '../../includes/header.php';
 ?>
 

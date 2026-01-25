@@ -2,7 +2,7 @@
 <?php
 require_once '../config.php';
 
-$pageTitle = 'View Invoices - Bluedots Technologies';
+$pageTitle = 'View Invoices - ERP System';
 
 // Build role-based filter
 $role_filter = getRoleFilter('d');

@@ -41,7 +41,7 @@ if (function_exists('canViewDocument') && !canViewDocument($document)) {
     die('Access Denied: You cannot view this document');
 }
 
-$pageTitle = 'Email Document - Bluedots Technologies';
+$pageTitle = 'Email Document - ERP System';
 
 // Get document type display name
 $type_names = [
@@ -117,7 +117,7 @@ include '../includes/header.php';
                     Subject <span class="text-red-500">*</span>
                 </label>
                 <input type="text" name="email_subject" required
-                    value="<?php echo $type_display; ?> <?php echo htmlspecialchars($document['document_number']); ?> - Bluedots Technologies"
+                    value="<?php echo $type_display; ?> <?php echo htmlspecialchars($document['document_number']); ?> - ERP System"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 

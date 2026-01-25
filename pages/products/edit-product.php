@@ -18,7 +18,7 @@ if (!$product) {
     exit;
 }
 
-$pageTitle = 'Edit Product - Bluedots Technologies';
+$pageTitle = 'Edit Product - ERP System';
 $categories = $pdo->query("SELECT DISTINCT category FROM products ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 
 include '../../includes/header.php';

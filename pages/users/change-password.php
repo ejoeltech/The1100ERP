@@ -1,7 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 
-$pageTitle = 'Change Password - Bluedots Technologies';
+$pageTitle = 'Change Password - ERP System';
 
 include '../../includes/header.php';
 ?>

@@ -39,7 +39,7 @@ if ($parent_invoice && $parent_invoice['quote_id']) {
     $parent_quote = $stmt->fetch();
 }
 
-$pageTitle = 'Receipt ' . $receipt['document_number'] . ' - Bluedots Technologies';
+$pageTitle = 'Receipt ' . $receipt['document_number'] . ' - ERP System';
 include '../includes/header.php';
 ?>
 

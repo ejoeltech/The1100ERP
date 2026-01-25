@@ -2,7 +2,7 @@
 include '../includes/session-check.php';
 require_once '../config.php';
 
-$pageTitle = 'Create Readymade Quote - Bluedots Technologies';
+$pageTitle = 'Create Readymade Quote - ERP System';
 
 include '../includes/header.php';
 ?>

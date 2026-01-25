@@ -17,7 +17,7 @@ if (!$customer) {
     exit;
 }
 
-$pageTitle = 'Edit Customer - Bluedots Technologies';
+$pageTitle = 'Edit Customer - ERP System';
 include '../../includes/header.php';
 ?>
 

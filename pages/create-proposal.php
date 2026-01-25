@@ -1,6 +1,6 @@
 <?php
 include '../includes/session-check.php';
-$pageTitle = 'Create Solar Proposal - Bluedots Technologies';
+$pageTitle = 'Create Solar Proposal - ERP System';
 include '../includes/header.php';
 ?>
 

@@ -33,7 +33,7 @@ $stmt = $pdo->prepare("
 $stmt->execute([$id, $id, $id]);
 $documents = $stmt->fetchAll();
 
-$pageTitle = 'View Customer - Bluedots Technologies';
+$pageTitle = 'View Customer - ERP System';
 include '../../includes/header.php';
 ?>
 

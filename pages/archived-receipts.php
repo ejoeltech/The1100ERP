@@ -1,7 +1,7 @@
 <?php
 include '../includes/session-check.php';
 
-$pageTitle = 'Archived Receipts - Bluedots Technologies';
+$pageTitle = 'Archived Receipts - ERP System';
 
 // Fetch all archived receipts (deleted_at IS NOT NULL)
 $stmt = $pdo->query("

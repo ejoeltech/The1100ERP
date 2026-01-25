@@ -1,7 +1,7 @@
 <?php
 include '../includes/public-init.php';
 
-$pageTitle = 'System Designer - Bluedots Technologies';
+$pageTitle = 'System Designer - ERP System';
 include '../includes/public-header.php';
 
 // Get theme color from config and convert to RGB

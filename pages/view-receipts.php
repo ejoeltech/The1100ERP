@@ -1,7 +1,7 @@
 <?php
 include '../includes/session-check.php';
 
-$pageTitle = 'View Receipts - Bluedots Technologies';
+$pageTitle = 'View Receipts - ERP System';
 
 // Build role-based filter
 $role_filter = getRoleFilter('r');
