@@ -132,6 +132,27 @@
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         💳 Payments
                     </a>
+                    <a href="<?php echo $base_path; ?>/pages/archives.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        📦 Archives
+                    </a>
+                </div>
+
+                <!-- AI Tools Section -->
+                <div class="border-t border-gray-200 pt-2 mt-2">
+                    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">AI Tools</p>
+                    <a href="<?php echo $base_path; ?>/pages/system-designer.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🛠️ System Designer
+                    </a>
+                    <a href="<?php echo $base_path; ?>/pages/create-proposal.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        ✨ AI Proposal Creator
+                    </a>
+                    <a href="<?php echo $base_path; ?>/pages/roi-calculator.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        💰 ROI Calculator
+                    </a>
                 </div>
 
                 <?php if (function_exists('isAdmin') && isAdmin()): ?>
@@ -149,6 +170,10 @@
                         <a href="<?php echo $base_path; ?>/pages/audit-log.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             📊 Audit Log
+                        </a>
+                        <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
+                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                            🤖 AI Settings
                         </a>
                     </div>
                 <?php endif; ?>
@@ -267,9 +292,44 @@
                                     <div class="text-xs text-gray-500">Payment receipts</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/pages/payments/manage-payments.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">Payments</div>
                                     <div class="text-xs text-gray-500">Track allocations</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/archives.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">Archives</div>
+                                    <div class="text-xs text-gray-500">View archived docs</div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- AI Tools Dropdown -->
+                        <div class="relative group">
+                            <button
+                                class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
+                                AI Tools
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div
+                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                <a href="<?php echo $base_path; ?>/pages/system-designer.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
+                                    <div class="font-semibold">🛠️ System Designer</div>
+                                    <div class="text-xs text-gray-500">Compatibility check</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/create-proposal.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">✨ Proposal Creator</div>
+                                    <div class="text-xs text-gray-500">Generate with AI</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/roi-calculator.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">💰 ROI Calculator</div>
+                                    <div class="text-xs text-gray-500">Solar savings analysis</div>
                                 </a>
                             </div>
                         </div>
@@ -298,9 +358,14 @@
                                         <div class="text-xs text-gray-500">System config</div>
                                     </a>
                                     <a href="<?php echo $base_path; ?>/pages/audit-log.php"
-                                        class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                        class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                         <div class="font-semibold">Audit Log</div>
                                         <div class="text-xs text-gray-500">Activity history</div>
+                                    </a>
+                                    <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                        <div class="font-semibold">AI Settings</div>
+                                        <div class="text-xs text-gray-500">Configure AI features</div>
                                     </a>
                                 </div>
                             </div>

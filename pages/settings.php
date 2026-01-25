@@ -62,6 +62,10 @@ include '../includes/header.php';
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Display
             </button>
+            <button onclick="switchTab('integrations')" id="tab-integrations"
+                class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
+                Integrations (API)
+            </button>
             <button onclick="switchTab('audit')" id="tab-audit"
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Audit Settings
@@ -305,7 +309,9 @@ include '../includes/header.php';
                     <input type="text" name="tinymce_api_key"
                         value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                    <p class="text-xs text-gray-500 mt-1">Get your free key at <a href="https://www.tiny.cloud/" target="_blank" class="text-blue-600 hover:underline">tiny.cloud</a> to remove the warning.</p>
+                    <p class="text-xs text-gray-500 mt-1">Get your free key at <a href="https://www.tiny.cloud/"
+                            target="_blank" class="text-blue-600 hover:underline">tiny.cloud</a> to remove the warning.
+                    </p>
                 </div>
 
                 <div>
@@ -335,12 +341,13 @@ include '../includes/header.php';
                 <div class="bg-red-50 border border-red-200 rounded-lg p-6">
                     <h5 class="font-bold text-gray-900 mb-2">Factory Reset</h5>
                     <p class="text-sm text-gray-700 mb-4">
-                        This action will <strong>permanently delete all data</strong>, including users, documents, settings, and logs. 
-                        The application will be reset to its initial state, ready for a fresh installation. 
+                        This action will <strong>permanently delete all data</strong>, including users, documents,
+                        settings, and logs.
+                        The application will be reset to its initial state, ready for a fresh installation.
                         <strong>This cannot be undone.</strong>
                     </p>
-                    <button type="button" onclick="showResetModal()" 
-                            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">
+                    <button type="button" onclick="showResetModal()"
+                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition-colors">
                         Reset Application
                     </button>
                 </div>
@@ -485,224 +492,298 @@ include '../includes/header.php';
                     </select>
                 </div>
             </div>
-                <div class="border-t border-gray-200 pt-6 mt-6">
-                    <h4 class="font-semibold text-gray-900 mb-4">Document Styling</h4>
-                    <p class="text-sm text-gray-600 mb-4">Customize the look of your Quotes, Invoices, and Receipts.</p>
+            <div class="border-t border-gray-200 pt-6 mt-6">
+                <h4 class="font-semibold text-gray-900 mb-4">Document Styling</h4>
+                <p class="text-sm text-gray-600 mb-4">Customize the look of your Quotes, Invoices, and Receipts.</p>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Theme Color</label>
-                            <div class="flex items-center gap-3">
-                                <input type="color" name="theme_color" 
-                                       value="<?php echo htmlspecialchars(getSetting('theme_color', '#0076BE')); ?>"
-                                       class="h-10 w-20 border border-gray-300 rounded cursor-pointer">
-                                <span class="text-sm text-gray-500">Pick a primary brand color</span>
-                            </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Theme Color</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" name="theme_color"
+                                value="<?php echo htmlspecialchars(getSetting('theme_color', '#0076BE')); ?>"
+                                class="h-10 w-20 border border-gray-300 rounded cursor-pointer">
+                            <span class="text-sm text-gray-500">Pick a primary brand color</span>
                         </div>
+                    </div>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Footer Text</label>
-                            <textarea name="footer_text" rows="3"
-                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                      placeholder="e.g. We appreciate your business!"><?php echo htmlspecialchars(getSetting('footer_text', 'We appreciate your business! Thank you')); ?></textarea>
-                            <p class="text-xs text-gray-500 mt-1">Appears at the bottom of all PDF documents</p>
-                        </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Footer Text</label>
+                        <textarea name="footer_text" rows="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                            placeholder="e.g. We appreciate your business!"><?php echo htmlspecialchars(getSetting('footer_text', 'We appreciate your business! Thank you')); ?></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Appears at the bottom of all PDF documents</p>
                     </div>
                 </div>
             </div>
         </div>
+</div>
 
-        <!-- Audit Settings Tab -->
-        <div id="content-audit" class="tab-content hidden">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">Audit Log Settings</h3>
-            <p class="text-gray-600 mb-6">Configure what gets logged and manage audit log retention</p>
+<!-- Audit Settings Tab -->
+<div id="content-audit" class="tab-content hidden">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Audit Log Settings</h3>
+    <p class="text-gray-600 mb-6">Configure what gets logged and manage audit log retention</p>
 
-            <div class="space-y-8 max-w-3xl">
-                <!-- Quick Actions -->
+    <div class="space-y-8 max-w-3xl">
+        <!-- Quick Actions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 class="font-semibold text-gray-900 mb-4">📊 Audit Log Actions</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="audit-log.php"
+                    class="block px-4 py-3 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 font-semibold">
+                    View Audit Log
+                </a>
+                <button type="button" onclick="exportAuditLog()"
+                    class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                    Export to CSV
+                </button>
+                <button type="button" onclick="confirmClearLogs()"
+                    class="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                    Clear Old Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Log Retention -->
+        <div>
+            <h4 class="font-semibold text-gray-900 mb-4">⏱️ Log Retention Period</h4>
+            <p class="text-sm text-gray-600 mb-4">Automatically delete audit logs older than this period</p>
+
+            <select name="audit_retention_days"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                <option value="30" <?php echo getSetting('audit_retention_days', '90') === '30' ? 'selected' : ''; ?>>30
+                    days</option>
+                <option value="60" <?php echo getSetting('audit_retention_days', '90') === '60' ? 'selected' : ''; ?>>60
+                    days</option>
+                <option value="90" <?php echo getSetting('audit_retention_days', '90') === '90' ? 'selected' : ''; ?>>90
+                    days (Recommended)</option>
+                <option value="180" <?php echo getSetting('audit_retention_days', '90') === '180' ? 'selected' : ''; ?>>
+                    180 days (6 months)</option>
+                <option value="365" <?php echo getSetting('audit_retention_days', '90') === '365' ? 'selected' : ''; ?>>
+                    365 days (1 year)</option>
+                <option value="0" <?php echo getSetting('audit_retention_days', '90') === '0' ? 'selected' : ''; ?>>Never
+                    delete (Not recommended)</option>
+            </select>
+        </div>
+
+        <!-- What to Log -->
+        <div>
+            <h4 class="font-semibold text-gray-900 mb-4">📝 What to Log</h4>
+            <p class="text-sm text-gray-600 mb-4">Select which activities should be tracked in the audit log</p>
+
+            <div class="space-y-3">
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_user_actions" value="1" <?php echo getSetting('log_user_actions', '1') ? 'checked' : ''; ?> class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">User Login/Logout</span>
+                        <p class="text-xs text-gray-600">Track when users log in and out of the system</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_document_create" value="1" <?php echo getSetting('log_document_create', '1') ? 'checked' : ''; ?>
+                        class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">Document Creation</span>
+                        <p class="text-xs text-gray-600">Log when quotes, invoices, and receipts are created</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_document_edit" value="1" <?php echo getSetting('log_document_edit', '1') ? 'checked' : ''; ?> class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">Document Edits</span>
+                        <p class="text-xs text-gray-600">Track modifications to existing documents</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_document_delete" value="1" <?php echo getSetting('log_document_delete', '1') ? 'checked' : ''; ?>
+                        class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">Document Deletion/Archive</span>
+                        <p class="text-xs text-gray-600">Record when documents are deleted or archived</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_user_management" value="1" <?php echo getSetting('log_user_management', '1') ? 'checked' : ''; ?>
+                        class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">User Management</span>
+                        <p class="text-xs text-gray-600">Log user creation, updates, and permission changes</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_settings_changes" value="1" <?php echo getSetting('log_settings_changes', '1') ? 'checked' : ''; ?>
+                        class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">Settings Changes</span>
+                        <p class="text-xs text-gray-600">Track when system settings are modified</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input type="checkbox" name="log_email_sent" value="1" <?php echo getSetting('log_email_sent', '1') ? 'checked' : ''; ?> class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <div>
+                        <span class="font-semibold text-gray-900">Email Sending</span>
+                        <p class="text-xs text-gray-600">Log when documents are emailed to customers</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Current Statistics -->
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <h4 class="font-semibold text-gray-900 mb-4">📈 Current Statistics</h4>
+            <?php
+            try {
+                $totalLogs = $pdo->query("SELECT COUNT(*) FROM audit_log")->fetchColumn();
+                $oldestLog = $pdo->query("SELECT MIN(created_at) FROM audit_log")->fetchColumn();
+                $newestLog = $pdo->query("SELECT MAX(created_at) FROM audit_log")->fetchColumn();
+                $totalSize = $pdo->query("SELECT SUM(LENGTH(details)) FROM audit_log")->fetchColumn();
+            } catch (Exception $e) {
+                $totalLogs = 0;
+                $oldestLog = null;
+                $newestLog = null;
+                $totalSize = 0;
+            }
+            ?>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Total Log Entries</p>
+                    <p class="text-2xl font-bold text-gray-900"><?php echo number_format($totalLogs); ?></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Approximate Size</p>
+                    <p class="text-2xl font-bold text-gray-900"><?php echo round($totalSize / 1024, 2); ?> KB</p>
+                </div>
+                <?php if ($oldestLog): ?>
+                    <div>
+                        <p class="text-sm text-gray-600">Oldest Entry</p>
+                        <p class="text-sm font-semibold text-gray-900"><?php echo date('Y-m-d', strtotime($oldestLog)); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
+                <?php if ($newestLog): ?>
+                    <div>
+                        <p class="text-sm text-gray-600">Latest Entry</p>
+                        <p class="text-sm font-semibold text-gray-900"><?php echo date('Y-m-d', strtotime($newestLog)); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Warning -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p class="text-sm text-yellow-800">
+                <strong>⚠️ Important:</strong> Audit logs are critical for security and compliance.
+                Only disable logging if absolutely necessary. Clearing logs is irreversible.
+            </p>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<!-- Quote Appendices Tab -->
+<div id="content-appendices" class="tab-content hidden">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Quote Appendices</h3>
+    <p class="text-gray-600 mb-6">Content added here will be appended as separate pages to the end of every PDF Quote.
+    </p>
+
+    <div class="space-y-8 max-w-4xl">
+        <div>
+            <label class="block text-lg font-semibold text-gray-900 mb-2">Terms & Conditions</label>
+            <p class="text-sm text-gray-500 mb-2">Appears on a new page after the quote.</p>
+            <textarea name="quote_terms" id="quote_terms" rows="10"
+                class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_terms', '')); ?></textarea>
+        </div>
+
+        <div>
+            <label class="block text-lg font-semibold text-gray-900 mb-2">Warranty Information</label>
+            <p class="text-sm text-gray-500 mb-2">Appears on the last page.</p>
+            <textarea name="quote_warranty" id="quote_warranty" rows="10"
+                class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_warranty', '')); ?></textarea>
+        </div>
+    </div>
+</div>
+
+<!-- Integrations Tab -->
+        <div id="content-integrations" class="tab-content hidden">
+            <h3 class="text-xl font-bold text-gray-900 mb-6">API Integrations</h3>
+            
+            <div class="space-y-6 max-w-2xl">
+                <!-- AI Integration -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-purple-100 rounded-full p-2">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h4 class="font-semibold text-gray-900">Artificial Intelligence (AI)</h4>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Groq API Key
+                        </label>
+                        <div class="relative">
+                            <input type="password" name="groq_api_key" 
+                                value="<?php echo htmlspecialchars(getSetting('groq_api_key', '')); ?>"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10">
+                            <button type="button" onclick="togglePasswordVisibility(this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Required for AI Quote Descriptions and Solar System Design. 
+                            <a href="https://console.groq.com" target="_blank" class="text-primary hover:underline">Get a free key here</a>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Editor Integration -->
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <h4 class="font-semibold text-gray-900 mb-4">📊 Audit Log Actions</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <a href="audit-log.php" 
-                           class="block px-4 py-3 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 font-semibold">
-                            View Audit Log
-                        </a>
-                        <button type="button" onclick="exportAuditLog()" 
-                                class="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
-                            Export to CSV
-                        </button>
-                        <button type="button" onclick="confirmClearLogs()" 
-                                class="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
-                            Clear Old Logs
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Log Retention -->
-                <div>
-                    <h4 class="font-semibold text-gray-900 mb-4">⏱️ Log Retention Period</h4>
-                    <p class="text-sm text-gray-600 mb-4">Automatically delete audit logs older than this period</p>
-                    
-                    <select name="audit_retention_days" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                        <option value="30" <?php echo getSetting('audit_retention_days', '90') === '30' ? 'selected' : ''; ?>>30 days</option>
-                        <option value="60" <?php echo getSetting('audit_retention_days', '90') === '60' ? 'selected' : ''; ?>>60 days</option>
-                        <option value="90" <?php echo getSetting('audit_retention_days', '90') === '90' ? 'selected' : ''; ?>>90 days (Recommended)</option>
-                        <option value="180" <?php echo getSetting('audit_retention_days', '90') === '180' ? 'selected' : ''; ?>>180 days (6 months)</option>
-                        <option value="365" <?php echo getSetting('audit_retention_days', '90') === '365' ? 'selected' : ''; ?>>365 days (1 year)</option>
-                        <option value="0" <?php echo getSetting('audit_retention_days', '90') === '0' ? 'selected' : ''; ?>>Never delete (Not recommended)</option>
-                    </select>
-                </div>
-
-                <!-- What to Log -->
-                <div>
-                    <h4 class="font-semibold text-gray-900 mb-4">📝 What to Log</h4>
-                    <p class="text-sm text-gray-600 mb-4">Select which activities should be tracked in the audit log</p>
-                    
-                    <div class="space-y-3">
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_user_actions" value="1" 
-                                   <?php echo getSetting('log_user_actions', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">User Login/Logout</span>
-                                <p class="text-xs text-gray-600">Track when users log in and out of the system</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_document_create" value="1" 
-                                   <?php echo getSetting('log_document_create', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">Document Creation</span>
-                                <p class="text-xs text-gray-600">Log when quotes, invoices, and receipts are created</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_document_edit" value="1" 
-                                   <?php echo getSetting('log_document_edit', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">Document Edits</span>
-                                <p class="text-xs text-gray-600">Track modifications to existing documents</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_document_delete" value="1" 
-                                   <?php echo getSetting('log_document_delete', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">Document Deletion/Archive</span>
-                                <p class="text-xs text-gray-600">Record when documents are deleted or archived</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_user_management" value="1" 
-                                   <?php echo getSetting('log_user_management', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">User Management</span>
-                                <p class="text-xs text-gray-600">Log user creation, updates, and permission changes</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_settings_changes" value="1" 
-                                   <?php echo getSetting('log_settings_changes', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">Settings Changes</span>
-                                <p class="text-xs text-gray-600">Track when system settings are modified</p>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
-                            <input type="checkbox" name="log_email_sent" value="1" 
-                                   <?php echo getSetting('log_email_sent', '1') ? 'checked' : ''; ?>
-                                   class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
-                            <div>
-                                <span class="font-semibold text-gray-900">Email Sending</span>
-                                <p class="text-xs text-gray-600">Log when documents are emailed to customers</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Current Statistics -->
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <h4 class="font-semibold text-gray-900 mb-4">📈 Current Statistics</h4>
-                    <?php
-                    try {
-                        $totalLogs = $pdo->query("SELECT COUNT(*) FROM audit_log")->fetchColumn();
-                        $oldestLog = $pdo->query("SELECT MIN(created_at) FROM audit_log")->fetchColumn();
-                        $newestLog = $pdo->query("SELECT MAX(created_at) FROM audit_log")->fetchColumn();
-                        $totalSize = $pdo->query("SELECT SUM(LENGTH(details)) FROM audit_log")->fetchColumn();
-                    } catch (Exception $e) {
-                        $totalLogs = 0;
-                        $oldestLog = null;
-                        $newestLog = null;
-                        $totalSize = 0;
-                    }
-                    ?>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-gray-600">Total Log Entries</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo number_format($totalLogs); ?></p>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-blue-100 rounded-full p-2">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Approximate Size</p>
-                            <p class="text-2xl font-bold text-gray-900"><?php echo round($totalSize / 1024, 2); ?> KB</p>
+                        <h4 class="font-semibold text-gray-900">Rich Text Editor</h4>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            TinyMCE API Key
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="tinymce_api_key" 
+                                value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                         </div>
-                        <?php if ($oldestLog): ?>
-                            <div>
-                                <p class="text-sm text-gray-600">Oldest Entry</p>
-                                <p class="text-sm font-semibold text-gray-900"><?php echo date('Y-m-d', strtotime($oldestLog)); ?></p>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($newestLog): ?>
-                            <div>
-                                <p class="text-sm text-gray-600">Latest Entry</p>
-                                <p class="text-sm font-semibold text-gray-900"><?php echo date('Y-m-d', strtotime($newestLog)); ?></p>
-                            </div>
-                        <?php endif; ?>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Required for the rich text editor on quote/invoice pages.
+                        </p>
                     </div>
                 </div>
-
-                <!-- Warning -->
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-sm text-yellow-800">
-                        <strong>⚠️ Important:</strong> Audit logs are critical for security and compliance. 
-                        Only disable logging if absolutely necessary. Clearing logs is irreversible.
-                    </p>
-                </div>
             </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quote Appendices Tab -->
-        <div id="content-appendices" class="tab-content hidden">
-            <h3 class="text-xl font-bold text-gray-900 mb-6">Quote Appendices</h3>
-            <p class="text-gray-600 mb-6">Content added here will be appended as separate pages to the end of every PDF Quote.</p>
-
-            <div class="space-y-8 max-w-4xl">
-                <div>
-                    <label class="block text-lg font-semibold text-gray-900 mb-2">Terms & Conditions</label>
-                    <p class="text-sm text-gray-500 mb-2">Appears on a new page after the quote.</p>
-                    <textarea name="quote_terms" id="quote_terms" rows="10"
-                        class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_terms', '')); ?></textarea>
-                </div>
-
-                <div>
-                    <label class="block text-lg font-semibold text-gray-900 mb-2">Warranty Information</label>
-                    <p class="text-sm text-gray-500 mb-2">Appears on the last page.</p>
-                    <textarea name="quote_warranty" id="quote_warranty" rows="10" 
-                        class="w-full border border-gray-300 rounded-lg"><?php echo htmlspecialchars(getSetting('quote_warranty', '')); ?></textarea>
-                </div>
-            </div>
+            
+            <script>
+                function togglePasswordVisibility(btn) {
+                    const input = btn.previousElementSibling;
+                    const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+                    input.setAttribute('type', type);
+                    btn.classList.toggle('text-primary');
+                }
+            </script>
         </div>
 
         <!-- Save Button -->

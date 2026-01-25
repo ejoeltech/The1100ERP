@@ -252,7 +252,7 @@ include '../includes/header.php';
         <p class="text-gray-700 mb-4">You are about to archive <strong id="archiveCount">0</strong> quote(s). This
             action
             cannot be undone.</p>
-        <p class="text-sm text-gray-600 mb-4">To confirm, please type <strong class="text-red-600">DELETE</strong> in
+        <p class="text-sm text-gray-600 mb-4">To confirm, please type <strong class="text-red-600">ARCHIVE</strong> in
             the box below:</p>
         <input type="text" id="archiveConfirmInput" onkeyup="validateArchiveConfirmation()"
             placeholder="Type ARCHIVE to confirm"
@@ -261,7 +261,7 @@ include '../includes/header.php';
             <button onclick="hideArchiveConfirmation()"
                 class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">Cancel</button>
             <button id="confirmArchiveBtn" onclick="executeBulkArchive()" disabled
-                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Delete
+                class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Archive
                 Quotes</button>
         </div>
     </div>

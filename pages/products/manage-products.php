@@ -124,11 +124,11 @@ include '../../includes/header.php';
             <?php foreach ($products as $product): ?>
                 <tr class="border-b hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-sm">
-                        <?php echo htmlspecialchars($product['product_code']); ?>
+                        <?php echo htmlspecialchars($product['id']); ?>
                     </td>
                     <td class="px-4 py-3">
                         <p class="font-semibold">
-                            <?php echo htmlspecialchars($product['product_name']); ?>
+                            <?php echo htmlspecialchars($product['name']); ?>
                         </p>
                         <?php if ($product['description']): ?>
                             <p class="text-xs text-gray-500">
@@ -197,32 +197,32 @@ include '../../includes/header.php';
                         id: id
                     })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire(
-                            'Deleted!',
-                            'Product has been deleted.',
-                            'success'
-                        ).then(() => {
-                            location.reload();
-                        });
-                    } else {
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire(
+                                'Deleted!',
+                                'Product has been deleted.',
+                                'success'
+                            ).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                data.message || 'Something went wrong.',
+                                'error'
+                            );
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         Swal.fire(
                             'Error!',
-                            data.message || 'Something went wrong.',
+                            'Failed to delete product.',
                             'error'
                         );
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    Swal.fire(
-                        'Error!',
-                        'Failed to delete product.',
-                        'error'
-                    );
-                });
+                    });
             }
         })
     }

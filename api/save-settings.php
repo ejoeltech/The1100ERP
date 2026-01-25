@@ -71,6 +71,9 @@ try {
         // Quote Appendices
         'quote_terms' => $_POST['quote_terms'] ?? '',
         'quote_warranty' => $_POST['quote_warranty'] ?? '',
+
+        // Integrations
+        'groq_api_key' => $_POST['groq_api_key'] ?? '',
     ];
 
     // Create settings table if it doesn't exist

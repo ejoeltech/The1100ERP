@@ -1,21 +1,22 @@
 <?php
 // Receipt PDF Template
+$theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#2563eb';
 $html = '
 <!DOCTYPE html>
 <html>
 <head>
     <style>
         body { font-family: "DejaVu Sans", sans-serif; font-size: 11pt; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #9333EA; padding-bottom: 15px; }
-        .company-name { font-size: 24pt; font-weight: bold; color: #0076BE; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid ' . $theme_color . '; padding-bottom: 15px; }
+        .company-name { font-size: 24pt; font-weight: bold; color: ' . $theme_color . '; }
         .company-tagline { font-size: 8pt; letter-spacing: 3px; color: #666; }
         .company-details { font-size: 9pt; margin-top: 10px; color: #666; }
-        .document-title { font-size: 32pt; font-weight: bold; text-align: center; margin: 20px 0; color: #9333EA; }
+        .document-title { font-size: 32pt; font-weight: bold; text-align: center; margin: 20px 0; color: ' . $theme_color . '; }
         .paid-stamp { text-align: center; background-color: #D1FAE5; color: #065F46; padding: 10px; border-radius: 10px; margin: 10px auto; width: 60%; font-weight: bold; font-size: 12pt; }
         .info-grid { width: 100%; }
         .info-grid td { padding: 5px; font-size: 10pt; }
         .label { font-weight: bold; color: #333; }
-        .payment-details { background-color: #F3E8FF; border: 2px solid #9333EA; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        .payment-details { background-color: #F3E8FF; border: 2px solid ' . $theme_color . '; padding: 15px; margin: 20px 0; border-radius: 5px; }
         .payment-details h3 { margin: 0 0 10px 0; font-size: 12pt; }
         .payment-grid { width: 100%; }
         .payment-grid td { padding: 5px; font-size: 10pt; }
@@ -24,14 +25,17 @@ $html = '
         .invoice-summary table { width: 100%; border-collapse: collapse; }
         .invoice-summary td { padding: 8px; border-bottom: 1px solid #ddd; }
         .balance { background-color: #F3F4F6; padding: 10px; font-weight: bold; font-size: 11pt; }
-        .footer { margin-top: 40px; border-top: 2px solid #9333EA; padding-top: 15px; text-align: center; font-size: 9pt; }
-        .confirmed-stamp { background-color: #9333EA; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 12pt; margin: 20px 0; }
+        .footer { margin-top: 40px; border-top: 2px solid ' . $theme_color . '; padding-top: 15px; text-align: center; font-size: 9pt; }
+        .confirmed-stamp { background-color: ' . $theme_color . '; color: white; padding: 12px; text-align: center; border-radius: 5px; font-weight: bold; font-size: 12pt; margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="company-name">Bluedots</div>
-        <div class="company-tagline">TECHNOLOGIES</div>
+        ' . (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO) ?
+    '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 60px; max-width: 200px; display: block; margin: 0 auto 10px;">' :
+    '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+             <div class="company-tagline">TECHNOLOGIES</div>'
+) . '
         <div class="company-details">
             <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>
             <strong>Phone:</strong> ' . COMPANY_PHONE . ' | <strong>Email:</strong> ' . COMPANY_EMAIL . ' | ' . COMPANY_WEBSITE . '

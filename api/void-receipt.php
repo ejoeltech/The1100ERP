@@ -3,6 +3,7 @@
 // POST /api/void-receipt.php
 // Payload: { receipt_id: 123, reason: "Entered in error" }
 
+define('IS_API', true);
 require_once '../config.php';
 require_once '../includes/session-check.php';
 
@@ -77,8 +78,23 @@ try {
     $voidNote = " | VOIDED on " . date('Y-m-d H:i') . " by " . $_SESSION['user_id'] . ". Reason: $reason";
 
     // 6. Update Receipt
-    $updateReceipt = $pdo->prepare("UPDATE receipts SET status = 'void', notes = CONCAT(notes, ?) WHERE id = ?");
+    $updateReceipt = $pdo->prepare("UPDATE receipts SET status = 'void', notes = CONCAT(COALESCE(notes, ''), ?) WHERE id = ?");
     $updateReceipt->execute([$voidNote, $receipt_id]);
+
+    // 7. Cleanup Parent Payment (Prevent Zombie Records)
+    // If this receipt was linked to a payment, and that payment has no other VALID receipts, delete the payment.
+    if (!empty($receipt['payment_id'])) {
+        $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM receipts WHERE payment_id = ? AND status != 'void'");
+        $checkStmt->execute([$receipt['payment_id']]);
+        $remaining_receipts = $checkStmt->fetchColumn();
+
+        if ($remaining_receipts == 0) {
+            // No other valid receipts exist for this payment. It's safe to remove the master payment record
+            // so it doesn't show up in Manage Payments as a "Ghost" payment.
+            $deletePayment = $pdo->prepare("DELETE FROM payments WHERE id = ?");
+            $deletePayment->execute([$receipt['payment_id']]);
+        }
+    }
 
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'Receipt voided and transaction reversed']);

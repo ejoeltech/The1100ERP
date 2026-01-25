@@ -72,6 +72,10 @@ echo "<div class='box'><h3>2. Adding Missing Columns</h3>";
 // 2. Soft Deletes
 addColumnIfNotExists($pdo, 'customers', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
 addColumnIfNotExists($pdo, 'products', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+addColumnIfNotExists($pdo, 'quotes', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+addColumnIfNotExists($pdo, 'invoices', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+addColumnIfNotExists($pdo, 'receipts', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+addColumnIfNotExists($pdo, 'payments', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
 
 // 3. Archiving
 addColumnIfNotExists($pdo, 'quotes', 'is_archived', 'TINYINT(1) DEFAULT 0');

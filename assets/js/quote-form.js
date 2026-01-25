@@ -1,6 +1,7 @@
 // Line item counter
 window.lineItemCount = 0;
 
+
 // Add initial line item on page load (only if no existing items AND not from template)
 document.addEventListener('DOMContentLoaded', function () {
     // Check if we're loading from template or have existing items

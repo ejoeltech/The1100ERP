@@ -18,6 +18,7 @@ $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
     FROM quotes
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
+    AND deleted_at IS NULL
 ");
 $stmt->execute([$currentMonth]);
 $quotes_count = $stmt->fetch()['count'];
@@ -27,6 +28,7 @@ $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
     FROM invoices
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
+    AND deleted_at IS NULL
 ");
 $stmt->execute([$currentMonth]);
 $invoices_count = $stmt->fetch()['count'];
@@ -36,6 +38,8 @@ $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
     FROM receipts
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
+    AND deleted_at IS NULL
+    AND status != 'void'
 ");
 $stmt->execute([$currentMonth]);
 $receipts_count = $stmt->fetch()['count'];
@@ -45,6 +49,8 @@ $stmt = $pdo->prepare("
     SELECT COALESCE(SUM(amount_paid), 0) as total 
     FROM receipts
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
+    AND deleted_at IS NULL
+    AND status != 'void'
 ");
 $stmt->execute([$currentMonth]);
 $total_revenue = $stmt->fetch()['total'];
@@ -62,6 +68,7 @@ $stmt = $pdo->query("
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
         SUM(CASE WHEN status IN ('finalized', 'approved') THEN 1 ELSE 0 END) as finalized
     FROM quotes
+    WHERE deleted_at IS NULL
 ");
 $quote_counts = $stmt->fetch();
 $draft_count += $quote_counts['draft'];
@@ -73,6 +80,7 @@ $stmt = $pdo->query("
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
         SUM(CASE WHEN status IN ('sent', 'paid', 'partially_paid') THEN 1 ELSE 0 END) as finalized
     FROM invoices
+    WHERE deleted_at IS NULL
 ");
 $invoice_counts = $stmt->fetch();
 $draft_count += $invoice_counts['draft'];
@@ -89,6 +97,7 @@ $stmt = $pdo->query("
         status,
         created_at
     FROM quotes
+    WHERE deleted_at IS NULL
     ORDER BY created_at DESC
     LIMIT 10)
     UNION ALL
@@ -101,6 +110,7 @@ $stmt = $pdo->query("
         status,
         created_at
     FROM invoices
+    WHERE deleted_at IS NULL
     ORDER BY created_at DESC
     LIMIT 10)
     UNION ALL
@@ -113,6 +123,8 @@ $stmt = $pdo->query("
         'paid' as status,
         created_at
     FROM receipts
+    WHERE deleted_at IS NULL
+    AND status != 'void'
     ORDER BY created_at DESC
     LIMIT 10)
     ORDER BY created_at DESC

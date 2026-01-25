@@ -1,0 +1,210 @@
+<?php
+// Allow public access - no session required
+session_start();
+define('IS_API', true);
+define('ALLOW_PUBLIC', true);
+
+require_once '../../includes/db.php';
+require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-rate-limiter.php';
+
+header('Content-Type: application/json');
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    exit;
+}
+
+$input = json_decode(file_get_contents('php://input'), true);
+$startTime = microtime(true);
+
+try {
+    // Initialize rate limiter
+    $userId = $_SESSION['user_id'] ?? null;
+    $rateLimiter = new AiRateLimiter('system_designer', $userId);
+
+    // Check rate limit and cache
+    $limitCheck = $rateLimiter->checkLimit($input);
+
+    // If cached, return immediately
+    if ($limitCheck['cached']) {
+        echo json_encode([
+            'success' => true,
+            'recommendation' => $limitCheck['data'],
+            'cached' => true,
+            'remaining' => $limitCheck['remaining']
+        ]);
+        exit;
+    }
+
+    $requestHash = AiRateLimiter::generateRequestHash($input);
+
+    // Generate recommendation
+    $recommendation = generatePlannerRecommendation($input);
+
+    // Calculate processing time
+    $processingTime = microtime(true) - $startTime;
+
+    // Estimate tokens (rough estimate based on response size)
+    $tokensUsed = (strlen(json_encode($input)) + strlen(json_encode($recommendation))) / 4;
+
+    // Log usage
+    $rateLimiter->logUsage($requestHash, $tokensUsed, $processingTime, true);
+
+    // Cache response
+    $rateLimiter->cacheResponse($requestHash, $input, $recommendation);
+
+    echo json_encode([
+        'success' => true,
+        'recommendation' => $recommendation,
+        'cached' => false,
+        'remaining' => $rateLimiter->getRemainingRequests()
+    ]);
+
+} catch (Exception $e) {
+    // Log failed attempt
+    if (isset($rateLimiter)) {
+        $processingTime = microtime(true) - $startTime;
+        $rateLimiter->logUsage($requestHash ?? '', 0, $processingTime, false, $e->getMessage());
+    }
+
+    error_log("Design Planner Error: " . $e->getMessage());
+    http_response_code(429); // Too Many Requests if rate limit
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+}
+
+function generatePlannerRecommendation($data)
+{
+    // Build comprehensive prompt for Mode 1
+    $systemType = $data['system_type'] ?? 'hybrid';
+
+    $systemSpecs = [
+        'mode' => 'planner',
+        'system_type' => $systemType,
+    ];
+
+    // Add parameters based on system type
+    if ($systemType === 'hybrid') {
+        $systemSpecs['inverter'] = [
+            'capacity' => $data['inverter_capacity'] ?? 0,
+            'controller_capacity' => $data['controller_capacity'] ?? 0,
+            'nominal_voltage' => $data['nominal_voltage'] ?? 0,
+            'max_voltage' => $data['max_voltage'] ?? 0,
+            'voltage_range' => $data['voltage_range'] ?? '',
+            'max_current' => $data['max_current'] ?? 0,
+            'battery_voltage' => $data['battery_voltage'] ?? 0,
+        ];
+    } else {
+        $systemSpecs['controller'] = [
+            'inverter_capacity' => $data['inverter_capacity'] ?? 0,
+            'controller_capacity' => $data['controller_capacity'] ?? 0,
+            'battery_voltage' => $data['battery_voltage'] ?? 0,
+            'max_voltage' => $data['max_voltage'] ?? 0,
+        ];
+    }
+
+    $systemSpecs['panel'] = [
+        'power_w' => $data['panel_power'] ?? null,
+        'voc_v' => $data['panel_voc'] ?? null,
+        'isc_a' => $data['panel_isc'] ?? null,
+        'has_specs' => $data['has_panel_specs'] ?? false,
+    ];
+
+    $panelGuidance = $systemSpecs['panel']['has_specs']
+        ? "Use the provided panel specifications. IMPORTANT: In max_panels field, include panel wattage like '12× 550W Panels' or 'Max 550W Panels: 12'."
+        : "The user wants panel recommendations. Suggest 2-4 different panel options ranging from 100W to 720W, with STRONG PREFERENCE for panels in the 400W-650W range (most common and cost-effective). Provide specific recommendations (e.g., 450W, 550W, 600W, 650W) showing max panels for each. MUST include max_panels_display field like 'Max 450W Panels: 10' or '10× 450W Panels'.";
+
+    $prompt = "You are a Professional Solar System Engineer. Analyze this solar power system configuration and provide comprehensive recommendations.
+
+System Specifications:
+" . json_encode($systemSpecs, JSON_PRETTY_PRINT) . "
+
+Panel Recommendations Guidance:
+$panelGuidance
+
+Your Tasks:
+1. " . ($systemSpecs['panel']['has_specs'] ? "Calculate the MAXIMUM number of solar panels that can be safely connected. In max_panels field, specify like '12× 550W Panels' or 'Max 550W Panels: 12'" : "Recommend 2-4 different panel size options (preferring 400W-650W range) with max panels for each") . "
+2. Recommend the optimal panel arrangement (series/parallel strings)
+3. Calculate total system capacity in kWp
+4. Recommend DC circuit breaker ratings (considering 125% safety factor per NEC)
+5. Calculate wire sizing for both PV-to-controller and battery-to-inverter connections
+6. Provide a comprehensive summary with installation notes
+
+CRITICAL SAFETY RULES:
+- VOC×panels_per_string MUST NOT exceed controller max voltage
+- Total panel current MUST NOT exceed controller max current
+- Derate controller capacity to 80% for safety
+- Always round down for safety
+
+Return ONLY valid JSON with NO markdown formatting:
+{" . ($systemSpecs['panel']['has_specs'] ? '' : '
+    "panel_recommendations": [
+        {
+            "panel_size": "XXX W",
+            "voc": "XX.X V (typical)",
+            "imp": "XX.X A (typical)",
+            "max_panels": number,
+            "max_panels_display": "Max XXXW Panels: X" or "X× XXXW Panels",
+            "total_capacity": "X.X kWp",
+            "arrangement": "configuration description"
+        }
+    ],') . "
+    \"max_panels\": " . ($systemSpecs['panel']['has_specs'] ? '"include wattage like: 12× 550W Panels or Max 550W Panels: 12"' : 'number') . ",
+    \"total_capacity\": \"X.X kWp\",
+    \"arrangement\": {
+        \"configuration\": \"e.g., 2 strings of 5 panels in series\",
+        \"strings\": number,
+        \"panels_per_string\": number,
+        \"total_voc\": \"XXX V\",
+        \"total_current\": \"XX A\",
+        \"explanation\": \"detailed explanation of why this configuration\"
+    },
+    \"breaker\": {
+        \"rating\": \"XX A\",
+        \"explanation\": \"calculation details\"
+    },
+    \"wiring\": {
+        \"pv_wire\": \"X mm² (XX AWG)\",
+        \"battery_wire\": \"X mm² (XX AWG)\",
+        \"explanation\": \"why these wire sizes based on current and distance\"
+    },
+    \"summary\": \"HTML formatted summary with key points\",
+    \"warnings\": [\"warning 1\", \"warning 2\"]
+}";
+
+    $response = callGroqAPI($prompt, 'json');
+    $recommendation = extractJSON($response);
+
+    if (!$recommendation) {
+        error_log("Failed to parse recommendation: " . substr($response, 0, 500));
+        throw new Exception("Failed to generate recommendation");
+    }
+
+    return $recommendation;
+}
+
+function extractJSON($response)
+{
+    $data = json_decode($response, true);
+    if ($data !== null) {
+        return $data;
+    }
+
+    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
+        $data = json_decode($matches[1], true);
+        if ($data !== null) {
+            return $data;
+        }
+    }
+
+    if (preg_match('/(\{.*\})/s', $response, $matches)) {
+        $data = json_decode($matches[1], true);
+        if ($data !== null) {
+            return $data;
+        }
+    }
+
+    return null;
+}
+?>

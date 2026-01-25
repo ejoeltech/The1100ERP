@@ -11,9 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     // Check if user is admin or super_admin
-    $user_role = $current_user['user_role'] ?? 'user';
-
-    if (!in_array($user_role, ['admin', 'super_admin'])) {
+    if (!function_exists('isAdmin') || !isAdmin()) {
         throw new Exception('Permission denied. Only admins can permanently delete documents.');
     }
 

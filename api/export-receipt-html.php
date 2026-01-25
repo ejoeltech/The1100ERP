@@ -52,7 +52,8 @@ $line_items = $stmt->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt
-        <?php echo htmlspecialchars($receipt['document_number']); ?> - Bluedots Technologies
+        <?php echo htmlspecialchars($receipt['document_number']); ?> -
+        <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots Technologies'; ?>
     </title>
     <style>
         * {
@@ -310,14 +311,19 @@ $line_items = $stmt->fetchAll();
 
     <div class="container">
         <div class="header">
-            <div class="logo">
-                <div class="logo-dot"></div>
-                <div class="logo-dot"></div>
-                <div class="logo-dot"></div>
-                <div class="logo-dot"></div>
-            </div>
-            <div class="company-name">Bluedots</div>
-            <div class="company-tagline">TECHNOLOGIES</div>
+            <?php if (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
+                <img src="../<?php echo htmlspecialchars(COMPANY_LOGO); ?>" alt="Company Logo"
+                    style="height: 80px; max-width: 300px; margin-bottom: 15px;">
+            <?php else: ?>
+                <div class="logo">
+                    <div class="logo-dot"></div>
+                    <div class="logo-dot"></div>
+                    <div class="logo-dot"></div>
+                    <div class="logo-dot"></div>
+                </div>
+                <div class="company-name"><?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots'; ?></div>
+                <div class="company-tagline">TECHNOLOGIES</div>
+            <?php endif; ?>
             <div class="company-info">
                 <?php echo COMPANY_ADDRESS; ?><br>
                 Phone:
@@ -428,7 +434,9 @@ $line_items = $stmt->fetchAll();
             <p><strong>Payment Terms:</strong>
                 <?php echo htmlspecialchars($receipt['payment_terms']); ?>
             </p>
-            <p style="margin-top: 15px;">This is a computer-generated receipt from Bluedots Technologies</p>
+            <p style="margin-top: 15px;">This is a computer-generated receipt from
+                <?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots Technologies'; ?>
+            </p>
             <p>For any questions, please contact us at
                 <?php echo COMPANY_EMAIL; ?>
             </p>

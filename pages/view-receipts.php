@@ -25,6 +25,7 @@ $query = "
     LEFT JOIN users u ON r.created_by = u.id
     WHERE 1=1
     AND r.deleted_at IS NULL
+    AND r.status != 'void'
     $role_filter
     ORDER BY r.created_at DESC
 ";

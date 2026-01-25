@@ -3,6 +3,7 @@
 // This file is included by export-invoice-pdf.php
 // Variables available: $invoice, $line_items
 
+$theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#2563eb';
 $html = '
 <!DOCTYPE html>
 <html>

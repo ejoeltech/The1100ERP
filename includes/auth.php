@@ -9,14 +9,40 @@ function isLoggedIn()
 function requireLogin()
 {
     if (!isLoggedIn()) {
-        // Redirect to login page with absolute path
-        // Redirect to login page with dynamic path
+        // Redirect to login page with absolute path to avoid deep nesting issues
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'];
+
+        // Find the root by removing known subdirectories or using a config constant if available
+        // Simple heuristic: Go up until we find login.php or just use root if possible.
+        // Better: Use a relative path that works from anywhere if we know depth, but absolute is safer.
+        // From api/payments/delete-payment.php (depth 2), we need ../../login.php.
+        // Let's use the helper we already have logic for but make it robust.
+
         $redirect = 'login.php';
-        if (!file_exists($redirect) && file_exists('../' . $redirect)) {
-            $redirect = '../' . $redirect;
-        } elseif (!file_exists($redirect) && file_exists('../../' . $redirect)) {
-            $redirect = '../../' . $redirect;
+        if (file_exists('login.php')) {
+            $redirect = 'login.php';
+        } elseif (file_exists('../login.php')) {
+            $redirect = '../login.php';
+        } elseif (file_exists('../../login.php')) {
+            $redirect = '../../login.php';
+        } elseif (file_exists('../../../login.php')) {
+            $redirect = '../../../login.php';
         }
+
+        // If this is an API call (AJAX/Fetch), return 401 instead of redirecting
+        // This PREVENTS the "Too Many Redirects" loop when Fetch tries to follow login redirects
+        if (
+            (defined('IS_API') && IS_API)
+            || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+            || (strpos($_SERVER['REQUEST_URI'], '/api/') !== false)
+        ) {
+            header('HTTP/1.1 401 Unauthorized');
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Session expired. Please login again.', 'redirect' => $redirect]);
+            exit;
+        }
+
         header('Location: ' . $redirect);
         exit;
     }

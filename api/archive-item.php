@@ -38,10 +38,16 @@ try {
             break;
     }
 
-    $newValue = ($action === 'archive') ? 1 : 0;
+    // Use deleted_at column for soft delete (archive/restore)
+    if ($action === 'archive') {
+        // Archive: set deleted_at to current timestamp
+        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NOW() WHERE id = ?");
+    } else {
+        // Unarchive (restore): set deleted_at to NULL
+        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NULL WHERE id = ?");
+    }
 
-    $stmt = $pdo->prepare("UPDATE $table SET is_archived = ? WHERE id = ?");
-    $stmt->execute([$newValue, $id]);
+    $stmt->execute([$id]);
 
     echo json_encode(['success' => true, 'message' => "Item successfully {$action}d"]);
 
