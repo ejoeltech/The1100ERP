@@ -1149,6 +1149,32 @@ include '../includes/header.php';
         }
     }
 
+    // Switch Tab Function
+    function switchTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+        // Remove active class from all buttons
+        document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active', 'border-primary', 'text-primary'));
+
+        // Show selected tab content
+        const content = document.getElementById('content-' + tabId);
+        if (content) {
+            content.classList.remove('hidden');
+        }
+
+        // Activate button
+        const btn = document.getElementById('tab-' + tabId);
+        if (btn) {
+            btn.classList.add('active', 'border-primary', 'text-primary');
+        }
+
+        // Update URL without reload
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.pushState({}, '', url);
+    }
+
     // Handle URL parameters for tab switching
     document.addEventListener('DOMContentLoaded', function () {
         const urlParams = new URLSearchParams(window.location.search);

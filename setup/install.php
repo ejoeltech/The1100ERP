@@ -257,9 +257,37 @@ function initializeSettings()
             'company_email' => $companyEmail,
             'company_phone' => $companyPhone,
             'company_address' => $companyAddress,
+            'company_website' => '',
+            'company_tax_id' => '',
             'vat_rate' => $vatRate,
             'currency_symbol' => $currencySymbol,
+
+            // Email Settings (Defaults)
+            'email_method' => 'php_mail',
+            'email_from_address' => 'noreply@yourcompany.com',
+            'email_from_name' => 'Your Company Name',
+            'smtp_host' => '',
+            'smtp_port' => '',
+            'smtp_username' => '',
+            'smtp_password' => '',
+            'smtp_encryption' => 'tls',
+
+            // Display Settings
             'items_per_page' => '25',
+            'show_dashboard_charts' => '1',
+            'show_recent_activity' => '1',
+            'pdf_quality' => 'high',
+            'theme_color' => '#0076BE',
+            'footer_text' => 'We appreciate your business! Thank you',
+
+            // System Settings
+            'quote_prefix' => 'QUOT-',
+            'invoice_prefix' => 'INV-',
+            'receipt_prefix' => 'REC-',
+            'date_format' => 'd/m/Y',
+            'auto_archive_days' => '0',
+
+            // Audit Settings
             'audit_retention_days' => '90',
             'log_user_actions' => '1',
             'log_document_create' => '1',
