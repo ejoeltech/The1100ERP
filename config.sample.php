@@ -46,8 +46,7 @@ define('VAT_RATE', (float) getSetting('vat_rate', 7.5));
 define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
 define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', '80% Initial Deposit'));
 
-// TinyMCE API Key (Get a free key from tiny.cloud)
-define('TINYMCE_API_KEY', getSetting('tinymce_api_key', 'your-tinymce-api-key-here'));
+
 
 // Bank account helper functions
 function getBankAccountsForDisplay()

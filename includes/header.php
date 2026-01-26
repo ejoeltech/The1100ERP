@@ -213,16 +213,12 @@
                         $latest_logo = basename(end($logo_files));
                         echo '<img src="' . $base_path . '/uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="Company Logo" class="h-12 object-contain">';
                     } else {
-                        // Default logo circles
-                        echo '<div class="flex items-center gap-1">';
-                        echo '<div class="w-3 h-3 bg-sky-500 rounded-full"></div>';
-                        echo '<div class="w-5 h-5 bg-sky-600 rounded-full border-2 border-secondary"></div>';
-                        echo '<div class="w-8 h-8 bg-sky-700 rounded-full"></div>';
-                        echo '<div class="w-10 h-10 border-4 border-secondary rounded-full"></div>';
+                        // Default Placeholder
+                        echo '<div class="flex items-center gap-2">';
+                        echo '<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-xl">';
+                        echo substr(COMPANY_NAME, 0, 1);
                         echo '</div>';
-                        echo '<div>';
-                        echo '<h1 class="text-2xl font-bold text-gray-900">Bluedots</h1>';
-                        echo '<p class="text-[8px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>';
+                        echo '<h1 class="text-xl font-bold text-gray-900">' . htmlspecialchars(COMPANY_NAME) . '</h1>';
                         echo '</div>';
                     }
                     ?>

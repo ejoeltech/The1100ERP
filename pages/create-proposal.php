@@ -94,9 +94,7 @@ include '../includes/header.php';
 
 <!-- TinyMCE -->
 <!-- TinyMCE -->
-<script
-    src="https://cdn.tiny.cloud/1/<?php echo defined('TINYMCE_API_KEY') ? TINYMCE_API_KEY : 'no-api-key'; ?>/tinymce/6/tinymce.min.js"
-    referrerpolicy="origin"></script>
+<script src="../assets/vendors/tinymce/tinymce.min.js"></script>
 <script>
     tinymce.init({
         selector: '#proposalEditor',
@@ -170,7 +168,7 @@ include '../includes/header.php';
             panels: form.panels.value,
             context: form.context.value
         };
-        
+
         const proposalId = document.getElementById('proposalId').value;
         const title = `${specs.inverter} System - ${specs.project_type}`;
 
@@ -196,7 +194,7 @@ include '../includes/header.php';
             if (result.success) {
                 document.getElementById('proposalId').value = result.id;
                 document.getElementById('convertBtn').classList.remove('hidden');
-                
+
                 // Show temporary success feedback
                 btn.innerText = 'Saved!';
                 setTimeout(() => {

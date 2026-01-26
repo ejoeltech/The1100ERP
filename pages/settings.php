@@ -755,33 +755,7 @@ include '../includes/header.php';
             </div>
         </div>
 
-        <!-- Editor Integration -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="bg-blue-100 rounded-full p-2">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                        </path>
-                    </svg>
-                </div>
-                <h4 class="font-semibold text-gray-900">Rich Text Editor</h4>
-            </div>
 
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    TinyMCE API Key
-                </label>
-                <div class="relative">
-                    <input type="text" name="tinymce_api_key"
-                        value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                </div>
-                <p class="text-xs text-gray-500 mt-1">
-                    Required for the rich text editor on quote/invoice pages.
-                </p>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -806,8 +780,7 @@ include '../includes/header.php';
 
 <!-- TinyMCE -->
 <!-- TinyMCE -->
-<script src="https://cdn.tiny.cloud/1/<?php echo TINYMCE_API_KEY; ?>/tinymce/6/tinymce.min.js"
-    referrerpolicy="origin"></script>
+<script src="../assets/vendors/tinymce/tinymce.min.js"></script>
 <script>
     tinymce.init({
         selector: '#quote_terms, #quote_warranty',
@@ -1175,6 +1148,15 @@ include '../includes/header.php';
             alert('Error clearing logs: ' + error.message);
         }
     }
+
+    // Handle URL parameters for tab switching
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab && document.getElementById('content-' + tab)) {
+            switchTab(tab);
+        }
+    });
 </script>
 
 <style>
