@@ -296,7 +296,7 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     INDEX idx_user_id (user_id),
     INDEX idx_created_at (created_at),
     INDEX idx_customer_name (customer_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
 -- NIGERIAN MARKET DATA
@@ -314,10 +314,10 @@ CREATE TABLE IF NOT EXISTS market_data (
     UNIQUE KEY unique_data (data_type, data_key, effective_date),
     INDEX idx_data_type (data_type),
     INDEX idx_effective_date (effective_date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert current Nigerian market data
-INSERT INTO market_data (data_type, data_key, data_value, effective_date, notes) VALUES
+INSERT IGNORE INTO market_data (data_type, data_key, data_value, effective_date, notes) VALUES
 
 -- Fuel Prices
 ('fuel_price', 'petrol_per_litre', 650, '2026-01-01', 'Average petrol price in Nigeria'),
@@ -352,8 +352,8 @@ INSERT INTO market_data (data_type, data_key, data_value, effective_date, notes)
 -- Get current market data
 DELIMITER $$
 CREATE FUNCTION IF NOT EXISTS get_market_data(
-    p_data_type VARCHAR(50),
-    p_data_key VARCHAR(100)
+    p_data_type VARCHAR(50) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    p_data_key VARCHAR(100) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
 ) RETURNS DECIMAL(15,2)
 DETERMINISTIC
 BEGIN
@@ -361,8 +361,8 @@ BEGIN
     
     SELECT data_value INTO v_value
     FROM market_data
-    WHERE data_type = p_data_type
-    AND data_key = p_data_key
+    WHERE data_type = p_data_type COLLATE utf8mb4_unicode_ci
+    AND data_key = p_data_key COLLATE utf8mb4_unicode_ci
     AND effective_date <= CURDATE()
     ORDER BY effective_date DESC
     LIMIT 1;

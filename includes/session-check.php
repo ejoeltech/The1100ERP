@@ -13,6 +13,11 @@ requireLogin();
 // Get current user
 $current_user = getCurrentUser($pdo);
 
+// If session is valid but user not found in DB (e.g. after restore), force logout
+if (!$current_user) {
+    logout();
+}
+
 // Phase 3A features - Only load if migration is complete
 // Check if role column exists before enabling
 try {

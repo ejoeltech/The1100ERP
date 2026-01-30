@@ -12,7 +12,10 @@ if (!$quote_id) {
 
 // Fetch quote details
 $stmt = $pdo->prepare("
-    SELECT *, quote_number as document_number FROM quotes WHERE id = ?
+    SELECT q.*, q.quote_number as document_number, u.signature_file 
+    FROM quotes q 
+    LEFT JOIN users u ON q.created_by = u.id 
+    WHERE q.id = ?
 ");
 $stmt->execute([$quote_id]);
 $quote = $stmt->fetch();
@@ -202,14 +205,22 @@ include '../includes/header.php';
     <!-- Header -->
     <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
         <div class="flex justify-center items-center gap-2 mb-3">
-            <?php if (COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
-                <img src="../<?php echo COMPANY_LOGO; ?>" alt="<?php echo COMPANY_NAME; ?>" class="h-28 object-contain">
-            <?php else: ?>
-                <div class="flex flex-col items-center">
-                    <h1 class="text-3xl font-bold tracking-tight mb-1"><?php echo COMPANY_NAME; ?></h1>
-                    <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
-                </div>
-            <?php endif; ?>
+            <?php
+            // Use uploaded logo if available
+            $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+            if (!empty($logo_files)) {
+                $latest_logo = basename(end($logo_files));
+                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" class="h-28 object-contain">';
+            } else {
+                echo '<div class="flex flex-col items-center">';
+                echo '<div class="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-3xl mb-2">';
+                echo substr(COMPANY_NAME, 0, 1);
+                echo '</div>';
+                echo '<h1 class="text-3xl font-bold tracking-tight mb-1">' . COMPANY_NAME . '</h1>';
+                echo '<p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>';
+                echo '</div>';
+            }
+            ?>
         </div>
         <div class="text-xs mt-4 space-y-1 text-gray-700">
             <p><strong>Contact Address:</strong>
@@ -339,6 +350,19 @@ include '../includes/header.php';
         <p class="text-gray-900">
             <?php echo htmlspecialchars($quote['payment_terms']); ?>
         </p>
+    </div>
+
+    <!-- Signature Block -->
+    <div class="flex justify-end mb-8 pr-12">
+        <div class="text-center">
+            <div class="border-b border-gray-900 w-48 mb-2 flex items-end justify-center h-20">
+                <?php if (!empty($quote['signature_file']) && file_exists('../uploads/signatures/' . $quote['signature_file'])): ?>
+                    <img src="../uploads/signatures/<?php echo htmlspecialchars($quote['signature_file']); ?>"
+                        alt="Signature" class="h-16 object-contain mb-1">
+                <?php endif; ?>
+            </div>
+            <p class="font-bold text-xs uppercase tracking-wider">Authorized Signature</p>
+        </div>
     </div>
 
     <!-- Footer -->

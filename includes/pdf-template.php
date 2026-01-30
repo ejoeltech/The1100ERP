@@ -128,10 +128,11 @@ $html = '
     <table class="no-border" style="width: 100%; margin-bottom: 20px;">
         <tr>
             <td align="center" class="no-border">
-                ' . (defined('COMPANY_LOGO') && COMPANY_LOGO ?
-    '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 80px; margin-bottom: 10px;">' :
-    '<div class="header-title-large">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
-                     <div class="header-tech">TECHNOLOGIES</div>'
+                ' . (
+    ($logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*')) && !empty($logo_files)
+    ? '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 80px; margin-bottom: 10px;">'
+    : '<div class="header-title-large">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+                       <div class="header-tech">TECHNOLOGIES</div>'
 ) . '
                 
                 <div style="margin-top: 5px; font-size: 11px;">
@@ -295,7 +296,10 @@ $html .= '
 
     <!-- Signature Block -->
     <div style="position: absolute; bottom: 150px; right: 40px; width: 200px; text-align: center;">
-        <div style="border-bottom: 1px solid #000; height: 30px; margin-bottom: 5px;"></div>
+        <div style="border-bottom: 1px solid #000; height: 50px; margin-bottom: 5px; display: flex; align-items: flex-end; justify-content: center;">
+            ' . (!empty($quote['signature_file']) && file_exists(__DIR__ . '/../uploads/signatures/' . $quote['signature_file']) ?
+    '<img src="' . __DIR__ . '/../uploads/signatures/' . $quote['signature_file'] . '" style="height: 40px; margin-bottom: 2px;">' : '') . '
+        </div>
         <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Authorized Signature</div>
     </div>
 

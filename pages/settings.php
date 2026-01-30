@@ -40,8 +40,8 @@ include '../includes/header.php';
 
 <div class="bg-white rounded-lg shadow-md">
     <!-- Tabs -->
-    <div class="border-b border-gray-200 overflow-x-auto">
-        <nav class="flex -mb-px min-w-max">
+    <div class="border-b border-gray-200">
+        <nav class="flex flex-wrap -mb-px">
             <button onclick="switchTab('company')" id="tab-company"
                 class="tab-button active px-6 py-4 text-sm font-semibold border-b-2 border-primary text-primary">
                 Company Info
@@ -73,6 +73,10 @@ include '../includes/header.php';
             <button onclick="switchTab('appendices')" id="tab-appendices"
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Quote Appendices
+            </button>
+            <button onclick="switchTab('maintenance')" id="tab-maintenance"
+                class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
+                Maintenance
             </button>
         </nav>
     </div>
@@ -753,7 +757,63 @@ include '../includes/header.php';
                         key here</a>.
                 </p>
             </div>
+
+            <!-- Test Connection Area -->
+            <div class="flex items-center gap-3 mt-3">
+                <button type="button" onclick="testGroqConnection()" id="btn-test-groq"
+                    class="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 font-semibold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Test Connection
+                </button>
+                <div id="groq-test-status" class="text-sm"></div>
+            </div>
+
         </div>
+
+        <script>
+            function testGroqConnection() {
+                const btn = document.getElementById('btn-test-groq');
+                const status = document.getElementById('groq-test-status');
+                const apiKey = document.querySelector('input[name="groq_api_key"]').value;
+
+                if (!apiKey) {
+                    status.innerHTML = '<span class="text-red-600 font-semibold">Please enter an API Key first</span>';
+                    return;
+                }
+
+                // UI Loading State
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-not-allowed');
+                status.innerHTML = '<span class="text-gray-600 animate-pulse">Testing connection...</span>';
+
+                // API Call
+                fetch('../api/test/test-ai-connection.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+
+                        if (data.success) {
+                            status.innerHTML = `<span class="text-green-600 font-bold">✓ Success! (${data.latency})</span>`;
+                        } else {
+                            status.innerHTML = `<span class="text-red-600 font-bold">✗ Failed: ${data.error}</span>`;
+                        }
+                    })
+                    .catch(err => {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                        status.innerHTML = '<span class="text-red-600 font-bold">✗ Network Error</span>';
+                        console.error(err);
+                    });
+            }
+        </script>
 
 
     </div>
@@ -767,6 +827,307 @@ include '../includes/header.php';
         }
     </script>
 </div>
+
+<!-- Maintenance Tab -->
+<div id="content-maintenance" class="tab-content hidden">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">System Maintenance</h3>
+    <p class="text-gray-600 mb-6">Perform backups, restore data, and manage system updates.</p>
+
+    <div class="space-y-8 max-w-4xl">
+
+        <!-- Backup & Restore -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4">
+                    </path>
+                </svg>
+                Backup & Restore
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Backup -->
+                <div>
+                    <h5 class="font-semibold text-gray-800 mb-2">System Backup</h5>
+                    <p class="text-sm text-gray-600 mb-4">Download a backup of your data.</p>
+
+                    <div class="mb-4">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="backupMedia" onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Include Media Files (Images, Uploads)</span>
+                        </label>
+                    </div>
+
+                    <a href="../api/system/backup.php?type=db" id="backupBtn" target="_blank"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold shadow-sm text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Download Backup
+                    </a>
+
+                    <script>
+                        function updateBackupLink() {
+                            const btn = document.getElementById('backupBtn');
+                            const includeMedia = document.getElementById('backupMedia').checked;
+                            btn.href = '../api/system/backup.php?type=' + (includeMedia ? 'full' : 'db');
+                            btn.innerHTML = includeMedia ?
+                                '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download Full Backup (ZIP)' :
+                                '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download Database Only';
+                        }
+                    </script>
+                </div>
+
+                <!-- Restore -->
+                <div class="border-l border-blue-200 pl-8">
+                    <h5 class="font-semibold text-gray-800 mb-2">Restoration</h5>
+                    <p class="text-sm text-gray-600 mb-4">Upload a SQL file to restore your database. <strong>Warning:
+                            This overwrites all data.</strong></p>
+                    <div class="mb-3 mt-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="restoreMedia" checked
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Include Media Files (from ZIP)</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="file" id="restoreFile" accept=".sql,.zip" class="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-100 file:text-blue-700
+                                hover:file:bg-blue-200">
+                        <button type="button" onclick="restoreDatabase()"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-sm">
+                            Restore
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patches & Updates -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+                System Updates
+            </h4>
+
+            <div class="mb-6">
+                <h5 class="font-semibold text-gray-800 mb-2">Apply Update Patch</h5>
+                <p class="text-sm text-gray-600 mb-4">Upload a valid <code>.zip</code> update package provided by the
+                    developer.
+                    <span class="block mt-1 text-xs text-blue-600">
+                        Server Max Upload Size: <?php echo ini_get('upload_max_filesize'); ?>
+                        (Post Max: <?php echo ini_get('post_max_size'); ?>)
+                    </span>
+                </p>
+                <div class="flex gap-2 items-center">
+                    <input type="file" id="patchFile" accept=".zip" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-green-100 file:text-green-700
+                            hover:file:bg-green-200">
+                    <button type="button" onclick="applyPatch()"
+                        class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold whitespace-nowrap">
+                        Apply Update
+                    </button>
+                </div>
+                <div id="patch-status" class="mt-2 text-sm font-mono"></div>
+            </div>
+        </div>
+
+        <!-- Developer Tools -->
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                </svg>
+                Developer Tools
+            </h4>
+
+            <div>
+                <h5 class="font-semibold text-gray-800 mb-2">Create Update Package</h5>
+                <p class="text-sm text-gray-600 mb-4">Generates a deployable <code>.zip</code> of the current system
+                    (excludes local config/uploads).</p>
+
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-700">Changes in last:</label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="patchHours" value="0" min="0" onchange="updatePatchLink()"
+                                class="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center">
+                            <span class="text-xs text-gray-600">hrs</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="patchMinutes" value="10" min="0" onchange="updatePatchLink()"
+                                class="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-center">
+                            <span class="text-xs text-gray-600">mins</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 p-3 bg-gray-50 rounded border border-gray-200">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input type="checkbox" id="excludeVendor" onchange="updatePatchLink()"
+                                class="rounded text-green-600 focus:ring-green-500">
+                            Exclude Vendor (mpdf/libs)
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input type="checkbox" id="excludeSetup" onchange="updatePatchLink()"
+                                class="rounded text-green-600 focus:ring-green-500">
+                            Exclude Setup Folder
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input type="checkbox" id="excludeDatabase" onchange="updatePatchLink()"
+                                class="rounded text-green-600 focus:ring-green-500">
+                            Exclude Database Scripts
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <a href="../api/system/create-patch.php?hours=0&minutes=10" id="patchBtn"
+                            class="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-semibold shadow-sm text-sm whitespace-nowrap">
+                            Generate Patch ZIP
+                        </a>
+                        <button type="button" onclick="setFullPatch()"
+                            class="px-3 py-2 text-xs text-blue-600 hover:text-blue-800 font-semibold border border-blue-200 rounded hover:bg-blue-50">
+                            Reset to Full System
+                        </button>
+                    </div>
+                </div>
+
+                <script>
+                    function updatePatchLink() {
+                        const h = document.getElementById('patchHours').value || 0;
+                        const m = document.getElementById('patchMinutes').value || 0;
+
+                        const excludeVendor = document.getElementById('excludeVendor').checked ? 1 : 0;
+                        const excludeSetup = document.getElementById('excludeSetup').checked ? 1 : 0;
+                        const excludeDatabase = document.getElementById('excludeDatabase').checked ? 1 : 0;
+
+                        let url = `../api/system/create-patch.php?hours=${h}&minutes=${m}`;
+                        if (excludeVendor) url += '&exclude_vendor=1';
+                        if (excludeSetup) url += '&exclude_setup=1';
+                        if (excludeDatabase) url += '&exclude_database=1';
+
+                        document.getElementById('patchBtn').href = url;
+                        document.getElementById('patchBtn').innerHTML = `Generate Patch (${h}h ${m}m)`;
+                    }
+
+                    function setFullPatch() {
+                        document.getElementById('patchHours').value = '';
+                        document.getElementById('patchMinutes').value = '';
+                        document.getElementById('excludeVendor').checked = false;
+                        document.getElementById('excludeSetup').checked = false;
+                        document.getElementById('excludeDatabase').checked = false;
+                        document.getElementById('patchBtn').href = '../api/system/create-patch.php?timeframe=full';
+                        document.getElementById('patchBtn').innerHTML = 'Generate Full Patch';
+                    }
+                </script>
+
+                <script>
+                    function updatePatchLink() {
+                        const timeframe = document.getElementById('patchTimeframe').value;
+                        document.getElementById('patchBtn').href = '../api/system/create-patch.php?timeframe=' + timeframe;
+                    }
+                </script>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function restoreDatabase() {
+            const fileInput = document.getElementById('restoreFile');
+            if (!fileInput.files[0]) {
+                alert('Please select a SQL file first.');
+                return;
+            }
+            if (!confirm('CRITICAL WARNING: This will DELETE existing data and import the selected file. Are you absolutely sure?')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('include_media', document.getElementById('restoreMedia').checked ? '1' : '0');
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Restoring...';
+            btn.disabled = true;
+
+            fetch('../api/system/restore.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Database restored successfully! The page will now reload.');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    alert('Upload failed: ' + err.message);
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+
+        function applyPatch() {
+            const fileInput = document.getElementById('patchFile');
+            if (!fileInput.files[0]) {
+                alert('Please select a ZIP file first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const btn = event.target;
+            const statusDiv = document.getElementById('patch-status');
+            btn.innerHTML = 'Applying...';
+            btn.disabled = true;
+            statusDiv.innerHTML = 'Uploading and extracting...';
+
+            fetch('../api/system/apply-patch.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(res => res.json())
+                .then(data => {
+                    btn.innerHTML = 'Apply Update';
+                    btn.disabled = false;
+                    if (data.success) {
+                        statusDiv.innerHTML = '<span class="text-green-600">' + data.message + '</span>';
+                        alert('Patch applied successfully!');
+                    } else {
+                        statusDiv.innerHTML = '<span class="text-red-600">Error: ' + data.message + '</span>';
+                    }
+                })
+                .catch(err => {
+                    btn.innerHTML = 'Apply Update';
+                    btn.disabled = false;
+                    statusDiv.innerHTML = '<span class="text-red-600">Request failed: ' + err.message + '</span>';
+                });
+        }
+    </script>
+</div>
+
+
 
 <!-- Save Button -->
 <div class="mt-8 pt-6 border-t border-gray-200">
@@ -1147,32 +1508,6 @@ include '../includes/header.php';
         } catch (error) {
             alert('Error clearing logs: ' + error.message);
         }
-    }
-
-    // Switch Tab Function
-    function switchTab(tabId) {
-        // Hide all tab contents
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-
-        // Remove active class from all buttons
-        document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active', 'border-primary', 'text-primary'));
-
-        // Show selected tab content
-        const content = document.getElementById('content-' + tabId);
-        if (content) {
-            content.classList.remove('hidden');
-        }
-
-        // Activate button
-        const btn = document.getElementById('tab-' + tabId);
-        if (btn) {
-            btn.classList.add('active', 'border-primary', 'text-primary');
-        }
-
-        // Update URL without reload
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabId);
-        window.history.pushState({}, '', url);
     }
 
     // Handle URL parameters for tab switching

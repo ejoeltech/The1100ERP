@@ -133,6 +133,24 @@ $requirements = checkRequirements();
                 <form id="databaseForm">
                     <input type="hidden" id="dbConnectionTested" value="0">
 
+                    <!-- Installation Mode Selection -->
+                    <div class="mb-6 bg-white p-4 rounded-lg border border-gray-200" style="margin-bottom: 20px;">
+                        <label class="block font-medium mb-2">Installation Mode</label>
+                        <div class="flex gap-4" style="display: flex; gap: 15px;">
+                            <label class="flex items-center"
+                                style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="install_mode" value="fresh" checked
+                                    onchange="toggleInstallMode()">
+                                <span>Fresh Installation</span>
+                            </label>
+                            <label class="flex items-center"
+                                style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="install_mode" value="restore" onchange="toggleInstallMode()">
+                                <span>Restore from Backup</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="db_host">Database Host *</label>
@@ -155,18 +173,65 @@ $requirements = checkRequirements();
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="db_prefix">Table Prefix</label>
-                        <input type="text" id="db_prefix" name="db_prefix" value="erp_">
-                        <small style="color: #6b7280; display: block; margin-top: 4px;">
-                            Leave as default unless you have a specific reason to change it.
-                        </small>
+                    <!-- Fresh Install Options -->
+                    <div id="freshInstallOptions">
+                        <div class="form-group">
+                            <label for="db_prefix">Table Prefix</label>
+                            <input type="text" id="db_prefix" name="db_prefix" value="erp_">
+                            <small style="color: #6b7280; display: block; margin-top: 4px;">
+                                Leave as default unless you have a specific reason to change it.
+                            </small>
+                        </div>
                     </div>
 
-                    <button type="button" id="testDbConnection" class="btn btn-primary" style="margin-top: 10px;">
-                        Test Connection
-                    </button>
+                    <!-- Restore Options -->
+                    <div id="restoreOptions"
+                        style="display: none; border-top: 1px solid #eee; padding-top: 15px; margin-top: 5px;">
+                        <div class="form-group">
+                            <label for="backup_file">Upload Backup File (.sql or .zip)</label>
+                            <input type="file" id="backup_file" name="backup_file" accept=".sql,.zip">
+                            <small style="color: #6b7280; display: block; margin-top: 4px;">
+                                Creates database and restores data automatically.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button type="button" id="testDbConnection" class="btn btn-primary">
+                            Test Connection
+                        </button>
+                        <button type="button" id="restoreBtn" class="btn btn-success"
+                            style="display: none; background: #10B981; border: none; color: white;"
+                            onclick="performSetupRestore()">
+                            Restore & Install
+                        </button>
+                    </div>
+
+                    <div id="restoreStatus" class="alert" style="display: none; margin-top: 15px;"></div>
                 </form>
+
+                <script>
+                    function toggleInstallMode() {
+                        const mode = document.querySelector('input[name="install_mode"]:checked').value;
+                        const freshOpts = document.getElementById('freshInstallOptions');
+                        const restoreOpts = document.getElementById('restoreOptions');
+                        const testBtn = document.getElementById('testDbConnection');
+                        const restoreBtn = document.getElementById('restoreBtn');
+
+                        if (mode === 'restore') {
+                            freshOpts.style.display = 'none';
+                            restoreOpts.style.display = 'block';
+                            testBtn.style.display = 'none'; // Hide test, show restore action
+                            restoreBtn.style.display = 'inline-block';
+                            // We still need to test connection implicitly before restore
+                        } else {
+                            freshOpts.style.display = 'block';
+                            restoreOpts.style.display = 'none';
+                            testBtn.style.display = 'inline-block';
+                            restoreBtn.style.display = 'none';
+                        }
+                    }
+                </script>
             </div>
 
             <!-- Step 4: Admin Account -->
@@ -268,16 +333,20 @@ $requirements = checkRequirements();
                     <div class="alert alert-success" id="installComplete" style="margin-top: 20px; display: none;">
                         <h3 style="margin: 0 0 10px 0;">🎉 Installation Complete!</h3>
                         <p style="margin-bottom: 20px;">Your 1100-ERP system has been installed successfully.</p>
-                        
-                        <div style="background: #FFF; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+
+                        <div
+                            style="background: #FFF; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                             <strong style="color: #d32f2f;">⚠️ Critical Post-Install Step:</strong>
-                            <p style="margin: 5px 0 15px 0; font-size: 0.9em;">To prevent "500 Server Errors" and ensure all database tables are perfect, please <strong>click the button below</strong>.</p>
-                            <a href="../run-schema-update.php" target="_blank" class="btn btn-primary" style="background: #d32f2f; border-color: #d32f2f; width: 100%; display: block; text-align: center; text-decoration: none;">
+                            <p style="margin: 5px 0 15px 0; font-size: 0.9em;">To prevent "500 Server Errors" and ensure
+                                all database tables are perfect, please <strong>click the button below</strong>.</p>
+                            <a href="../run-schema-update.php" target="_blank" class="btn btn-primary"
+                                style="background: #d32f2f; border-color: #d32f2f; width: 100%; display: block; text-align: center; text-decoration: none;">
                                 Run Database Updater & Check
                             </a>
                         </div>
 
-                        <a href="../login.php" class="btn btn-secondary" style="width: 100%; display: block; text-align: center; text-decoration: none;">
+                        <a href="../login.php" class="btn btn-secondary"
+                            style="width: 100%; display: block; text-align: center; text-decoration: none;">
                             Go to Login Page
                         </a>
                     </div>

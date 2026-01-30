@@ -35,7 +35,7 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#0076BE',
+                        primary: '<?php echo function_exists('getSetting') ? htmlspecialchars(getSetting('theme_color', '#0076BE')) : '#0076BE'; ?>',
                         secondary: '#34A853',
                     }
                 }

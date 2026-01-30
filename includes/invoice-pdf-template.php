@@ -211,8 +211,9 @@ $html = '
     <div class="header">';
 
 // Logo Logic
-if (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)) {
-    $html .= '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 60px; max-width: 200px;">';
+$logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+if (!empty($logo_files)) {
+    $html .= '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 60px; max-width: 200px;">';
 } else {
     $html .= '<div class="logo">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
                   <div class="subtitle">TECHNOLOGIES</div>';

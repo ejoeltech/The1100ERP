@@ -460,3 +460,66 @@ class SetupWizard {
 document.addEventListener('DOMContentLoaded', () => {
     window.wizard = new SetupWizard();
 });
+
+// Restore functionality
+window.performSetupRestore = async function() {
+    const fileInput = document.getElementById('backup_file');
+    const dbHost = document.getElementById('db_host').value;
+    const dbName = document.getElementById('db_name').value;
+    const dbUser = document.getElementById('db_user').value;
+    const dbPassword = document.getElementById('db_password').value;
+
+    if (!fileInput.files.length) {
+        alert('Please select a backup file first.');
+        return;
+    }
+
+    if (!dbName || !dbUser) {
+        alert('Please fill in database credentials.');
+        return;
+    }
+
+    const btn = document.getElementById('restoreBtn');
+    const statusDiv = document.getElementById('restoreStatus');
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Restoring... this may take time';
+    statusDiv.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('db_host', dbHost);
+    formData.append('db_name', dbName);
+    formData.append('db_user', dbUser);
+    formData.append('db_password', dbPassword);
+
+    try {
+        const response = await fetch('api/restore_during_setup.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        statusDiv.style.display = 'block';
+        if (result.success) {
+            statusDiv.className = 'alert alert-success';
+            statusDiv.innerHTML = '<strong>Success!</strong> System restored. Redirecting to login...';
+            setTimeout(() => {
+                window.location.href = '../login.php';
+            }, 2000);
+        } else {
+            statusDiv.className = 'alert alert-error';
+            statusDiv.innerHTML = '<strong>Restore Failed:</strong> ' + result.message;
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        statusDiv.style.display = 'block';
+        statusDiv.className = 'alert alert-error';
+        statusDiv.innerHTML = '<strong>Error:</strong> ' + e.message;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};

@@ -16,7 +16,12 @@ require_once '../vendor/autoload.php';
 
 try {
     // Fetch quote
-    $stmt = $pdo->prepare("SELECT *, quote_number as document_number FROM quotes WHERE id = ? AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("
+        SELECT q.*, q.quote_number as document_number, u.signature_file 
+        FROM quotes q 
+        LEFT JOIN users u ON q.created_by = u.id 
+        WHERE q.id = ? AND q.deleted_at IS NULL
+    ");
     $stmt->execute([$quote_id]);
     $quote = $stmt->fetch();
 

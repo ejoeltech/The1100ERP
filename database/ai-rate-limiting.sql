@@ -4,7 +4,7 @@
 -- Usage logging table
 CREATE TABLE IF NOT EXISTS ai_usage_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT DEFAULT NULL,
+    user_id INT UNSIGNED DEFAULT NULL,
     ip_address VARCHAR(45) NOT NULL,
     tool_name VARCHAR(50) NOT NULL,
     endpoint VARCHAR(100) NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS ai_request_cache (
     hit_count INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP,
+    expires_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_hash (request_hash),
     INDEX idx_tool (tool_name),
     INDEX idx_expires (expires_at)

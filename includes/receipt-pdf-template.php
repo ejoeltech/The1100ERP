@@ -31,10 +31,11 @@ $html = '
 </head>
 <body>
     <div class="header">
-        ' . (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO) ?
-    '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 60px; max-width: 200px; display: block; margin: 0 auto 10px;">' :
-    '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
-             <div class="company-tagline">TECHNOLOGIES</div>'
+        ' . (
+    ($logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*')) && !empty($logo_files)
+    ? '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 60px; max-width: 200px; display: block; margin: 0 auto 10px;">'
+    : '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+               <div class="company-tagline">TECHNOLOGIES</div>'
 ) . '
         <div class="company-details">
             <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>

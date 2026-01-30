@@ -140,8 +140,10 @@ $html = '
 
     <!-- Header -->
     <div class="header">
-        ' . (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO) ?
-    '<img src="' . __DIR__ . '/../' . COMPANY_LOGO . '" style="height: 50px; max-width: 180px; display: block; margin: 0 auto 10px;">' : ''
+        ' . (
+    ($logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*')) && !empty($logo_files)
+    ? '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 50px; max-width: 180px; display: block; margin: 0 auto 10px;">'
+    : ''
 ) . '
         <div class="header-title">Solar System Design Recommendation</div>
         <div class="header-subtitle">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Your Company') . '</div>

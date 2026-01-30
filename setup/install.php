@@ -152,21 +152,38 @@ function importSchema()
         $lines = explode("\n", $sql);
         $current_statement = '';
 
+        $delimiter = ';';
+
         foreach ($lines as $line) {
             $line = trim($line);
 
-            // Skip empty lines and comments
+            // Skip empty lines and comments (if not inside a statement, though this simple check is usually safe enough for this schema)
             if (empty($line) || substr($line, 0, 2) == '--' || substr($line, 0, 2) == '/*') {
+                continue;
+            }
+
+            // Handle DELIMITER command
+            if (preg_match('/^DELIMITER\s+(\S+)/i', $line, $matches)) {
+                $delimiter = $matches[1];
                 continue;
             }
 
             $current_statement .= ' ' . $line;
 
-            // Execute when statement ends with semicolon
-            if (substr(trim($line), -1) == ';') {
-                $stmt_to_exec = trim($current_statement);
+            // Execute when statement ends with current delimiter
+            if (substr($line, -strlen($delimiter)) == $delimiter) {
+                // Remove the delimiter from the end
+                $stmt_to_exec = trim(substr(trim($current_statement), 0, -strlen($delimiter)));
+
                 if (!empty($stmt_to_exec)) {
-                    $pdo->exec($stmt_to_exec);
+                    try {
+                        $pdo->exec($stmt_to_exec);
+                    } catch (PDOException $e) {
+                        // If table exists error, ignore (for idempotency)
+                        if ($e->getCode() != '42S01') {
+                            throw $e;
+                        }
+                    }
                 }
                 $current_statement = '';
             }
@@ -344,7 +361,7 @@ function finalizeInstallation()
         $lockFile = __DIR__ . '/lock';
         file_put_contents($lockFile, date('Y-m-d H:i:s'));
 
-        @chmod($configFile, 0444);
+        @chmod($configFile, 0644);
 
         $response['success'] = true;
         $response['message'] = 'Installation finalized successfully';
@@ -376,7 +393,8 @@ try {
     \$pdo = new PDO(\$dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
     ]);
 } catch(PDOException \$e) {
     die("Database connection failed: " . \$e->getMessage());
@@ -403,6 +421,12 @@ define('COMPANY_EMAIL', getSetting('company_email', ''));
 define('COMPANY_WEBSITE', getSetting('company_website', ''));
 define('VAT_RATE', (float)getSetting('vat_rate', 7.5));
 define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
+
+// Additional Display Settings
+define('THEME_COLOR', getSetting('theme_color', '#0076BE'));
+define('FOOTER_TEXT', getSetting('footer_text', 'We appreciate your business! Thank you'));
+define('PDF_QUALITY', getSetting('pdf_quality', 'high'));
+define('DEFAULT_PAYMENT_TERMS', getSetting('payment_terms', 'Due on Receipt'));
 
 // Bank account helper functions
 function getBankAccountsForDisplay() {

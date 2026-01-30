@@ -242,7 +242,7 @@ include '../includes/header.php';
     </form>
 </div>
 
-<script src="../assets/js/quote-form.js"></script>
+<script src="../assets/js/quote-form.js?v=<?php echo time(); ?>"></script>
 
 <?php if ($templateData): ?>
     <script>
