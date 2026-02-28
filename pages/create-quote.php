@@ -49,9 +49,17 @@ include '../includes/header.php';
 <?php endif; ?>
 
 <div class="bg-white rounded-lg shadow-md p-8">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">Create New Quote</h2>
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-3xl font-bold text-gray-900">Create New Quote</h2>
+        <button onclick="openAiQuoteModal()"
+            class="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md">
+            <img src="../assets/icons/flash.png" class="w-5 h-5" alt="Flash">
+            Smart & Quick Quote
+        </button>
+    </div>
 
     <form id="quoteForm" method="POST" action="../api/save-quote.php">
+
 
         <!-- Quote Header Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -313,5 +321,109 @@ include '../includes/header.php';
         });
     </script>
 <?php endif; ?>
+
+<!-- AI Modal -->
+<div id="aiQuoteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform transition-all">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span>⚡</span> AI Quick Quote
+                </h3>
+                <button onclick="closeAiQuoteModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <p class="text-gray-600 text-sm mb-4">
+                Describe the system requirements. The AI will generate a detailed line-item quote.
+            </p>
+
+            <textarea id="aiQuoteInput" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 mb-4" placeholder="e.g. 5kVA Hybrid Inverter, 4x 200Ah Gel Batteries, 12x 550W Panels for a 3 Bedroom Flat"></textarea>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="closeAiQuoteModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                <button onclick="generateAiQuote()" id="aiQuoteBtn" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold flex items-center gap-2">
+                    <span>Generate Quote</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAiQuoteModal() {
+    document.getElementById('aiQuoteModal').classList.remove('hidden');
+    document.getElementById('aiQuoteInput').focus();
+}
+
+function closeAiQuoteModal() {
+    document.getElementById('aiQuoteModal').classList.add('hidden');
+}
+
+async function generateAiQuote() {
+    const input = document.getElementById('aiQuoteInput').value;
+    if (!input) return;
+
+    const btn = document.getElementById('aiQuoteBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Generating...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('../api/ai/generate-quote-items.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text: input})
+        });
+        
+        const res = await response.json();
+        
+        if (res.success && res.data && res.data.length > 0) {
+            
+            // Clear existing rows
+            const container = document.getElementById('lineItemsContainer');
+            if (container) {
+                container.innerHTML = '';
+                window.lineItemCount = 0;
+            }
+
+            res.data.forEach((item, index) => {
+                 const row = addLineItem(); 
+                 if (row) {
+                    const currentCount = window.lineItemCount;
+                    // Try setting fields using name attributes
+                    // Note: addLineItem increments global counter BEFORE returning (or after? need to check impl)
+                    // If addLineItem uses a global counter, we might need to find the just-created inputs
+                    
+                    setTimeout(() => {
+                         const inputs = row.querySelectorAll('input, textarea');
+                         inputs.forEach(inp => {
+                             if (inp.name.includes('[description]')) inp.value = item.name + (item.description ? ' - ' + item.description : '');
+                             if (inp.name.includes('[quantity]')) inp.value = item.quantity;
+                             if (inp.name.includes('[unit_price]')) inp.value = item.price_per_unit_ngn;
+                         });
+                         if (typeof calculateLine === 'function') calculateLine(currentCount);
+                    }, 50);
+                 }
+            });
+            
+            // Wait for rows to populate then calc totals
+            setTimeout(() => {
+                if (typeof calculateTotals === 'function') calculateTotals();
+            }, 500);
+
+            closeAiQuoteModal();
+        } else {
+            alert('AI Error: ' + (res.error || 'No items generated'));
+        }
+    } catch (err) {
+        alert('Network Error: ' + err.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+</script>
 
 <?php include '../includes/footer.php'; ?>

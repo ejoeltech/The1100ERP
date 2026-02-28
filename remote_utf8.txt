@@ -1,0 +1,4 @@
+﻿ai	https://github.com/ejoeltech/1100erp-ai.git (fetch)
+ai	https://github.com/ejoeltech/1100erp-ai.git (push)
+origin	https://github.com/ejoeltech/1100erp-ai.git (fetch)
+origin	https://github.com/ejoeltech/1100erp-ai.git (push)

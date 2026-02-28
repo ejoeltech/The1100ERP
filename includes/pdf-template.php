@@ -1,11 +1,10 @@
 <?php
 // Quote PDF Template
-// Matches user's "Aligned Editable Quote Template"
-// Translated to DOMPDF-compatible Table Layouts
+// Matches Invoice PDF Layout
+// This file is included by export-pdf.php
+// Variables available: $quote, $line_items
 
-$theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#0076BE'; // Primary Blue
-$light_bg = '#C1D8F0'; // Light Blue from user HTML
-
+$theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#0076BE';
 $html = '
 <!DOCTYPE html>
 <html>
@@ -13,222 +12,310 @@ $html = '
     <meta charset="UTF-8">
     <style>
         body {
-            font-family: "Inter", sans-serif;
-            font-size: 13px;
-            color: #000;
-            line-height: 1.2;
-            margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
         }
-        table {
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid ' . $theme_color . ';
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: ' . $theme_color . ';
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 9px;
+            letter-spacing: 3px;
+            color: #666;
+            font-weight: bold;
+        }
+        .company-info {
+            font-size: 9px;
+            margin-top: 10px;
+            color: #555;
+        }
+        .document-title {
+            text-align: center;
+            font-size: 26px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: ' . $theme_color . ';
+        }
+        .document-subtitle {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .info-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .info-left {
+            width: 55%;
+            float: left;
+        }
+        .info-right {
+            width: 40%;
+            float: right;
+        }
+        .info-box {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+            font-size: 10px;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        .info-value {
+            font-size: 11px;
+            color: #000;
+        }
+        .line-items-table {
             width: 100%;
             border-collapse: collapse;
-            border-spacing: 0;
+            margin: 20px 0;
+            clear: both;
         }
-        th, td {
-            border: 1px solid #000;
-            padding: 4px;
-            font-size: 12px;
-        }
-
-        /* Helper Classes */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .text-left { text-align: left; }
-        .font-bold { font-weight: bold; }
-        .uppercase { text-transform: uppercase; }
-        .italic { font-style: italic; }
-        .no-border { border: none !important; }
-
-        /* Colors */
-        .bg-primary { background-color: ' . $theme_color . '; color: white; }
-        .text-primary { color: ' . $theme_color . '; }
-        .bg-light { background-color: ' . $light_bg . '; }
-
-        /* Layout Specifics */
-        .header-title-large {
-            font-size: 36px;
+        .line-items-table th {
+            background: ' . $theme_color . ';
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-size: 10px;
             font-weight: bold;
-            color: #1A1A1A;
-            margin: 0;
         }
-        .header-tech {
+        .line-items-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+        .line-items-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .totals-section {
+            width: 50%;
+            float: right;
+            margin-top: 20px;
+        }
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 6px;
+            vertical-align: middle;
+        }
+        .totals-label {
+            font-weight: bold;
+            color: #555;
             font-size: 11px;
-            letter-spacing: 3px;
-            font-weight: bold;
-            margin-top: -5px;
-            text-transform: uppercase;
+            white-space: nowrap;
+            text-align: left;
+            width: 50%;
         }
-
-        .quote-label {
-            font-family: serif;
-            font-size: 32px;
+        .totals-value {
+            text-align: right;
             font-weight: bold;
-            letter-spacing: 1px;
-            border: none;
+            color: #000;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 50%;
         }
-
-        /* Info Boxes */
-        .blue-label {
-            background-color: ' . $theme_color . ';
+        .grand-total-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 8px;
+            background: ' . $theme_color . ';
+            border-radius: 5px;
+        }
+        .grand-total-table td {
             color: white;
+            padding: 8px;
+        }
+        .footer {
+            clear: both;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 3px solid ' . $theme_color . ';
+        }
+        .thank-you {
+            text-align: center;
+            font-style: italic;
             font-weight: bold;
             font-size: 12px;
-            padding: 3px 8px;
-            display: block;
-            width: 80px;
-            text-align: center;
+            margin-bottom: 15px;
+            color: #555;
         }
-        
-        .border-bottom {
-            border-bottom: 1px solid #000;
-        }
-
-        /* Tables */
-        .main-table th {
-            background-color: ' . $theme_color . ';
-            color: white;
-            border: 1px solid #000;
-            font-weight: bold;
-            font-size: 12px;
-            text-align: center;
-            padding: 5px;
-        }
-        .main-table td {
-            padding: 5px;
-        }
-        .compact-row td {
-            padding: 4px;
-        }
-        
-        /* Footer Bank */
         .payment-header {
-            background-color: ' . $theme_color . ';
+            background: ' . $theme_color . ';
             color: white;
             text-align: center;
+            padding: 6px;
             font-weight: bold;
-            font-size: 12px;
-            padding: 3px;
-            text-transform: uppercase;
+            font-size: 10px;
             letter-spacing: 1px;
+        }
+        .bank-details {
+            background: #e3f2fd;
+            padding: 10px;
+            display: table;
+            width: 100%;
+        }
+        .bank-item {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            padding: 6px;
+        }
+        .bank-name {
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+        .bank-account {
+            font-size: 10px;
+            color: #555;
         }
         .prepared-by {
-            background-color: ' . $theme_color . ';
+            background: ' . $theme_color . ';
             color: white;
             text-align: right;
-            font-size: 11px;
+            padding: 6px 12px;
+            font-size: 9px;
             font-style: italic;
-            padding: 3px 10px;
+        }
+        .clearfix {
+            clear: both;
+        }
+        /* Quote specific styles for meta data */
+        .meta-table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+        .meta-table th {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 5px;
+            font-size: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .meta-table td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            font-size: 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
+    <!-- Header -->
+    <div class="header">';
 
-    <!-- Header Section -->
-    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
-        <tr>
-            <td align="center" class="no-border">
-                ' . (
-    ($logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*')) && !empty($logo_files)
-    ? '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 80px; margin-bottom: 10px;">'
-    : '<div class="header-title-large">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
-                       <div class="header-tech">TECHNOLOGIES</div>'
-) . '
-                
-                <div style="margin-top: 5px; font-size: 11px;">
-                    <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>
-                    <strong>Phone:</strong> ' . COMPANY_PHONE . ' | <strong>Email:</strong> ' . COMPANY_EMAIL . '
-                </div>
-            </td>
-        </tr>
-    </table>
+// Logo Logic
+$logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+if (!empty($logo_files)) {
+    $html .= '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 50px; max-width: 180px;">';
+} else {
+    $html .= '<div class="logo">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
+              <div class="subtitle">TECHNOLOGIES</div>';
+}
 
-    <!-- Quote Title Section -->
-    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
-        <tr>
-            <td align="center" class="no-border">
-                <div class="quote-label">QUOTE</div>
-                <table style="width: auto; margin: 0 auto;">
-                    <tr>
-                        <td class="no-border" style="font-weight: bold; font-size: 11px; text-transform: uppercase; color: #555; padding-right: 10px;">Quote Title:</td>
-                        <td class="no-border" style="border-bottom: 1px solid #000 !important; font-style: italic; min-width: 300px; text-align: center;">
-                            ' . htmlspecialchars($quote['quote_title']) . '
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+$html .= '
+        <div class="company-info">
+            <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>
+            <strong>Phone:</strong> ' . COMPANY_PHONE . ' | 
+            <strong>Email:</strong> ' . COMPANY_EMAIL . ' | 
+            <strong>Website:</strong> ' . COMPANY_WEBSITE . '
+        </div>
+    </div>
 
-    <!-- Info Grid -->
-    <table class="no-border" style="width: 100%; margin-bottom: 20px;">
-        <tr>
-            <!-- Left: Quote For -->
-            <td class="no-border" width="50%" style="vertical-align: top; padding-right: 20px;">
-                <table width="100%">
-                    <tr>
-                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Quote For:</div></td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px; border: 1px solid #000; height: 40px; font-style: italic; vertical-align: top;">
-                            ' . htmlspecialchars($quote['customer_name']) . '
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            
-            <!-- Right: Date & No -->
-            <td class="no-border" width="50%" style="vertical-align: bottom;">
-                <table width="100%" style="border-spacing: 0 5px;">
-                    <tr>
-                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Date:</div></td>
-                        <td style="border:none; border-bottom: 1px solid #000; padding-left: 10px;">
-                            ' . date('dS F Y', strtotime($quote['quote_date'])) . '
-                        </td>
-                    </tr>
-                    <tr><td colspan="2" height="5" style="border:none;"></td></tr>
-                    <tr>
-                        <td width="90" style="padding:0; border:none;"><div class="blue-label">Quote No.:</div></td>
-                        <td style="border:none; border-bottom: 1px solid #000; padding-left: 10px;">
-                            ' . htmlspecialchars($quote['quote_number'] ?? $quote['document_number']) . '
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <!-- Document Title -->
+    <div class="document-title">QUOTE</div>
+    <div class="document-subtitle">' . htmlspecialchars($quote['quote_title']) . '</div>
 
-    <!-- Meta Details Table -->
-    <table class="main-table" style="margin-bottom: 20px;">
+    <!-- Info Section -->
+    <div class="info-section">
+        <div class="info-left">
+            <div class="info-label">Quote For:</div>
+            <div class="info-box">
+                <strong>' . htmlspecialchars($quote['customer_name']) . '</strong>
+            </div>
+        </div>
+        <div class="info-right">
+            <table style="width: 100%; font-size: 10px;">
+                <tr>
+                    <td class="info-label" style="width: 40%;">Quote Number:</td>
+                    <td class="info-value" style="text-align: right; font-weight: bold; color: ' . $theme_color . ';">
+                        ' . htmlspecialchars($quote['quote_number'] ?? $quote['document_number']) . '
+                    </td>
+                </tr>
+                <tr>
+                    <td class="info-label">Date:</td>
+                    <td class="info-value" style="text-align: right;">
+                        ' . date('d/m/Y', strtotime($quote['quote_date'])) . '
+                    </td>
+                </tr>
+                <tr>
+                    <td class="info-label">Salesperson:</td>
+                    <td class="info-value" style="text-align: right;">
+                        ' . htmlspecialchars($quote['salesperson']) . '
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <div class="clearfix"></div>
+
+    <!-- Meta Details (Delivery, Validity etc) -->
+    <table class="meta-table">
         <thead>
             <tr>
-                <th width="18%">Salesperson</th>
-                <th width="15%">Delivery</th>
-                <th width="15%">Validity</th>
-                <th width="17%">Ship Date</th>
-                <th width="35%">Payment Terms</th>
+                <th>Delivery Period</th>
+                <th>Validity</th>
+                <th>Ship Date</th>
+                <th>Payment Terms</th>
             </tr>
         </thead>
         <tbody>
-            <tr class="compact-row">
-                <td class="text-center">' . htmlspecialchars($quote['salesperson']) . '</td>
-                <td class="text-center">' . htmlspecialchars($quote['delivery_period'] ?? '') . '</td>
-                <td class="text-center">30 Days</td>
-                <td class="text-center"> - </td>
-                <td class="text-center">' . htmlspecialchars($quote['payment_terms'] ?? DEFAULT_PAYMENT_TERMS) . '</td>
+            <tr>
+                <td>' . htmlspecialchars($quote['delivery_period'] ?? 'Immediate') . '</td>
+                <td>30 Days</td>
+                <td>' . (isset($quote['ship_date']) && $quote['ship_date'] ? date('d/m/Y', strtotime($quote['ship_date'])) : '-') . '</td>
+                <td>' . htmlspecialchars($quote['payment_terms'] ?? (defined('DEFAULT_PAYMENT_TERMS') ? DEFAULT_PAYMENT_TERMS : 'Due on Receipt')) . '</td>
             </tr>
         </tbody>
     </table>
 
-    <!-- Items Table -->
-    <table class="main-table" style="margin-bottom: 0;">
+    <!-- Line Items -->
+    <table class="line-items-table">
         <thead>
             <tr>
-                <th width="8%">Item #</th>
-                <th width="8%">Qty</th>
-                <th width="44%">Product Description</th>
-                <th width="20%">Unit Price</th>
-                <th width="20%">Line Total</th>
+                <th style="width: 5%;">#</th>
+                <th style="width: 8%;" class="text-center">Qty</th>
+                <th style="width: 50%;">Description</th>
+                <th style="width: 15%;" class="text-right">Unit Price</th>
+                <th style="width: 22%;" class="text-right">Line Total</th>
             </tr>
         </thead>
         <tbody>';
@@ -236,25 +323,12 @@ $html = '
 $i = 1;
 foreach ($line_items as $item) {
     $html .= '
-            <tr class="compact-row">
-                <td class="text-center">' . $i++ . '</td>
-                <td class="text-center">' . number_format($item['quantity'], 0) . '</td>
-                <td class="text-left">' . htmlspecialchars($item['description']) . '</td>
+            <tr>
+                <td>' . $i++ . '</td>
+                <td class="text-center">' . number_format($item['quantity'], 2) . '</td>
+                <td>' . htmlspecialchars($item['description']) . '</td>
                 <td class="text-right">' . formatNaira($item['unit_price']) . '</td>
-                <td class="text-right">' . formatNaira($item['line_total']) . '</td>
-            </tr>';
-}
-
-// Fill empty rows to make it look full (8 rows total)
-$rows_to_fill = max(0, 8 - count($line_items));
-for ($k = 0; $k < $rows_to_fill; $k++) {
-    $html .= '
-            <tr class="compact-row">
-                <td class="text-center">' . $i++ . '</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                <td class="text-right"><strong>' . formatNaira($item['line_total']) . '</strong></td>
             </tr>';
 }
 
@@ -262,93 +336,80 @@ $html .= '
         </tbody>
     </table>
 
-    <!-- Right Aligned Totals -->
-    <table class="no-border" width="100%" style="margin-top: 0;">
-        <tr>
-            <td width="60%" class="no-border"></td>
-            <td width="40%" class="no-border" style="padding: 0;">
-                <table class="main-table" style="border-top: none;">
-                    <tr class="compact-row">
-                        <td width="50%" class="text-center font-bold" style="border-top: none;">Subtotal</td>
-                        <td width="50%" class="text-right bg-primary font-bold" style="border-top: none;">' . formatNaira($quote['subtotal']) . '</td>
-                    </tr>
-                    <tr class="compact-row">
-                        <td class="text-center font-bold">Discount</td>
-                        <td class="text-right"> - </td>
-                    </tr>
-                    <tr class="compact-row">
-                        <td class="text-center font-bold">Tax ' . (isset($quote['vat_rate']) ? '(' . $quote['vat_rate'] . '%)' : '') . '</td>
-                        <td class="text-right">' . formatNaira($quote['total_vat']) . '</td>
-                    </tr>
-                    <tr class="compact-row">
-                        <td class="text-center font-bold bg-primary">Deposit Required</td>
-                        <td class="text-right bg-primary"> - </td>
-                    </tr>
-                    <tr><td colspan="2" height="5" class="no-border"></td></tr>
-                    <tr class="compact-row">
-                        <td class="text-center font-bold bg-primary">Total Quote</td>
-                        <td class="text-right bg-primary font-bold">' . formatNaira($quote['grand_total']) . '</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <!-- Totals -->
+    <div class="totals-section">
+        <table class="totals-table">
+            <tr>
+                <td class="totals-label">Subtotal:</td>
+                <td class="totals-value">' . formatNaira($quote['subtotal']) . '</td>
+            </tr>
+            <tr>
+                <td class="totals-label">VAT ' . (isset($quote['vat_rate']) ? '(' . $quote['vat_rate'] . '%)' : '') . ':</td>
+                <td class="totals-value">' . formatNaira($quote['total_vat']) . '</td>
+            </tr>
+        </table>
+
+        <table class="grand-total-table">
+            <tr>
+                <td class="totals-label" style="color: white; font-size: 11px;">Total Quote:</td>
+                <td class="totals-value" style="color: white; font-size: 12px;">' . formatNaira($quote['grand_total']) . '</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="clearfix"></div>
 
     <!-- Signature Block -->
-    <div style="position: absolute; bottom: 150px; right: 40px; width: 200px; text-align: center;">
+    <div style="width: 200px; float: right; margin-top: 30px; text-align: center;">
         <div style="border-bottom: 1px solid #000; height: 50px; margin-bottom: 5px; display: flex; align-items: flex-end; justify-content: center;">
             ' . (!empty($quote['signature_file']) && file_exists(__DIR__ . '/../uploads/signatures/' . $quote['signature_file']) ?
     '<img src="' . __DIR__ . '/../uploads/signatures/' . $quote['signature_file'] . '" style="height: 40px; margin-bottom: 2px;">' : '') . '
         </div>
         <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">Authorized Signature</div>
     </div>
+    
+    <div class="clearfix"></div>
 
-    <!-- Footer Section -->
-    <div style="position: absolute; bottom: 30px; left: 30px; right: 30px;">
-        
-        <div class="text-center italic font-bold" style="font-family: serif; font-size: 13px; margin-bottom: 10px;">
-            ' . nl2br(htmlspecialchars(getSetting('footer_text', 'We look forward to working with you! Thank you'))) . '
-        </div>
-
-        <div style="border: 1px solid #000; width: 100%;">
-            <div class="payment-header">
-                MAKE ALL PAYMENTS IN FAVOUR OF: ' . strtoupper(COMPANY_NAME) . '
-            </div>
-            
-            <div class="bg-light" style="padding: 10px 0; border-bottom: 1px solid #000;">
-                <table class="no-border">
-                    <tr>';
+    <!-- Footer -->
+    <div class="footer">
+        <div class="thank-you">' . nl2br(htmlspecialchars(getSetting('footer_text', 'We look forward to working with you! Thank you'))) . '</div>';
 
 $bank_accounts = getBankAccountsForDisplay();
-if (empty($bank_accounts)) {
-    $html .= '<td align="center" class="no-border">No Bank Details Configured</td>';
-} else {
-    $width = floor(100 / count($bank_accounts));
-    foreach ($bank_accounts as $idx => $acc) {
-        // Add vertical divider if not first item
-        $border_style = ($idx > 0) ? 'border-left: 1px solid #000;' : '';
+if (!empty($bank_accounts)) {
+    $account_name = htmlspecialchars($bank_accounts[0]['account_name'] ?? COMPANY_NAME);
+    $html .= '
+        <div class="payment-header">MAKE ALL PAYMENTS IN FAVOUR OF: ' . $account_name . '</div>
+        <div class="bank-details">';
 
-        $html .= '<td width="' . $width . '%" align="center" style="vertical-align: top; border: none; ' . $border_style . '">
-                        <div class="font-bold text-center" style="font-size: 12px;">' . htmlspecialchars($acc['bank_name']) . '</div>
-                        <div class="text-center" style="font-size: 12px;">' . htmlspecialchars($acc['account_number']) . '</div>
-                     </td>';
+    $column_width = floor(100 / count($bank_accounts));
+    foreach ($bank_accounts as $index => $account) {
+        $border_style = ($index < count($bank_accounts) - 1) ? 'border-right: 1px solid ' . $theme_color . ';' : '';
+        $html .= '
+            <div class="bank-item" style="width: ' . $column_width . '%; ' . $border_style . ' vertical-align: middle;">
+                <span class="bank-name" style="font-size: 10px;">' . htmlspecialchars($account['bank_name']) . ':</span>
+                <span class="bank-account" style="font-size: 10px; font-weight: bold;">' . htmlspecialchars($account['account_number']) . '</span>
+            </div>';
     }
+
+    $html .= '
+        </div>';
+} else {
+    $html .= '
+        <div class="payment-header">PAYMENT DETAILS</div>
+        <div class="bank-details" style="text-align: center;">
+            <div class="bank-item" style="width: 100%;">
+                Please contact us for payment details.
+            </div>
+        </div>';
 }
 
 $html .= '
-                    </tr>
-                </table>
-            </div>
-            
-            <div class="prepared-by">
-                Quote prepared by: ' . htmlspecialchars($quote['salesperson']) . '
-            </div>
+        <div class="prepared-by">
+            Quote prepared by: ' . htmlspecialchars($quote['salesperson']) . '
         </div>
     </div>
-
 </body>
 </html>
 ';
 
-echo $html;
-?>
+return $html;

@@ -35,10 +35,8 @@ try {
     $line_items = $stmt->fetchAll();
 
     // Generate HTML for PDF
-    ob_start();
     require_once '../includes/helpers.php';
-    include '../includes/pdf-template.php';
-    $html = ob_get_clean();
+    $html = include '../includes/pdf-template.php';
 
     // Create PDF
     $mpdf = new \Mpdf\Mpdf([

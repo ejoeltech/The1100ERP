@@ -12,6 +12,56 @@ include '../includes/header.php';
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Input Form -->
     <div class="lg:col-span-1 space-y-6">
+        <!-- AI Recommendation Section -->
+        <div class="bg-indigo-50 border border-indigo-100 rounded-lg shadow-sm p-6">
+            <h3 class="font-bold text-lg text-indigo-900 mb-2 flex items-center gap-2">
+                <span>🤖</span> Smart Recommender
+            </h3>
+            <p class="text-xs text-indigo-600 mb-4">Describe the client's needs to auto-fill specs.</p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">House Type</label>
+                    <select id="recHouseType"
+                        class="w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="3-Bedroom Flat">3-Bedroom Flat</option>
+                        <option value="2-Bedroom Flat">2-Bedroom Flat</option>
+                        <option value="4-Bedroom Duplex">4-Bedroom Duplex</option>
+                        <option value="5-Bedroom Duplex">5-Bedroom Duplex</option>
+                        <option value="Small Office">Small Office</option>
+                        <option value="Shop/plaza">Shop / Plaza</option>
+                        <option value="Clinic/Hospital">Clinic / Hospital</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Appliances to Power</label>
+                    <textarea id="recAppliances" rows="3"
+                        placeholder="e.g. 1x Fridge, 3x Fans, 10x Lights, 1x TV, 1x 1HP AC (daytime only)"
+                        class="w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Grid (Hrs/Day)</label>
+                        <input type="number" id="recPowerHours" placeholder="e.g. 4"
+                            class="w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Battery Type</label>
+                        <select id="recBatteryType"
+                            class="w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="Any">Any (AI Decide)</option>
+                            <option value="Tubular">Tubular (Lead Acid)</option>
+                            <option value="Lithium">Lithium (LiFePO4)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" onclick="getRecommendation()" id="recBtn"
+                    class="w-full bg-indigo-600 text-white text-sm font-bold py-2 rounded-md hover:bg-indigo-700 transition-colors flex justify-center items-center gap-2">
+                    <span>⚡</span> <span id="recBtnText">Analyze & Auto-Fill</span>
+                </button>
+            </div>
+        </div>
+
         <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="font-bold text-lg text-gray-900 mb-4 border-b pb-2">System Specifications</h3>
 
@@ -104,6 +154,76 @@ include '../includes/header.php';
         toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
         content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
     });
+
+    async function getRecommendation() {
+        const houseType = document.getElementById('recHouseType').value;
+        const appliances = document.getElementById('recAppliances').value;
+        const powerHours = document.getElementById('recPowerHours').value;
+        const batteryType = document.getElementById('recBatteryType').value;
+
+        if (!appliances) {
+            alert('Please list the appliances to power.');
+            return;
+        }
+
+        const btn = document.getElementById('recBtn');
+        const btnText = document.getElementById('recBtnText');
+        const originalText = btnText.innerText;
+
+        btnText.innerText = 'Analyzing...';
+        btn.disabled = true;
+        btn.classList.add('opacity-75');
+
+        try {
+            const response = await fetch('../api/ai/recommend-specs.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    house_type: houseType,
+                    appliances: appliances,
+                    power_hours: powerHours,
+                    battery_preference: batteryType
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const rec = data.recommendation;
+
+                // Auto-fill form fields
+                document.getElementsByName('inverter')[0].value = rec.inverter;
+                document.getElementsByName('batteries')[0].value = rec.batteries;
+                document.getElementsByName('panels')[0].value = rec.panels;
+                document.getElementsByName('context')[0].value =
+                    `House Type: ${houseType}\nGrid: ${powerHours}hrs/day\nAnalysis: ${rec.context_summary}\nAppliances: ${appliances}`;
+
+                // Highlight success
+                btn.classList.remove('bg-indigo-600');
+                btn.classList.add('bg-green-600');
+                btnText.innerText = 'Specs Updated!';
+
+                setTimeout(() => {
+                    btn.classList.remove('bg-green-600');
+                    btn.classList.add('bg-indigo-600');
+                    btnText.innerText = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75');
+                }, 2000);
+
+            } else {
+                alert('AI Error: ' + (data.error || 'Unknown error'));
+                btnText.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+            }
+        } catch (error) {
+            alert('Connection Error: ' + error.message);
+            btnText.innerText = originalText;
+            btn.disabled = false;
+            btn.classList.remove('opacity-75');
+        }
+    }
 
     async function generateProposal(e) {
         e.preventDefault();

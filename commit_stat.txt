@@ -1,0 +1,91 @@
+﻿commit 8cfe368b2c6f3f8e94a2919bd32de81765717375
+Author: ejoeltech-4856 <ejoeltech@gmail.com>
+Date:   Sat Feb 21 13:48:06 2026 +0100
+
+    Implement AI chat and quote generation, update logo assets, and cleanup patch files
+
+ 1100erp-install.zip                                |  Bin 0 -> 297286764 bytes
+ 1100erp_patch.zip                                  |  Bin 29261 -> 0 bytes
+ add-phone-to-users.sql                             |   18 -
+ api/ai/chat.php                                    |  111 ++
+ api/ai/generate-quote-items.php                    |   62 +
+ api/ai/parse-product.php                           |   54 +
+ api/ai/recommend-specs.php                         |   83 ++
+ api/export-pdf.php                                 |    4 +-
+ api/proposals/convert-to-quote.php                 |  109 +-
+ api/system/analyze-logs.php                        |   87 ++
+ api/system/optimize-db.php                         |   62 +
+ apply_schema_v2.php                                |   34 +
+ assets/icons/assistant.png                         |  Bin 0 -> 530338 bytes
+ assets/icons/doctor.png                            |  Bin 0 -> 475311 bytes
+ assets/icons/flash.png                             |  Bin 0 -> 479150 bytes
+ assets/icons/magic.png                             |  Bin 0 -> 553219 bytes
+ check_logo.php                                     |    9 +
+ check_onboarding_status.php                        |   14 +
+ check_orphans.php                                  |   26 +
+ config.php                                         |   22 +-
+ config.sample.php                                  |  137 ++-
+ current_schema.sql                                 |  Bin 0 -> 8380 bytes
+ database_full.sql                                  |  Bin 0 -> 133698 bytes
+ debug_import.php                                   |   89 ++
+ git-init.bat                                       |   44 -
+ includes/chat-widget.php                           |  222 ++++
+ includes/header.php                                |  107 +-
+ includes/invoice-pdf-template.php                  |  183 +--
+ includes/pdf-template.php                          |  579 +++++----
+ install-schema.sql                                 | 1300 ++++++++++++--------
+ modules/hr/api/generate-document.php               |  104 ++
+ .../uploads/employees/doc_1770151746_946.jpg       |  Bin 0 -> 7413 bytes
+ .../uploads/employees/passport_1770023613_702.jpeg |  Bin 0 -> 114117 bytes
+ .../uploads/employees/passport_1770024621_966.jpeg |  Bin 0 -> 114117 bytes
+ .../uploads/employees/passport_1770024639_576.jpeg |  Bin 0 -> 114117 bytes
+ .../uploads/employees/passport_1770024756_644.jpeg |  Bin 0 -> 114117 bytes
+ .../uploads/employees/passport_1770025215_485.jpeg |  Bin 0 -> 114117 bytes
+ .../uploads/employees/passport_1770106810_382.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770108373_273.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770108378_635.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770108404_309.webp |  Bin 0 -> 801208 bytes
+ .../uploads/employees/passport_1770108777_598.jpg  |  Bin 0 -> 19806 bytes
+ .../uploads/employees/passport_1770111514_972.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770111518_809.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770111573_826.png  |  Bin 0 -> 1465020 bytes
+ .../uploads/employees/passport_1770112803_523.jpg  |  Bin 0 -> 19806 bytes
+ .../uploads/employees/passport_1770112809_944.jpg  |  Bin 0 -> 19806 bytes
+ .../assets/uploads/onboarding/pass_OB-10223A.jpeg  |  Bin 0 -> 114117 bytes
+ modules/hr/classes/HR_Employee.php                 |  202 +++
+ modules/hr/hr_schema.sql                           |  159 +++
+ modules/hr/install.php                             |   19 +
+ modules/hr/pages/attendance.php                    |  220 ++++
+ modules/hr/pages/dashboard.php                     |  169 +++
+ modules/hr/pages/documents.php                     |  169 +++
+ modules/hr/pages/employee-form.php                 |  452 +++++++
+ modules/hr/pages/employees.php                     |  133 ++
+ modules/hr/pages/id-card-designer.php              |  532 ++++++++
+ modules/hr/pages/id-card-generator.php             |  243 ++++
+ modules/hr/pages/leave.php                         |  223 ++++
+ modules/hr/pages/onboarding-admin.php              |  222 ++++
+ modules/hr/pages/payroll.php                       |  205 +++
+ modules/hr/pages/recruitment.php                   |  189 +++
+ modules/hr/pages/signup-form.php                   |  261 ++++
+ modules/hr/pages/voting.php                        |  218 ++++
+ modules/hr/update_schema_v2.sql                    |   23 +
+ modules/hr/update_schema_v3_voting.sql             |   20 +
+ modules/hr/update_schema_v4_settings.sql           |   24 +
+ modules/hr/update_schema_v5_onboarding.sql         |   53 +
+ modules/hr/update_schema_v6_layout.sql             |   10 +
+ modules/hr/update_schema_v7_visibility.sql         |    3 +
+ modules/hr/update_schema_v8_css.sql                |    3 +
+ modules/hr/update_schema_v9_templates.sql          |    4 +
+ pages/create-proposal.php                          |  120 ++
+ pages/create-quote.php                             |  114 +-
+ pages/products/create-product.php                  |   99 +-
+ pages/settings.php                                 |   75 ++
+ schema_utf8.sql                                    |   86 ++
+ setup/lock                                         |    2 +-
+ signup.php                                         |   88 ++
+ update_logo_setting.php                            |   20 +
+ uploads/logo/company_logo_1770083953.png           |  Bin 0 -> 12312 bytes
+ uploads/logo/company_logo_1770280404.jpg           |  Bin 0 -> 13262 bytes
+ uploads/logo/company_logo_1771442083.jpg           |  Bin 0 -> 13143 bytes
+ uploads/logo/favicon.png                           |  Bin 1726 -> 2083 bytes
+ 84 files changed, 6783 insertions(+), 1037 deletions(-)

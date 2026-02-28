@@ -1043,6 +1043,81 @@ include '../includes/header.php';
             </div>
         </div>
 
+        <!-- System Doctor -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <img src="../assets/icons/doctor.png" class="w-6 h-6" alt="Doctor">
+                System Doctor
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Log Analysis -->
+                <div class="bg-white p-4 rounded-lg border border-purple-100 shadow-sm">
+                    <h5 class="font-semibold text-gray-800 mb-2">Error Log Analysis</h5>
+                    <p class="text-xs text-gray-600 mb-4">Reads server logs and attempts to diagnose root causes using
+                        AI.</p>
+                    <button onclick="runDiagnostics('logs')" id="btn-logs"
+                        class="w-full px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition">
+                        Run Log Analysis
+                    </button>
+                </div>
+
+                <!-- DB Optimization -->
+                <div class="bg-white p-4 rounded-lg border border-purple-100 shadow-sm">
+                    <h5 class="font-semibold text-gray-800 mb-2">Database Optimizer</h5>
+                    <p class="text-xs text-gray-600 mb-4">Scans schema for missing indexes and inefficiency.</p>
+                    <button onclick="runDiagnostics('db')" id="btn-db"
+                        class="w-full px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition">
+                        Check Database Health
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Display -->
+            <div id="diag-results" class="mt-4 hidden">
+                <div
+                    class="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto whitespace-pre-wrap max-h-96">
+                </div>
+            </div>
+
+            <script>
+                function runDiagnostics(type) {
+                    const btn = document.getElementById('btn-' + type);
+                    const results = document.getElementById('diag-results');
+                    const output = results.querySelector('div');
+
+                    const endpoint = type === 'logs' ? '../api/system/analyze-logs.php' : '../api/system/optimize-db.php';
+
+                    // Reset UI
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75');
+                    btn.innerText = 'Analyzing...';
+                    results.classList.remove('hidden');
+                    output.innerText = 'Connecting to AI...';
+
+                    fetch(endpoint)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.error) {
+                                output.innerText = 'Error: ' + data.error;
+                            } else if (data.analysis) {
+                                output.innerText = data.analysis;
+                            } else {
+                                output.innerText = JSON.stringify(data, null, 2);
+                            }
+                        })
+                        .catch(err => {
+                            output.innerText = 'Network/Server Error: ' + err.message;
+                        })
+                        .finally(() => {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-75');
+                            btn.innerText = type === 'logs' ? 'Run Log Analysis' : 'Check Database Health';
+                        });
+                }
+            </script>
+        </div>
+
     </div>
 
     <script>

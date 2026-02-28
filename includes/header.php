@@ -155,6 +155,43 @@
                     </a>
                 </div>
 
+                <!-- HR Section -->
+                <div class="border-t border-gray-200 pt-2 mt-2">
+                    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">HR Management</p>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/dashboard.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        📊 HR Dashboard
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/employees.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        👥 Employees
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🕒 Attendance
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/leave.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        📅 Leave
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        💰 Payroll
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/voting.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🗳️ Staff Voting
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-generator.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🪪 ID Cards
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/onboarding-admin.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🚀 Onboarding
+                    </a>
+                </div>
+
                 <?php if (function_exists('isAdmin') && isAdmin()): ?>
                     <!-- Admin Section -->
                     <div class="border-t border-gray-200 pt-2 mt-2">
@@ -172,8 +209,9 @@
                             📊 Audit Log
                         </a>
                         <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
-                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
-                            🤖 AI Settings
+                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg flex items-center gap-2">
+                            <img src="<?php echo $base_path; ?>/assets/icons/magic.png" class="w-4 h-4" alt="Icon">
+                            Smart Tools
                         </a>
                     </div>
                 <?php endif; ?>
@@ -304,7 +342,7 @@
                         <div class="relative group">
                             <button
                                 class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
-                                AI Tools
+                                Tools
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7"></path>
@@ -326,6 +364,66 @@
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
                                     <div class="font-semibold">💰 ROI Calculator</div>
                                     <div class="text-xs text-gray-500">Solar savings analysis</div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- HR Dropdown -->
+                        <div class="relative group">
+                            <button
+                                class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
+                                HR
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div
+                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/dashboard.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
+                                    <div class="font-semibold">📊 HR Dashboard</div>
+                                    <div class="text-xs text-gray-500">Overview & Stats</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/employees.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">👥 Employees</div>
+                                    <div class="text-xs text-gray-500">Manage Staff</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">🕒 Attendance</div>
+                                    <div class="text-xs text-gray-500">Track Time</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/leave.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">📅 Leave</div>
+                                    <div class="text-xs text-gray-500">Requests & Status</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">💰 Payroll</div>
+                                    <div class="text-xs text-gray-500">Salaries & Payslips</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/voting.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">🗳️ Staff Voting</div>
+                                    <div class="text-xs text-gray-500">Vote for Colleague</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-designer.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">🎨 ID Card Designer</div>
+                                    <div class="text-xs text-gray-500">Customize Templates</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-generator.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">🪪 ID Cards</div>
+                                    <div class="text-xs text-gray-500">Print Employee IDs</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/onboarding-admin.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">🚀 Onboarding</div>
+                                    <div class="text-xs text-gray-500">Manage Signups</div>
                                 </a>
                             </div>
                         </div>
@@ -433,6 +531,9 @@
             visibility: visible;
         }
     </style>
+
+    <!-- Chat Widget -->
+    <?php include_once __DIR__ . '/chat-widget.php'; ?>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

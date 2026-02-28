@@ -22,75 +22,100 @@ try {
 }
 
 // Helper function to get settings
-function getSetting($key, $default = '')
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
-        $stmt->execute([$key]);
-        $result = $stmt->fetch();
-        return $result ? $result['setting_value'] : $default;
-    } catch (PDOException $e) {
-        return $default;
+if (!function_exists('getSetting')) {
+    function getSetting($key, $default = '')
+    {
+        global $pdo;
+        try {
+            $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+            $stmt->execute([$key]);
+            $result = $stmt->fetch();
+            return $result ? $result['setting_value'] : $default;
+        } catch (PDOException $e) {
+            return $default;
+        }
     }
 }
 
 // Load basic settings into constants
-define('COMPANY_NAME', getSetting('company_name', 'Your Company Name'));
-define('COMPANY_LOGO', getSetting('company_logo', ''));
-define('COMPANY_ADDRESS', getSetting('company_address', ''));
-define('COMPANY_PHONE', getSetting('company_phone', ''));
-define('COMPANY_EMAIL', getSetting('company_email', ''));
-define('COMPANY_WEBSITE', getSetting('company_website', ''));
-define('VAT_RATE', (float) getSetting('vat_rate', 7.5));
-define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
-define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', '80% Initial Deposit'));
+if (!defined('COMPANY_NAME'))
+    define('COMPANY_NAME', getSetting('company_name', 'Your Company Name'));
+if (!defined('COMPANY_LOGO'))
+    define('COMPANY_LOGO', getSetting('company_logo', ''));
+if (!defined('COMPANY_ADDRESS'))
+    define('COMPANY_ADDRESS', getSetting('company_address', ''));
+if (!defined('COMPANY_PHONE'))
+    define('COMPANY_PHONE', getSetting('company_phone', ''));
+if (!defined('COMPANY_EMAIL'))
+    define('COMPANY_EMAIL', getSetting('company_email', ''));
+if (!defined('COMPANY_WEBSITE'))
+    define('COMPANY_WEBSITE', getSetting('company_website', ''));
+if (!defined('VAT_RATE'))
+    define('VAT_RATE', (float) getSetting('vat_rate', 7.5));
+if (!defined('CURRENCY_SYMBOL'))
+    define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
+if (!defined('DEFAULT_PAYMENT_TERMS'))
+    define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', '80% Initial Deposit'));
+if (!defined('TINYMCE_API_KEY'))
+    define('TINYMCE_API_KEY', getSetting('tinymce_api_key', 'no-api-key'));
+if (!defined('THEME_COLOR'))
+    define('THEME_COLOR', getSetting('theme_color', '#0076BE'));
+if (!defined('FOOTER_TEXT'))
+    define('FOOTER_TEXT', getSetting('footer_text', 'We appreciate your business! Thank you'));
+if (!defined('PDF_QUALITY'))
+    define('PDF_QUALITY', getSetting('pdf_quality', 'high'));
 
 
 
 // Bank account helper functions
-function getBankAccountsForDisplay()
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->query("
-            SELECT * FROM bank_accounts 
-            WHERE is_active = 1 AND show_on_documents = 1 
-            ORDER BY display_order ASC
-        ");
-        return $stmt->fetchAll();
-    } catch (PDOException $e) {
-        return [];
+if (!function_exists('getBankAccountsForDisplay')) {
+    function getBankAccountsForDisplay()
+    {
+        global $pdo;
+        try {
+            $stmt = $pdo->query("
+                SELECT * FROM bank_accounts 
+                WHERE is_active = 1 AND show_on_documents = 1 
+                ORDER BY display_order ASC
+            ");
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            return [];
+        }
     }
 }
 
-function getAllBankAccounts()
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->query("
-            SELECT * FROM bank_accounts 
-            WHERE is_active = 1 
-            ORDER BY display_order ASC
-        ");
-        return $stmt->fetchAll();
-    } catch (PDOException $e) {
-        return [];
+if (!function_exists('getAllBankAccounts')) {
+    function getAllBankAccounts()
+    {
+        global $pdo;
+        try {
+            $stmt = $pdo->query("
+                SELECT * FROM bank_accounts 
+                WHERE is_active = 1 
+                ORDER BY display_order ASC
+            ");
+            return $stmt->fetchAll();
+        } catch (PDOException $e) {
+            return [];
+        }
     }
 }
 
-function getSelectedBankAccountsCount()
-{
-    global $pdo;
-    try {
-        $stmt = $pdo->query("
-            SELECT COUNT(*) as count 
-            FROM bank_accounts 
-            WHERE is_active = 1 AND show_on_documents = 1
-        ");
-        $result = $stmt->fetch();
-        return $result['count'];
-    } catch (PDOException $e) {
-        return 0;
+if (!function_exists('getSelectedBankAccountsCount')) {
+    function getSelectedBankAccountsCount()
+    {
+        global $pdo;
+        try {
+            $stmt = $pdo->query("
+                SELECT COUNT(*) as count 
+                FROM bank_accounts 
+                WHERE is_active = 1 AND show_on_documents = 1
+            ");
+            $result = $stmt->fetch();
+            return $result['count'];
+        } catch (PDOException $e) {
+            return 0;
+        }
     }
 }
