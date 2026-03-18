@@ -5,7 +5,9 @@ require_once '../config.php';
 $pageTitle = 'View Invoices - ERP System';
 
 // Build role-based filter
-$role_filter = getRoleFilter('d');
+$roleData = getRoleFilter('d');
+$role_filter = $roleData['sql'];
+$role_params = $roleData['params'];
 
 // Fetch invoices with receipt conversion status
 $query = "
@@ -34,7 +36,8 @@ $query = "
     ORDER BY d.created_at DESC
 ";
 
-$stmt = $pdo->query($query);
+$stmt = $pdo->prepare($query);
+$stmt->execute($role_params);
 $invoices = $stmt->fetchAll();
 
 include '../includes/header.php';

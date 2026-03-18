@@ -66,6 +66,16 @@ function login($pdo, $username, $password)
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        // Transparently re-hash if needed (using Argon2id)
+        if (password_needs_rehash($user['password'], PASSWORD_ARGON2ID)) {
+            $newHash = password_hash($password, PASSWORD_ARGON2ID);
+            $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt->execute([$newHash, $user['id']]);
+        }
+
+        // Regenerate session ID to prevent session fixation
+        session_regenerate_id(true);
+
         // Set session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
@@ -93,6 +103,14 @@ function login($pdo, $username, $password)
 
 function logout()
 {
+    $_SESSION = array();
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
     session_destroy();
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'];

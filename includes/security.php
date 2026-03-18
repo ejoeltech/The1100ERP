@@ -65,7 +65,16 @@ function clearLoginAttempts($username) {
 // ============================================
 
 function escape($string) {
-    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/**
+ * Short helper for escape()
+ */
+if (!function_exists('h')) {
+    function h($string) {
+        return escape($string);
+    }
 }
 
 function escapeJS($data) {
@@ -130,17 +139,98 @@ function validateInput($data, $rules) {
 // Session Security
 // ============================================
 
-function secureSession() {
-    // Session configuration
+// Configure session security settings BEFORE session_start()
+// These must be set at file-include time, not inside a function
+if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_samesite', 'Strict');
-    
-    // Regenerate session ID periodically
+}
+
+function secureSession() {
+    // Regenerate session ID periodically to prevent session fixation
     if (!isset($_SESSION['last_regeneration'])) {
         $_SESSION['last_regeneration'] = time();
-    } elseif (time() - $_SESSION['last_regeneration'] > 300) {
+    }
+    
+    if (time() - $_SESSION['last_regeneration'] > 300) {
         session_regenerate_id(true);
         $_SESSION['last_regeneration'] = time();
     }
+}
+
+// ============================================
+// Security Headers
+// ============================================
+
+function setSecurityHeaders() {
+    if (headers_sent()) {
+        return;
+    }
+    
+    header("X-Frame-Options: DENY");
+    header("X-Content-Type-Options: nosniff");
+    header("X-XSS-Protection: 1; mode=block");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    
+    // Content Security Policy
+    // Note: 'unsafe-inline' is currently required for Tailwind CDN and some dynamic styles
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self'; font-src 'self' https://fonts.gstatic.com");
+}
+
+// ============================================
+// Password Policy
+// ============================================
+
+function validatePasswordPolicy($password) {
+    if (strlen($password) < 12) {
+        return "Password must be at least 12 characters long.";
+    }
+    if (!preg_match('/[A-Z]/', $password)) {
+        return "Password must contain at least one uppercase letter.";
+    }
+    if (!preg_match('/[a-z]/', $password)) {
+        return "Password must contain at least one lowercase letter.";
+    }
+    if (!preg_match('/[0-9]/', $password)) {
+        return "Password must contain at least one number.";
+    }
+    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        return "Password must contain at least one special character.";
+    }
+    return true;
+}
+
+// ============================================
+// PII Encryption (Field-Level)
+// ============================================
+
+/**
+ * Encrypt sensitive PII using AES-256-GCM
+ * Requires ENCRYPTION_KEY in .env
+ */
+function encryptPII($data) {
+    if (empty($data)) return $data;
+    $key = getenv('ENCRYPTION_KEY');
+    if (!$key) return $data; // Fallback if no key (not ideal for security)
+    
+    $iv = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt($data, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    return base64_encode($iv . $tag . $ciphertext);
+}
+
+/**
+ * Decrypt sensitive PII
+ */
+function decryptPII($data) {
+    if (empty($data) || strlen($data) < 30) return $data;
+    $key = getenv('ENCRYPTION_KEY');
+    if (!$key) return $data;
+    
+    $decoded = base64_decode($data);
+    $iv = substr($decoded, 0, 12);
+    $tag = substr($decoded, 12, 16);
+    $ciphertext = substr($decoded, 28);
+    return openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
 }

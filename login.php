@@ -2,6 +2,11 @@
 session_start();
 require_once 'config.php';
 require_once 'includes/auth.php';
+require_once 'includes/security.php';
+
+// Secure Session
+secureSession();
+setSecurityHeaders();
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -12,15 +17,28 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-
-    // Attempt login
-    if (login($pdo, $username, $password)) {
-        header('Location: dashboard.php');
-        exit;
+    // 1. Verify CSRF
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid security token';
     } else {
-        $error = 'Invalid username or password';
+        $username = trim($_POST['username']);
+        $password = $_POST['password'];
+
+        // 2. Check Rate Limit
+        $rateCheck = checkLoginAttempts($username);
+        if ($rateCheck !== true) {
+            $error = $rateCheck;
+        } else {
+            // 3. Attempt login
+            if (login($pdo, $username, $password)) {
+                clearLoginAttempts($username);
+                header('Location: dashboard.php');
+                exit;
+            } else {
+                recordFailedLogin($username);
+                $error = 'Invalid username or password';
+            }
+        }
     }
 }
 ?>
@@ -102,6 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="Enter your password">
                 </div>
+
+                <?php echo csrfField(); ?>
 
                 <button type="submit"
                     class="w-full bg-primary text-white py-3 rounded-lg hover:bg-blue-700 font-semibold transition-colors">

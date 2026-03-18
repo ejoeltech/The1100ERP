@@ -97,6 +97,80 @@ $categories = $stmt->fetchAll();
     </div>
 </div>
 
+<!-- AI Bulk Populate Modal -->
+<div id="aiPopulateModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-slide-up">
+        <div class="p-8">
+            <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+                <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-10h-7z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 text-center mb-2">AI Inventory Generator</h3>
+            <p class="text-gray-500 text-center mb-8 text-sm">Describe your business, and our AI will suggest a professional inventory list with pricing.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">What do you sell?</label>
+                    <input type="text" id="businessTypeInput" placeholder="e.g. Computer spares, Medical supplies..." 
+                        class="w-full px-4 py-3 border-2 border-gray-100 rounded-xl focus:border-purple-500 focus:ring-0 outline-none transition-all placeholder-gray-300">
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-4">
+                    <button onclick="closeAiPopulateModal()" class="px-6 py-3 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 font-bold transition-all">Cancel</button>
+                    <button id="aiGenBtn" onclick="generateAiInventory()" class="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold shadow-lg shadow-purple-200 transition-all flex items-center justify-center gap-2">
+                        <span>Generate</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Preview Modal -->
+<div id="aiPreviewModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-scale-up">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between bg-purple-50/50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 uppercase tracking-tight">AI Suggested Inventory</h3>
+                    <p class="text-xs text-purple-600 font-semibold uppercase tracking-wider">Review and confirm items below</p>
+                </div>
+            </div>
+            <button onclick="closeAiPreviewModal()" class="text-gray-400 hover:text-gray-600 p-2"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-0">
+            <table class="w-full">
+                <thead class="bg-gray-50/80 sticky top-0 backdrop-blur-md">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Item Details</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest">Category</th>
+                        <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-widest">Price (₦)</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-widest">Unit</th>
+                    </tr>
+                </thead>
+                <tbody id="aiPreviewBody" class="divide-y divide-gray-100">
+                    <!-- AI Data -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="p-6 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+            <div class="text-sm text-gray-500 italic">
+                Tip: These are estimates. You can edit them after saving.
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeAiPreviewModal()" class="px-6 py-3 text-gray-500 font-bold hover:text-gray-700">Discard</button>
+                <button id="bulkSaveBtn" onclick="saveBulkItems()" class="px-8 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 font-bold shadow-lg shadow-purple-200 transition-all">
+                    Save All to Inventory
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', loadItems);

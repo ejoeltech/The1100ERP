@@ -54,9 +54,12 @@ try {
         mkdir($upload_dir, 0755, true);
     }
 
-    // Generate unique filename
-    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = 'company_logo_' . time() . '.' . $extension;
+    // Generate unique filename and sanitize extension
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+        throw new Exception('Invalid file extension');
+    }
+    $filename = 'company_logo_' . bin2hex(random_bytes(16)) . '.' . $extension;
     $filepath = $upload_dir . $filename;
 
     // Load image

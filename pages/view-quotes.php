@@ -5,7 +5,9 @@ require_once '../config.php';
 $pageTitle = 'View Quotes - ERP System';
 
 // Build role-based filter
-$role_filter = getRoleFilter('d');
+$roleData = getRoleFilter('d');
+$role_filter = $roleData['sql'];
+$role_params = $roleData['params'];
 
 // Fetch quotes with conversion status (exclude deleted)
 $query = "
@@ -31,7 +33,8 @@ $query = "
     ORDER BY d.created_at DESC
 ";
 
-$stmt = $pdo->query($query);
+$stmt = $pdo->prepare($query);
+$stmt->execute($role_params);
 $quotes = $stmt->fetchAll();
 
 include '../includes/header.php';

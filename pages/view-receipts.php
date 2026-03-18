@@ -4,7 +4,9 @@ include '../includes/session-check.php';
 $pageTitle = 'View Receipts - ERP System';
 
 // Build role-based filter
-$role_filter = getRoleFilter('r');
+$roleData = getRoleFilter('r');
+$role_filter = $roleData['sql'];
+$role_params = $roleData['params'];
 
 // Fetch receipts
 $query = "
@@ -30,7 +32,8 @@ $query = "
     ORDER BY r.created_at DESC
 ";
 
-$stmt = $pdo->query($query);
+$stmt = $pdo->prepare($query);
+$stmt->execute($role_params);
 $receipts = $stmt->fetchAll();
 
 include '../includes/header.php';

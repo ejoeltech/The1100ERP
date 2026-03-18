@@ -82,6 +82,7 @@ include '../includes/header.php';
     </div>
 
     <form id="settingsForm" method="POST" action="../api/save-settings.php" class="p-8" enctype="multipart/form-data">
+        <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
 
         <!-- Company Info Tab -->
         <div id="content-company" class="tab-content">

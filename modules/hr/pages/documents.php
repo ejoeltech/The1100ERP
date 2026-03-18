@@ -27,6 +27,7 @@ include_once '../../../includes/header.php';
             <h3 class="text-lg font-bold text-gray-900 mb-4">Document Details</h3>
 
             <form id="docForm" onsubmit="generateDocument(event)">
+                <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
@@ -102,7 +103,16 @@ include_once '../../../includes/header.php';
         menubar: false,
         plugins: ['advlist', 'autolink', 'lists', 'link', 'preview', 'wordcount', 'table'],
         toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
-        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
+        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }',
+        // XSS Protection
+        valid_elements: 'p,br,b,i,strong,em,ul,ol,li,table,thead,tbody,tr,th,td,h1,h2,h3,h4,h5,h6,div[class|style],span[class|style],a[href|target|title|class]',
+        valid_styles: {
+            '*': 'color,font-size,font-weight,text-decoration,text-align,background-color'
+        },
+        extended_valid_elements: 'svg[class|fill|viewBox|stroke|stroke-width|stroke-linecap|stroke-linejoin],path[d|fill|stroke]',
+        convert_urls: false,
+        entity_encoding: 'raw',
+        verify_html: true
     });
 
     async function generateDocument(e) {

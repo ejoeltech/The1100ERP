@@ -1,13 +1,19 @@
 <?php
 include '../includes/session-check.php';
+require_once '../includes/api-auth.php';
 
 // Only admins can save settings
-if (function_exists('requirePermission')) {
+if (isset($_SESSION['user_id'])) {
     requirePermission('manage_settings');
-} elseif (!function_exists('isAdmin') || !isAdmin()) {
-    die('Access Denied');
+} else {
+    requireApiAuth();
+    if (!isAdmin()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: Admin access required']);
+        exit;
+    }
 }
-
+ Linda
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
 }

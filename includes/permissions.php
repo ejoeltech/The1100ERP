@@ -26,6 +26,16 @@ function isSalesRep()
     return getUserRole() === 'sales_rep';
 }
 
+function isAccountant()
+{
+    return getUserRole() === 'accountant';
+}
+
+function isViewer()
+{
+    return getUserRole() === 'viewer';
+}
+
 /**
  * Check if user has permission for an action
  */
@@ -54,9 +64,9 @@ function hasPermission($action, $resource = null, $ownerId = null)
         case 'view_audit_log':
             return $role === 'admin';
 
-        // View All Documents (Admin & Manager)
+        // View All Documents (Admin, Manager, Accountant)
         case 'view_all_documents':
-            return in_array($role, ['admin', 'manager']);
+            return in_array($role, ['admin', 'manager', 'accountant']);
 
         // Create Documents (All users)
         case 'create_quote':
@@ -82,18 +92,18 @@ function hasPermission($action, $resource = null, $ownerId = null)
         case 'edit_finalized':
             return $role === 'admin';
 
-        // Delete Documents (Admin & Manager)
+        // Delete Documents (Admin only)
         case 'delete_document':
         case 'delete_quote':
         case 'delete_invoice':
         case 'delete_receipt':
         case 'archive_document':
-            return in_array($role, ['admin', 'manager']);
+            return $role === 'admin';
 
-        // Convert & Generate (Admin & Manager)
+        // Convert & Generate (Admin, Manager, Accountant)
         case 'convert_to_invoice':
         case 'generate_receipt':
-            return in_array($role, ['admin', 'manager']);
+            return in_array($role, ['admin', 'manager', 'accountant']);
 
         // Email Documents (All users)
         case 'send_email':
@@ -171,8 +181,8 @@ function canViewDocument($document)
     $role = getUserRole();
     $userId = $_SESSION['user_id'] ?? null;
 
-    // Admin and Manager can view all
-    if (in_array($role, ['admin', 'manager'])) {
+    // Admin, Manager, Accountant, and Viewer can view all
+    if (in_array($role, ['admin', 'manager', 'accountant', 'viewer'])) {
         return true;
     }
 
@@ -188,15 +198,17 @@ function getRoleFilter($tableName = 'd')
     $role = getUserRole();
     $userId = $_SESSION['user_id'] ?? 0;
 
-    // Admin and Manager see all
-    if (in_array($role, ['admin', 'manager'])) {
-        return '';
+    // Admin, Manager, Accountant, and Viewer see all
+    if (in_array($role, ['admin', 'manager', 'accountant', 'viewer'])) {
+        return ['sql' => '', 'params' => []];
     }
 
     // Sales rep sees only own
-    return " AND {$tableName}.created_by = {$userId}";
+    return [
+        'sql' => " AND {$tableName}.created_by = ?",
+        'params' => [$userId]
+    ];
 }
-
 /**
  * Get role display name
  */
@@ -205,7 +217,9 @@ function getRoleDisplayName($role)
     $roles = [
         'admin' => 'Administrator',
         'manager' => 'Manager',
-        'sales_rep' => 'Sales Representative'
+        'sales_rep' => 'Sales Representative',
+        'accountant' => 'Accountant',
+        'viewer' => 'Viewer'
     ];
     return $roles[$role] ?? $role;
 }
@@ -218,7 +232,9 @@ function getRoleBadge($role)
     $badges = [
         'admin' => '<span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Admin</span>',
         'manager' => '<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Manager</span>',
-        'sales_rep' => '<span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Sales Rep</span>'
+        'sales_rep' => '<span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Sales Rep</span>',
+        'accountant' => '<span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">Accountant</span>',
+        'viewer' => '<span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Viewer</span>'
     ];
     return $badges[$role] ?? '';
 }
@@ -252,12 +268,7 @@ function canDeleteDocument($document)
 {
     $role = getUserRole();
 
-    // Sales rep cannot delete
-    if ($role === 'sales_rep') {
-        return false;
-    }
-
-    // Admin and Manager can delete
-    return in_array($role, ['admin', 'manager']);
+    // Only Admin can delete
+    return $role === 'admin';
 }
 ?>

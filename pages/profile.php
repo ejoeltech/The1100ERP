@@ -2,6 +2,8 @@
 <?php
 $pageTitle = 'My Profile';
 include '../includes/header.php';
+require_once '../includes/security.php';
+echo csrfField();
 ?>
 
 <div class="max-w-4xl mx-auto p-6">
@@ -144,7 +146,10 @@ include '../includes/header.php';
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ image: dataUrl })
+            body: JSON.stringify({ 
+                image: dataUrl,
+                csrf_token: document.querySelector('input[name="csrf_token"]').value 
+            })
         })
             .then(response => response.json())
             .then(data => {

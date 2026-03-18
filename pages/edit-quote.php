@@ -82,8 +82,8 @@ include '../includes/header.php';
     </div>
 
     <form id="quoteForm" method="POST" action="../api/update-quote.php">
+        <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
         <input type="hidden" name="quote_id" value="<?php echo $quote['id']; ?>">
-
         <!-- Quote Header Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>

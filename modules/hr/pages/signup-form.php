@@ -30,18 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Logic similar to employee-form.php but simplified
     $passport_path = $entry['passport_path'] ?? null;
     if (isset($_FILES['passport']) && $_FILES['passport']['error'] == 0) {
-        $ext = pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION);
-        $filename = 'pass_' . $signup_code . '.' . $ext;
-        move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
-        $passport_path = 'modules/hr/assets/uploads/onboarding/' . $filename; // Store relative to root for easy access later
+        $ext = strtolower(pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+            $filename = 'pass_' . bin2hex(random_bytes(16)) . '.' . $ext;
+            move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
+            $passport_path = 'modules/hr/assets/uploads/onboarding/' . $filename; 
+        }
     }
 
     $signature_path = $entry['signature_path'] ?? null;
     if (isset($_FILES['signature']) && $_FILES['signature']['error'] == 0) {
-        $ext = pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION);
-        $filename = 'sig_' . $signup_code . '.' . $ext;
-        move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
-        $signature_path = 'modules/hr/assets/uploads/onboarding/' . $filename;
+        $ext = strtolower(pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+            $filename = 'sig_' . bin2hex(random_bytes(16)) . '.' . $ext;
+            move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
+            $signature_path = 'modules/hr/assets/uploads/onboarding/' . $filename;
+        }
     }
 
     // Prepare Data

@@ -6,8 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? 'ERP System'; ?></title>
 
-    <?php
-    // Determine base path for relative links
+<?php
+if (function_exists('setSecurityHeaders')) {
+    setSecurityHeaders();
+}
+// Determine base path for relative links
     $base_path = '';
     if (file_exists('config.php')) {
         $base_path = '.';

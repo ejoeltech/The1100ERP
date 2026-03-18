@@ -59,6 +59,7 @@ include '../includes/header.php';
     </div>
 
     <form id="quoteForm" method="POST" action="../api/save-quote.php">
+        <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
 
 
         <!-- Quote Header Section -->

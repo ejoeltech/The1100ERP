@@ -20,9 +20,20 @@ function logAudit($action, $resourceType, $resourceId = null, $details = [])
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
 
+        // Get last hash for chain
+        $lastHash = '';
+        $lastStmt = $pdo->query("SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1");
+        $lastLog = $lastStmt->fetch();
+        if ($lastLog) {
+            $lastHash = $lastLog['hash'] ?? '';
+        }
+
+        $detailsJson = json_encode($details);
+        $currentHash = hash('sha256', $lastHash . $action . $resourceType . $resourceId . $userId . $ipAddress . $detailsJson);
+
         $stmt = $pdo->prepare("
-            INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details, hash)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([
@@ -32,7 +43,8 @@ function logAudit($action, $resourceType, $resourceId = null, $details = [])
             $resourceId,
             $ipAddress,
             $userAgent,
-            json_encode($details)
+            $detailsJson,
+            $currentHash
         ]);
     } catch (Exception $e) {
         // Log error but don't break application

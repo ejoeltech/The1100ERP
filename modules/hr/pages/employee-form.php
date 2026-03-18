@@ -28,18 +28,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $passport_path = isset($_POST['existing_passport']) ? $_POST['existing_passport'] : null;
         if (isset($_FILES['passport']) && $_FILES['passport']['error'] == 0) {
-            $ext = pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION);
-            $filename = 'passport_' . time() . '_' . rand(100, 999) . '.' . $ext;
-            move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
-            $passport_path = $uploadDir . $filename;
+            $ext = strtolower(pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                $filename = 'passport_' . bin2hex(random_bytes(16)) . '.' . $ext;
+                move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
+                $passport_path = $uploadDir . $filename;
+            }
         }
 
         $signature_path = isset($_POST['existing_signature']) ? $_POST['existing_signature'] : null;
         if (isset($_FILES['signature']) && $_FILES['signature']['error'] == 0) {
-            $ext = pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION);
-            $filename = 'doc_' . time() . '_' . rand(100, 999) . '.' . $ext;
-            move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
-            $signature_path = $uploadDir . $filename;
+            $ext = strtolower(pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                $filename = 'sig_' . bin2hex(random_bytes(16)) . '.' . $ext;
+                move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
+                $signature_path = $uploadDir . $filename;
+            }
         }
 
         $data = [
@@ -129,6 +133,7 @@ include_once '../../../includes/header.php';
 <?php endif; ?>
 
 <form method="POST" enctype="multipart/form-data" class="space-y-6">
+    <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
 
     <!-- 1. Personal & Identity -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

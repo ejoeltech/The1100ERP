@@ -19,11 +19,19 @@ try {
     $data = $input['image'];
 
     // Remove the "data:image/png;base64," part
+    // Remove the "data:image/png;base64," part
     if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+        // CSRF Check
+        require_once '../includes/security.php';
+        if (!validateCsrfToken($input['csrf_token'] ?? '')) {
+            throw new Exception('CSRF validation failed');
+        }
+
         $data = substr($data, strpos($data, ',') + 1);
         $type = strtolower($type[1]); // jpg, png, gif
+        if ($type === 'jpeg') $type = 'jpg';
 
-        if (!in_array($type, ['jpg', 'jpeg', 'gif', 'png'])) {
+        if (!in_array($type, ['jpg', 'gif', 'png'])) {
             throw new Exception('Invalid image type');
         }
 
@@ -39,12 +47,12 @@ try {
     // Create uploads directory if it doesn't exist
     $uploadDir = '../uploads/signatures/';
     if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
+        mkdir($uploadDir, 0755, true);
     }
 
-    // Generate filename: signature_USERID_TIMESTAMP.png
+    // Generate filename: signature_USERID_RANDOM.png
     $userId = $_SESSION['user_id'];
-    $filename = 'signature_' . $userId . '_' . time() . '.' . $type;
+    $filename = 'signature_' . $userId . '_' . bin2hex(random_bytes(16)) . '.' . $type;
     $filepath = $uploadDir . $filename;
 
     // Save File

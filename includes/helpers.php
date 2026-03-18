@@ -61,7 +61,17 @@ function generateDocumentNumber($prefix, $id)
  */
 function sanitizeInput($input)
 {
-    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(trim($input), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+/**
+ * Short helper for htmlspecialchars
+ * @param string $data
+ * @return string
+ */
+function h($data)
+{
+    return htmlspecialchars((string)$data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 /**

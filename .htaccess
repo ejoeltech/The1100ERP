@@ -1,23 +1,23 @@
-# Security headers
-<IfModule mod_headers.c>
-    Header set X-Frame-Options "DENY"
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-XSS-Protection "1; mode=block"
-    Header set Referrer-Policy "strict-origin-when-cross-origin"
-</IfModule>
-
-# Disable directory listing
+# Prevent directory listing
 Options -Indexes
 
-# Protect sensitive files
-<FilesMatch "\.(env|log|sql|md|git)$">
+# Protect sensitive files from direct access
+<FilesMatch "(^\.env|\.log$|\.sql$|composer\.(json|lock)$)">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# Enable HTTPS redirect (uncomment for production)
-# <IfModule mod_rewrite.c>
-#     RewriteEngine On
-#     RewriteCond %{HTTPS} off
-#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# </IfModule>
+# Protect the includes directory from direct browser access
+# (Files inside are not executable directly, but we block them anyway)
+<FilesMatch "^(security|permissions|auth|audit|dotenv|api-auth|header|sidebar|footer)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security Headers (fallback - PHP also sets these)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

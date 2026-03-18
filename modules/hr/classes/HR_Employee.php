@@ -37,7 +37,13 @@ class HR_Employee
             WHERE e.id = ?
         ");
         $stmt->execute([$id]);
-        return $stmt->fetch();
+        $employee = $stmt->fetch();
+        if ($employee) {
+            require_once __DIR__ . '/../../includes/security.php';
+            $employee['nin_number'] = decryptPII($employee['nin_number']);
+            $employee['bvn_number'] = decryptPII($employee['bvn_number']);
+        }
+        return $employee;
     }
 
     public function getEmployeeByUserId($user_id)
@@ -91,6 +97,7 @@ class HR_Employee
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
+            require_once __DIR__ . '/../../includes/security.php';
             $stmt->execute([
                 $user_id,
                 $data['employee_code'],
@@ -110,8 +117,8 @@ class HR_Employee
                 $data['passport_path'] ?? null,
                 $data['signature_path'] ?? null,
                 $data['secondary_phone'] ?? null,
-                $data['nin_number'] ?? null,
-                $data['bvn_number'] ?? null,
+                encryptPII($data['nin_number'] ?? null),
+                encryptPII($data['bvn_number'] ?? null),
                 $data['tin_number'] ?? null,
                 $data['next_of_kin_name'] ?? null,
                 $data['next_of_kin_phone'] ?? null,
@@ -175,10 +182,15 @@ class HR_Employee
             'account_name'
         ];
 
+        require_once __DIR__ . '/../../includes/security.php';
         foreach ($data as $key => $value) {
             if (in_array($key, $allowed)) {
                 $fields[] = "$key = ?";
-                $values[] = $value;
+                if ($key === 'nin_number' || $key === 'bvn_number') {
+                    $values[] = encryptPII($value);
+                } else {
+                    $values[] = $value;
+                }
             }
         }
 

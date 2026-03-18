@@ -80,7 +80,8 @@ function testDatabaseConnection()
         ]);
 
         // Check if database exists
-        $stmt = $pdo->query("SHOW DATABASES LIKE '$dbname'");
+        $stmt = $pdo->prepare("SHOW DATABASES LIKE ?");
+        $stmt->execute([$dbname]);
         $exists = $stmt->fetch();
 
         if (!$exists) {
@@ -226,8 +227,8 @@ function createAdminUser()
         // Clear existing users (for reinstallation)
         $pdo->exec("DELETE FROM users");
 
-        // Hash password
-        $hashedPassword = password_hash($adminPassword, PASSWORD_DEFAULT);
+        // Hash password (using PASSWORD_ARGON2ID)
+        $hashedPassword = password_hash($adminPassword, PASSWORD_ARGON2ID);
 
         // Insert admin user
         $stmt = $pdo->prepare("
