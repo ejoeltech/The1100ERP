@@ -388,7 +388,7 @@ $line_items = $stmt->fetchAll();
                             <?php echo $item['item_number']; ?>
                         </td>
                         <td class="item-qty">
-                            <?php echo number_format($item['quantity'], 2); ?>
+                            <?php echo formatNumberSimple($item['quantity']); ?>
                         </td>
                         <td>
                             <?php echo htmlspecialchars($item['description']); ?>

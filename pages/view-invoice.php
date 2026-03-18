@@ -203,7 +203,7 @@ include '../includes/header.php';
                             <?php echo $item['item_number']; ?>
                         </td>
                         <td class="px-3 py-2 text-center text-gray-900">
-                            <?php echo number_format($item['quantity'], 2); ?>
+                            <?php echo formatNumberSimple($item['quantity']); ?>
                         </td>
                         <td class="px-3 py-2 text-gray-900">
                             <?php echo htmlspecialchars($item['description']); ?>

@@ -11,7 +11,22 @@
  */
 function formatNaira($amount)
 {
-    return '₦' . number_format((float) $amount, 2);
+    $val = (float)$amount;
+    $decimals = (floor($val) == $val) ? 0 : 2;
+    return '₦' . number_format($val, $decimals);
+}
+
+/**
+ * Format a number simply (remove .00 if whole number)
+ * @param float $num
+ * @param int $maxDecimals
+ * @return string
+ */
+function formatNumberSimple($num, $maxDecimals = 2)
+{
+    $val = (float)$num;
+    $decimals = (floor($val) == $val) ? 0 : $maxDecimals;
+    return number_format($val, $decimals);
 }
 
 /**
