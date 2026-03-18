@@ -5,8 +5,8 @@
 if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
 
     // 1. Load config to get DB credentials
-    if (file_exists('config.php')) {
-        require_once 'config.php';
+    if (file_exists('../config.php')) {
+        require_once '../config.php';
 
         try {
             // Disable FK checks
@@ -29,8 +29,8 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
 
     // 2. Delete Config Files
     $filesToDelete = [
-        'config.php',
-        'config.php.bak',
+        '../config.php',
+        '../config.php.bak',
         'setup/lock'
     ];
 

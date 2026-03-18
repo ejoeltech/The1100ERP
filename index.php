@@ -1,16 +1,16 @@
 <?php
 // Check if installation is required
-if (!file_exists('config.php') && !file_exists('setup/lock')) {
-    header('Location: setup/index.php');
+if (!file_exists('config.php') && !file_exists('maintenance/setup/lock')) {
+    header('Location: maintenance/setup/index.php');
     exit;
 }
 
 // Check if system is installed but config is missing (corrupted)
-if (!file_exists('config.php') && file_exists('setup/lock')) {
+if (!file_exists('config.php') && file_exists('maintenance/setup/lock')) {
     die('
         <h1>Configuration Error</h1>
         <p>The config.php file is missing. Please restore it from backup or reinstall.</p>
-        <p>To reinstall, delete: <code>setup/lock</code> and refresh this page.</p>
+        <p>To reinstall, delete: <code>maintenance/setup/lock</code> and refresh this page.</p>
     ');
 }
 

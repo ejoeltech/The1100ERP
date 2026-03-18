@@ -1175,7 +1175,7 @@ include '../includes/header.php';
             const formData = new FormData();
             formData.append('password', password);
 
-            const response = await fetch('../api/factory-reset.php', {
+            const response = await fetch('maintenance/factory-reset.php', {
                 method: 'POST',
                 body: formData
             });
