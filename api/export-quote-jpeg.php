@@ -27,7 +27,7 @@ try {
         require_once '../vendor/autoload.php';
 
         ob_start();
-        include '../includes/quote-pdf-template.php';
+        include '../includes/pdf-template.php';
         $html = ob_get_clean();
 
         $mpdf = new \Mpdf\Mpdf(['format' => 'A4', 'margin_left' => 15, 'margin_right' => 15, 'margin_top' => 15, 'margin_bottom' => 15]);

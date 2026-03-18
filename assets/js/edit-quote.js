@@ -25,9 +25,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (row) {
                     // Populate the fields
-                    row.querySelector(`[name="line_items[${currentCount}][quantity]"]`).value = item.quantity;
+                    const qtyInput = row.querySelector(`[name="line_items[${currentCount}][quantity]"]`);
+                    const priceInput = row.querySelector(`[name="line_items[${currentCount}][unit_price]"]`);
+                    
+                    qtyInput.value = item.quantity;
                     row.querySelector(`[name="line_items[${currentCount}][description]"]`).value = item.description;
-                    row.querySelector(`[name="line_items[${currentCount}][unit_price]"]`).value = item.unit_price;
+                    priceInput.value = item.unit_price;
+
+                    // Apply formatting
+                    formatInput(qtyInput);
+                    formatInput(priceInput);
 
                     // Handle checkbox
                     const vatCheckbox = row.querySelector(`[name="line_items[${currentCount}][vat_applicable]"]`);

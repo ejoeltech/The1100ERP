@@ -142,13 +142,22 @@ include '../includes/header.php';
         <div class="mb-8">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold text-gray-900">Line Items</h3>
-                <button type="button" id="addLineBtn"
-                    class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Add Line Item
-                </button>
+                <div class="flex items-center gap-3">
+                    <button type="button" id="addFromStoreBtn"
+                        class="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        Add From Store
+                    </button>
+                    <button type="button" id="addLineBtn"
+                        class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2 shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Line Item
+                    </button>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -224,4 +233,5 @@ include '../includes/header.php';
 <script src="../assets/js/quote-form.js?v=2"></script>
 <script src="../assets/js/edit-quote.js?v=2"></script>
 
+<?php include '../includes/pick-item-modal.php'; ?>
 <?php include '../includes/footer.php'; ?>

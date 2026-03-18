@@ -111,3 +111,17 @@ function generateReceiptNumber($pdo)
 
     return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 }
+
+/**
+ * Parse a number from a form input (removing commas)
+ * @param mixed $input Input string or number
+ * @return float Parsed float value
+ */
+function parseFormNumber($input)
+{
+    if (empty($input)) return 0.0;
+    if (is_numeric($input)) return (float) $input;
+    // Remove commas and other non-numeric chars except decimal and minus
+    $clean = preg_replace('/[^\d.-]/', '', (string)$input);
+    return (float) $clean;
+}

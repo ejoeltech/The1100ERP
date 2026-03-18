@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/helpers.php';
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -16,9 +17,9 @@ try {
     $salesperson = trim($_POST['salesperson']);
     $quote_date = $_POST['quote_date'];
     $payment_terms = trim($_POST['payment_terms']);
-    $subtotal = floatval($_POST['subtotal']);
-    $total_vat = floatval($_POST['total_vat']);
-    $grand_total = floatval($_POST['grand_total']);
+    $subtotal = parseFormNumber($_POST['subtotal']);
+    $total_vat = parseFormNumber($_POST['total_vat']);
+    $grand_total = parseFormNumber($_POST['grand_total']);
     $status = $_POST['status'];
     $line_items = $_POST['line_items'];
 
@@ -112,18 +113,21 @@ try {
     $stmt = $pdo->prepare("
         INSERT INTO quote_line_items (
             quote_id, item_number, quantity, description,
-            unit_price, vat_applicable, vat_amount, line_total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            unit_price, vat_applicable, vat_amount, line_total,
+            item_id, item_name
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $item_number = 1;
     foreach ($line_items as $item) {
-        $quantity = floatval($item['quantity']);
+        $quantity = parseFormNumber($item['quantity']);
         $description = trim($item['description']);
-        $unit_price = floatval($item['unit_price']);
+        $unit_price = parseFormNumber($item['unit_price']);
         $vat_applicable = isset($item['vat_applicable']) ? 1 : 0;
-        $vat_amount = floatval($item['vat_amount']);
-        $line_total = floatval($item['line_total']);
+        $vat_amount = parseFormNumber($item['vat_amount']);
+        $line_total = parseFormNumber($item['line_total']);
+        $item_id = !empty($item['item_id']) ? intval($item['item_id']) : null;
+        $item_name = !empty($item['item_name']) ? trim($item['item_name']) : null;
 
         if (empty($description) || $quantity <= 0 || $unit_price < 0) {
             throw new Exception("Invalid line item data");
@@ -137,7 +141,9 @@ try {
             $unit_price,
             $vat_applicable,
             $vat_amount,
-            $line_total
+            $line_total,
+            $item_id,
+            $item_name
         ]);
 
         $item_number++;

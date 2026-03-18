@@ -15,9 +15,19 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Add line item button
-document.getElementById('addLineBtn').addEventListener('click', addLineItem);
+document.getElementById('addLineBtn').addEventListener('click', () => addLineItem());
 
-function addLineItem() {
+// Add item from store button logic
+if (document.getElementById('addFromStoreBtn')) {
+    document.getElementById('addFromStoreBtn').addEventListener('click', () => {
+        openProductPicker((item) => {
+            addLineItem(item);
+            closeProductPicker();
+        });
+    });
+}
+
+function addLineItem(itemData = null) {
     window.lineItemCount++;
     const currentCount = window.lineItemCount;
 
@@ -26,18 +36,23 @@ function addLineItem() {
     row.className = 'border-b border-gray-200 hover:bg-gray-50';
     row.id = `line-${currentCount}`;
 
+    const description = itemData ? `${itemData.name}${itemData.description ? ' - ' + itemData.description : ''}` : '';
+    const price = itemData ? formatNumber(itemData.price) : '';
+    const itemId = itemData ? itemData.id : '';
+    const itemName = itemData ? itemData.name : '';
+
     row.innerHTML = `
         <td class="px-3 py-2 text-center font-semibold text-gray-700">${currentCount}</td>
         <td class="px-3 py-2">
             <input 
-                type="number" 
+                type="text" 
+                inputmode="decimal"
                 name="line_items[${currentCount}][quantity]"
-                min="0.01"
-                step="0.01"
                 value="1"
                 required
-                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                onchange="calculateLine(${currentCount})"
+                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input"
+                onfocus="unformatInput(this)"
+                onblur="formatInput(this); calculateLine(${currentCount})"
             >
         </td>
         <td class="px-3 py-2">
@@ -47,18 +62,21 @@ function addLineItem() {
                 required
                 placeholder="Enter item description"
                 class="w-full min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
-            ></textarea>
+            >${description}</textarea>
+            <input type="hidden" name="line_items[${currentCount}][item_id]" value="${itemId}">
+            <input type="hidden" name="line_items[${currentCount}][item_name]" value="${itemName}">
         </td>
         <td class="px-3 py-2">
             <input 
-                type="number" 
+                type="text" 
+                inputmode="decimal"
                 name="line_items[${currentCount}][unit_price]"
-                min="0"
-                step="0.01"
                 required
+                value="${price}"
                 placeholder="0.00"
-                class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                onchange="calculateLine(${currentCount})"
+                class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input"
+                onfocus="unformatInput(this)"
+                onblur="formatInput(this); calculateLine(${currentCount})"
             >
         </td>
         <td class="px-3 py-2 text-center">
@@ -90,6 +108,7 @@ function addLineItem() {
     `;
 
     container.appendChild(row);
+    if (itemData) calculateLine(currentCount);
     return row;
 }
 
@@ -118,12 +137,17 @@ function calculateLine(lineNumber) {
     if (!row) return;
 
     // Get values
-    const quantity = parseFloat(row.querySelector('[name*="[quantity]"]').value) || 0;
-    const unitPrice = parseFloat(row.querySelector('[name*="[unit_price]"]').value) || 0;
+    const quantityInput = row.querySelector('[name*="[quantity]"]');
+    const unitPriceInput = row.querySelector('[name*="[unit_price]"]');
+    
+    const quantity = parseNumber(quantityInput.value) || 0;
+    const unitPrice = parseNumber(unitPriceInput.value) || 0;
     const vatEnabled = row.querySelector('[name*="[vat_applicable]"]').checked;
 
     // Calculate
     const baseAmount = quantity * unitPrice;
+    // VAT should probably only apply to positive base amounts, or apply proportionally to negative? 
+    // Usually, VAT on discount is a reduction in VAT.
     const vatAmount = vatEnabled ? (baseAmount * 0.075) : 0;
     const lineTotal = baseAmount + vatAmount;
 
@@ -145,8 +169,11 @@ function calculateTotals() {
     // Sum all line items
     const rows = document.querySelectorAll('#lineItemsContainer tr');
     rows.forEach(row => {
-        const quantity = parseFloat(row.querySelector('[name*="[quantity]"]')?.value) || 0;
-        const unitPrice = parseFloat(row.querySelector('[name*="[unit_price]"]')?.value) || 0;
+        const qtyVal = row.querySelector('[name*="[quantity]"]')?.value || '0';
+        const priceVal = row.querySelector('[name*="[unit_price]"]')?.value || '0';
+        
+        const quantity = parseNumber(qtyVal) || 0;
+        const unitPrice = parseNumber(priceVal) || 0;
         const vatEnabled = row.querySelector('[name*="[vat_applicable]"]')?.checked || false;
 
         const baseAmount = quantity * unitPrice;
@@ -169,12 +196,7 @@ function calculateTotals() {
     document.getElementById('grandTotalInput').value = grandTotal.toFixed(2);
 }
 
-function formatCurrency(amount) {
-    return '₦' + amount.toLocaleString('en-NG', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-}
+// Helpers - Removed as they are now global in helpers.js
 
 // Form submission validation
 document.getElementById('quoteForm').addEventListener('submit', function (e) {
@@ -189,18 +211,19 @@ document.getElementById('quoteForm').addEventListener('submit', function (e) {
     // Validate each line has required data
     let isValid = true;
     lineItems.forEach(row => {
-        const qty = row.querySelector('[name*="[quantity]"]').value;
+        const qtyVal = row.querySelector('[name*="[quantity]"]').value;
         const desc = row.querySelector('[name*="[description]"]').value;
-        const price = row.querySelector('[name*="[unit_price]"]').value;
+        const priceVal = row.querySelector('[name*="[unit_price]"]').value;
 
-        if (!qty || !desc || !price) {
-            isValid = false;
+        if (parseNumber(qtyVal) === 0 && qtyVal !== '0' || !desc || parseNumber(priceVal) === 0 && priceVal !== '0') {
+             // Allow zero, but not empty/invalid
+             if (!qtyVal || !desc || !priceVal) isValid = false;
         }
     });
 
     if (!isValid) {
         e.preventDefault();
-        alert('Please fill in all line item fields.');
+        alert('Please fill in all line item fields correctly.');
         return false;
     }
 });

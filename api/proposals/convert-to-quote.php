@@ -31,6 +31,8 @@ try {
         throw new Exception("Proposal not found");
     }
 
+    require_once '../../includes/helpers.php';
+
     $pdo->beginTransaction();
 
     // 2a. Get Salesperson Name
@@ -39,18 +41,8 @@ try {
     $user = $stmt->fetch();
     $salesperson = $user['full_name'] ?? 'System Admin';
 
-    // 2b. Generate Quote Number
-    // Logic: Get max numeric suffix, ignore year? Or simplified?
-    // Let's use simplified max(id) for now to ensure uniqueness combined with year
-    // Better: Check last quote number format
-    $stmt = $pdo->query("SELECT quote_number FROM quotes ORDER BY id DESC LIMIT 1");
-    $lastQuoteRaw = $stmt->fetchColumn();
-
-    $nextId = 1;
-    if ($lastQuoteRaw && preg_match('/QT-\d{4}-(\d+)/', $lastQuoteRaw, $matches)) {
-        $nextId = intval($matches[1]) + 1;
-    }
-    $quoteNumber = 'QT-' . date('Y') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+    // 2b. Generate Quote Number using standard helper
+    $quoteNumber = generateQuoteNumber($pdo);
 
     // 3. Create Quote
     // quote_title, customer_name, salesperson are REQUIRED
@@ -122,17 +114,88 @@ try {
         ]
     ];
 
-    $stmtLine = $pdo->prepare("INSERT INTO quote_line_items (quote_id, quantity, unit_price, description, vat_applicable, line_total) VALUES (?, ?, 0, ?, 0, 0)");
-
+    // Define the items with price lookup
+    $finalItems = [];
     foreach ($items as $item) {
-        $stmtLine->execute([$quoteId, $item['qty'], $item['desc']]);
+        $desc = $item['desc'];
+        $unitPrice = 0;
+        $itemId = null;
+        $itemName = null;
+
+        // Simple keyword-based price lookup for common solar components
+        $searchTerms = [];
+        if (stripos($desc, 'Inverter') !== false) $searchTerms[] = 'Inverter';
+        if (stripos($desc, 'Battery') !== false) $searchTerms[] = 'Battery';
+        if (stripos($desc, 'Panel') !== false) $searchTerms[] = 'Panel';
+        
+        if (!empty($searchTerms)) {
+            // Try to find an item in the store that matches these keywords
+            $likeQuery = '%' . implode('%', $searchTerms) . '%';
+            $stmtItem = $pdo->prepare("SELECT id, name, price FROM items WHERE name LIKE ? OR description LIKE ? ORDER BY price DESC LIMIT 1");
+            $stmtItem->execute([$likeQuery, $likeQuery]);
+            $foundItem = $stmtItem->fetch();
+            
+            if ($foundItem) {
+                $unitPrice = $foundItem['price'];
+                $itemId = $foundItem['id'];
+                $itemName = $foundItem['name'];
+            }
+        }
+
+        // Defaults for installation if not found
+        if ($unitPrice == 0) {
+            if (stripos($desc, 'Installation') !== false) $unitPrice = 250000;
+            if (stripos($desc, 'Logistics') !== false) $unitPrice = 150000;
+        }
+
+        $lineTotal = $unitPrice * $item['qty'];
+
+        $finalItems[] = [
+            'desc' => $desc,
+            'qty' => $item['qty'],
+            'unit_price' => $unitPrice,
+            'line_total' => $lineTotal,
+            'item_id' => $itemId,
+            'item_name' => $itemName
+        ];
     }
+
+    $stmtLine = $pdo->prepare("
+        INSERT INTO quote_line_items (
+            quote_id, item_number, quantity, description, 
+            unit_price, vat_applicable, line_total, item_id, item_name
+        ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+    ");
+
+    $itemNum = 1;
+    $subtotal = 0;
+    foreach ($finalItems as $fItem) {
+        $stmtLine->execute([
+            $quoteId,
+            $itemNum,
+            $fItem['qty'],
+            $fItem['desc'],
+            $fItem['unit_price'],
+            $fItem['line_total'],
+            $fItem['item_id'],
+            $fItem['item_name']
+        ]);
+        $subtotal += $fItem['line_total'];
+        $itemNum++;
+    }
+
+    // 4.5 Update Quote Totals
+    $totalVat = $subtotal * 0.075;
+    $grandTotal = $subtotal + $totalVat;
+    $stmt = $pdo->prepare("UPDATE quotes SET subtotal = ?, total_vat = ?, grand_total = ? WHERE id = ?");
+    $stmt->execute([$subtotal, $totalVat, $grandTotal, $quoteId]);
 
     // 5. Update Proposal status
     $stmt = $pdo->prepare("UPDATE proposals SET status = 'converted', converted_quote_id = ? WHERE id = ?");
     $stmt->execute([$quoteId, $proposalId]);
 
     $pdo->commit();
+
 
     // Clear buffer and send output
     ob_end_clean();

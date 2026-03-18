@@ -128,7 +128,7 @@ try {
             if ($document_type === 'quote') {
                 $quote = $document;
                 // Template expects $quote and $line_items
-                include '../includes/quote-pdf-template.php';
+                include '../includes/pdf-template.php';
             } elseif ($document_type === 'invoice') {
                 $invoice = $document;
                 // Template expects $invoice and $line_items

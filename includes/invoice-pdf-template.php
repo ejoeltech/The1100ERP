@@ -19,12 +19,12 @@ $html = '
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 3px solid ' . THEME_COLOR . ';
+            border-bottom: 3px solid ' . $theme_color . ';
         }
         .logo {
             font-size: 24px;
             font-weight: bold;
-            color: ' . THEME_COLOR . ';
+            color: ' . $theme_color . ';
             margin-bottom: 5px;
         }
         .subtitle {
@@ -43,7 +43,7 @@ $html = '
             font-size: 26px;
             font-weight: bold;
             margin: 15px 0;
-            color: ' . THEME_COLOR . ';
+            color: ' . $theme_color . ';
         }
         .document-subtitle {
             text-align: center;
@@ -87,7 +87,7 @@ $html = '
             clear: both;
         }
         .line-items-table th {
-            background: ' . THEME_COLOR . ';
+            background: ' . $theme_color . ';
             color: white;
             padding: 8px 6px;
             text-align: left;
@@ -142,7 +142,7 @@ $html = '
             border-collapse: separate;
             border-spacing: 0;
             margin-top: 8px;
-            background: ' . THEME_COLOR . ';
+            background: ' . $theme_color . ';
             border-radius: 5px;
         }
         .grand-total-table td {
@@ -165,7 +165,7 @@ $html = '
             clear: both;
             margin-top: 30px;
             padding-top: 15px;
-            border-top: 3px solid ' . THEME_COLOR . ';
+            border-top: 3px solid ' . $theme_color . ';
         }
         .thank-you {
             text-align: center;
@@ -176,7 +176,7 @@ $html = '
             color: #555;
         }
         .payment-header {
-            background: ' . THEME_COLOR . ';
+            background: ' . $theme_color . ';
             color: white;
             text-align: center;
             padding: 6px;
@@ -206,7 +206,7 @@ $html = '
             color: #555;
         }
         .prepared-by {
-            background: ' . THEME_COLOR . ';
+            background: ' . $theme_color . ';
             color: white;
             text-align: right;
             padding: 6px 12px;

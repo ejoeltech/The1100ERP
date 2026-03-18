@@ -163,7 +163,128 @@ include '../includes/header.php';
         Receipts</a>
 </div>
 
-<!-- ... (Receipt Display) ... -->
+<!-- Receipt Display -->
+<div id="printableReceipt" class="bg-white rounded-lg shadow-md p-4 md:p-8 max-w-4xl mx-auto">
+    <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
+        <div class="flex justify-center items-center gap-2 mb-3">
+            <?php
+            // Use uploaded logo if available
+            $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+            if (!empty($logo_files)) {
+                $latest_logo = basename(end($logo_files));
+                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" class="h-28 object-contain">';
+            } else {
+                echo '<div class="flex flex-col items-center">';
+                echo '<div class="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-3xl mb-2">';
+                echo substr(COMPANY_NAME, 0, 1);
+                echo '</div>';
+                echo '<h1 class="text-3xl font-bold tracking-tight mb-1">' . COMPANY_NAME . '</h1>';
+                echo '<p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>';
+                echo '</div>';
+            }
+            ?>
+        </div>
+        <div class="text-xs mt-4 space-y-1 text-gray-700">
+            <p><strong>Contact Address:</strong> <?php echo COMPANY_ADDRESS; ?></p>
+            <p><strong>Phone:</strong> <?php echo COMPANY_PHONE; ?> | <strong>Email:</strong> <?php echo COMPANY_EMAIL; ?> | <?php echo COMPANY_WEBSITE; ?></p>
+        </div>
+    </div>
+
+    <div class="text-center mb-8">
+        <h2 class="text-4xl font-serif font-bold mb-2 text-purple-600">RECEIPT</h2>
+        <p class="text-gray-600 italic"><?php echo htmlspecialchars($receipt['quote_title'] ?: 'Payment Confirmation'); ?></p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div>
+            <p class="text-sm font-bold text-gray-700 mb-2">Received From:</p>
+            <div class="border border-gray-300 p-3 rounded bg-gray-50">
+                <p class="font-semibold text-gray-900"><?php echo htmlspecialchars($receipt['customer_name']); ?></p>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-gray-700">Receipt Number:</span>
+                <span class="font-mono font-bold text-purple-600"><?php echo htmlspecialchars($receipt['document_number']); ?></span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-gray-700">Date:</span>
+                <span class="text-gray-900"><?php echo date('d/m/Y', strtotime($receipt['payment_date'])); ?></span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-gray-700">Payment Method:</span>
+                <span class="text-gray-900 font-semibold uppercase"><?php echo htmlspecialchars($receipt['payment_method']); ?></span>
+            </div>
+        </div>
+    </div>
+
+    <?php
+    // Fetch line items from parent invoice
+    $line_items = [];
+    if ($receipt['invoice_id']) {
+        $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
+        $stmt->execute([$receipt['invoice_id']]);
+        $line_items = $stmt->fetchAll();
+    }
+    
+    if (count($line_items) > 0): 
+    ?>
+    <div class="mb-8">
+        <p class="text-sm font-bold text-gray-700 mb-2">Payment refers to items in Invoice:</p>
+        <table class="w-full border border-gray-300">
+            <thead>
+                <tr class="bg-purple-600 text-white">
+                    <th class="px-3 py-2 text-left text-sm font-semibold">#</th>
+                    <th class="px-3 py-2 text-left text-sm font-semibold">Description</th>
+                    <th class="px-3 py-2 text-right text-sm font-semibold">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($line_items as $item): ?>
+                    <tr class="border-b border-gray-200">
+                        <td class="px-3 py-2 text-gray-700"><?php echo $item['item_number']; ?></td>
+                        <td class="px-3 py-2 text-gray-900"><?php echo htmlspecialchars($item['description']); ?></td>
+                        <td class="px-3 py-2 text-right font-semibold text-gray-900"><?php echo formatNaira($item['line_total']); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
+
+    <div class="flex justify-end mb-8">
+        <div class="w-80 space-y-2">
+            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                <span class="font-semibold text-gray-700">Invoice Total:</span>
+                <span class="text-lg font-bold text-gray-900">
+                    <?php 
+                    $grand_total = 0;
+                    if ($parent_invoice) $grand_total = $parent_invoice['grand_total'];
+                    elseif (isset($receipt['invoice_grand_total'])) $grand_total = $receipt['invoice_grand_total'];
+                    echo formatNaira($grand_total);
+                    ?>
+                </span>
+            </div>
+            <div class="flex justify-between items-center py-2 bg-green-600 text-white px-4 rounded shadow-sm">
+                <span class="text-lg font-bold uppercase tracking-wider">Amount Paid:</span>
+                <span class="text-xl font-bold"><?php echo formatNaira($receipt['amount_paid']); ?></span>
+            </div>
+            <?php if ($parent_invoice): ?>
+            <div class="flex justify-between items-center py-2 text-xs text-gray-500">
+                <span>Remaining Balance:</span>
+                <span><?php echo formatNaira($parent_invoice['balance_due']); ?></span>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="border-t-2 border-gray-200 pt-6">
+        <p class="text-center font-serif italic font-bold mb-6 text-gray-700">Thank you for your business!</p>
+        <div class="bg-primary text-white text-right py-2 px-4 text-xs italic">
+            Receipt generated by: ERP System
+        </div>
+    </div>
+</div>
 
 <script>
     async function voidReceipt(id) {

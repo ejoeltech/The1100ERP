@@ -311,19 +311,23 @@ $line_items = $stmt->fetchAll();
 
     <div class="container">
         <div class="header">
-            <?php if (defined('COMPANY_LOGO') && COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
-                <img src="../<?php echo htmlspecialchars(COMPANY_LOGO); ?>" alt="Company Logo"
-                    style="height: 80px; max-width: 300px; margin-bottom: 15px;">
-            <?php else: ?>
-                <div class="logo">
+            <?php
+            // Use uploaded logo if available
+            $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+            if (!empty($logo_files)) {
+                $latest_logo = basename(end($logo_files));
+                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" style="height: 80px; max-width: 300px; margin-bottom: 15px;">';
+            } else {
+                echo '<div class="logo">
                     <div class="logo-dot"></div>
                     <div class="logo-dot"></div>
                     <div class="logo-dot"></div>
                     <div class="logo-dot"></div>
-                </div>
-                <div class="company-name"><?php echo defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots'; ?></div>
-                <div class="company-tagline">TECHNOLOGIES</div>
-            <?php endif; ?>
+                </div>';
+                echo '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>';
+                echo '<div class="company-tagline">TECHNOLOGIES</div>';
+            }
+            ?>
             <div class="company-info">
                 <?php echo COMPANY_ADDRESS; ?><br>
                 Phone:

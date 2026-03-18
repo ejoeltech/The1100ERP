@@ -93,15 +93,17 @@ try {
     // Copy line items to invoice_line_items
     $stmt = $pdo->prepare("
         INSERT INTO invoice_line_items (
-            invoice_id, product_id, item_number, quantity, description,
+            invoice_id, product_id, item_id, item_name, item_number, quantity, description,
             unit_price, vat_applicable, vat_amount, line_total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     foreach ($line_items as $item) {
         $stmt->execute([
             $invoice_id,
             $item['product_id'],
+            $item['item_id'] ?? null,
+            $item['item_name'] ?? null,
             $item['item_number'],
             $item['quantity'],
             $item['description'],

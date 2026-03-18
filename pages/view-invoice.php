@@ -120,14 +120,19 @@ include '../includes/header.php';
 
     <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
         <div class="flex justify-center items-center gap-2 mb-3">
-            <?php if (COMPANY_LOGO && file_exists(__DIR__ . '/../' . COMPANY_LOGO)): ?>
-                <img src="../<?php echo COMPANY_LOGO; ?>" alt="<?php echo COMPANY_NAME; ?>" class="h-28 object-contain">
-            <?php else: ?>
-                <div class="flex flex-col items-center">
-                    <h1 class="text-3xl font-bold tracking-tight mb-1"><?php echo COMPANY_NAME; ?></h1>
-                    <p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>
-                </div>
-            <?php endif; ?>
+            <?php
+            // Use uploaded logo if available
+            $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
+            if (!empty($logo_files)) {
+                $latest_logo = basename(end($logo_files));
+                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" class="h-28 object-contain">';
+            } else {
+                echo '<div class="flex flex-col items-center">';
+                echo '<h1 class="text-3xl font-bold tracking-tight mb-1">' . COMPANY_NAME . '</h1>';
+                echo '<p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>';
+                echo '</div>';
+            }
+            ?>
         </div>
         <div class="text-xs mt-4 space-y-1 text-gray-700">
             <p><strong>Contact Address:</strong>

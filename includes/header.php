@@ -46,6 +46,7 @@
             basePath: '<?php echo $base_path; ?>'
         };
     </script>
+    <script src="<?php echo $base_path; ?>/assets/js/helpers.js?v=<?php echo time(); ?>"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,6 +96,19 @@
                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg font-semibold">
                     📊 Dashboard
                 </a>
+
+                <!-- Store Section -->
+                <div class="border-t border-gray-200 pt-2 mt-2">
+                    <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Store</p>
+                    <a href="<?php echo $base_path; ?>/pages/store/items.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🏬 Items
+                    </a>
+                    <a href="<?php echo $base_path; ?>/pages/store/categories.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        📂 Categories
+                    </a>
+                </div>
 
                 <!-- Inventory Section -->
                 <div class="border-t border-gray-200 pt-2 mt-2">
@@ -267,6 +281,31 @@
                     <nav class="hidden md:flex items-center gap-1">
                         <a href="<?php echo $base_path; ?>/dashboard.php"
                             class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold transition-colors">Dashboard</a>
+
+                        <!-- Store Dropdown -->
+                        <div class="relative group">
+                            <button
+                                class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
+                                Store
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div
+                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                <a href="<?php echo $base_path; ?>/pages/store/items.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
+                                    <div class="font-semibold">Items</div>
+                                    <div class="text-xs text-gray-500">Inventory Items</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/store/categories.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">Categories</div>
+                                    <div class="text-xs text-gray-500">Item Groups</div>
+                                </a>
+                            </div>
+                        </div>
 
                         <!-- Inventory Dropdown -->
                         <div class="relative group">
