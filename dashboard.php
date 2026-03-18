@@ -168,7 +168,7 @@ include 'includes/header.php';
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
     <!-- Quotes Card -->
-    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+    <a href="pages/view-quotes.php" class="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500 hover:shadow-lg transition-shadow block">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Quotes</p>
@@ -183,10 +183,10 @@ include 'includes/header.php';
                 </svg>
             </div>
         </div>
-    </div>
+    </a>
 
     <!-- Invoices Card -->
-    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+    <a href="pages/view-invoices.php" class="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow block">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Invoices</p>
@@ -201,10 +201,10 @@ include 'includes/header.php';
                 </svg>
             </div>
         </div>
-    </div>
+    </a>
 
     <!-- Receipts Card -->
-    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
+    <a href="pages/view-receipts.php" class="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500 hover:shadow-lg transition-shadow block">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Receipts</p>
@@ -218,10 +218,10 @@ include 'includes/header.php';
                 </svg>
             </div>
         </div>
-    </div>
+    </a>
 
     <!-- Revenue Card -->
-    <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-primary">
+    <a href="pages/view-receipts.php" class="bg-white rounded-lg shadow-md p-4 border-l-4 border-primary hover:shadow-lg transition-shadow block">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-semibold text-gray-600 uppercase">Revenue</p>
@@ -236,7 +236,7 @@ include 'includes/header.php';
                 </svg>
             </div>
         </div>
-    </div>
+    </a>
 
 </div>
 
@@ -409,7 +409,17 @@ include 'includes/header.php';
                 </thead>
                 <tbody>
                     <?php foreach ($recent_documents as $doc): ?>
-                        <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <?php
+                        $view_pages = [
+                            'quote' => 'view-quote.php',
+                            'invoice' => 'view-invoice.php',
+                            'receipt' => 'view-receipt.php'
+                        ];
+                        $view_page = $view_pages[$doc['document_type']];
+                        $target_url = "pages/" . $view_page . "?id=" . $doc['id'];
+                        ?>
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                            onclick="window.location.href='<?php echo $target_url; ?>'">
                             <td class="px-4 py-3">
                                 <?php
                                 $type_colors = [
@@ -447,15 +457,7 @@ include 'includes/header.php';
                                 <?php echo date('d/m/Y', strtotime($doc['created_at'])); ?>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <?php
-                                $view_pages = [
-                                    'quote' => 'view-quote.php',
-                                    'invoice' => 'view-invoice.php',
-                                    'receipt' => 'view-receipt.php'
-                                ];
-                                $view_page = $view_pages[$doc['document_type']];
-                                ?>
-                                <a href="pages/<?php echo $view_page; ?>?id=<?php echo $doc['id']; ?>"
+                                <a href="<?php echo $target_url; ?>"
                                     class="text-primary hover:text-blue-700 font-semibold text-sm">
                                     View →
                                 </a>
