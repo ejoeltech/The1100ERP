@@ -39,7 +39,7 @@ class HR_Employee
         $stmt->execute([$id]);
         $employee = $stmt->fetch();
         if ($employee) {
-            require_once __DIR__ . '/../../includes/security.php';
+            require_once dirname(__DIR__, 3) . '/includes/security.php';
             $employee['nin_number'] = decryptPII($employee['nin_number']);
             $employee['bvn_number'] = decryptPII($employee['bvn_number']);
         }
@@ -97,7 +97,7 @@ class HR_Employee
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
 
-            require_once __DIR__ . '/../../includes/security.php';
+            require_once dirname(__DIR__, 3) . '/includes/security.php';
             $stmt->execute([
                 $user_id,
                 $data['employee_code'],
@@ -182,7 +182,7 @@ class HR_Employee
             'account_name'
         ];
 
-        require_once __DIR__ . '/../../includes/security.php';
+        require_once dirname(__DIR__, 3) . '/includes/security.php';
         foreach ($data as $key => $value) {
             if (in_array($key, $allowed)) {
                 $fields[] = "$key = ?";

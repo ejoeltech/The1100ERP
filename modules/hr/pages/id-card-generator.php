@@ -62,115 +62,55 @@ if (empty($front_template) || empty($custom_css)) {
 include_once '../../../includes/header.php';
 ?>
 
+<link rel="stylesheet" href="../assets/css/id-card-designer-advanced.css">
+
 <style>
     /* Generator Specific Styles */
     .page-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 20px;
-        padding: 20px;
+        gap: 40px;
+        padding: 40px;
         justify-content: center;
+        background: #f0f0f0;
     }
 
     .print-btn {
         position: fixed;
-        top: 100px;
+        top: 20px;
         right: 20px;
-        background: #0072bc;
+        background: #6366f1;
         color: white;
-        padding: 10px 20px;
+        padding: 12px 24px;
         border: none;
         cursor: pointer;
-        border-radius: 5px;
-        font-weight: bold;
+        border-radius: 12px;
+        font-weight: 800;
         z-index: 1000;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
 
     @media print {
-
-        header,
-        nav,
-        .navbar,
-        footer,
-        .print-btn,
-        .selector-panel {
+        header, nav, .navbar, footer, .print-btn, .selector-panel {
             display: none !important;
         }
-
-        body {
-            background: white;
-            margin: 0;
-            padding: 0;
-        }
-
-        .page-container {
-            padding: 0;
-            gap: 0;
-            display: block;
-            margin: 0;
-        }
-
-        .card-wrapper {
-            break-inside: avoid;
-            margin-bottom: 20px;
-            display: inline-block;
-            margin-right: 20px;
-        }
-
-        main {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: none !important;
-        }
-
-        /* Override main container padding */
+        body { background: white; margin: 0; padding: 0; }
+        .page-container { padding: 0; gap: 0; display: block; margin: 0; background: none; }
+        .card-wrapper { break-inside: avoid; margin-bottom: 20px; display: inline-block; margin-right: 20px; }
+        main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
     }
-
-    /* INJECT SAVED CSS */
-    :root {
-        --brand-blue:
-            <?php echo $color_primary; ?>
-        ;
-        --brand-green:
-            <?php echo $color_secondary; ?>
-        ;
-        --dark-blue:
-            <?php echo $color_tertiary; ?>
-        ;
-        --card-width: 350px;
-        --card-height: 550px;
-        --card-radius: 15px;
-    }
-
-    /* Structural Enforcements */
-    .qr-section {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
-    .id-section {
-        width: 100%;
-        text-align: center;
-    }
-
-    <?php echo $custom_css; ?>
-    <?php echo $toggle_css; ?>
 </style>
 
-<button onclick="window.print()" class="print-btn"><i class="fa-solid fa-print"></i> Print Cards</button>
-
+<button onclick="window.print()" class="print-btn"><i class="fa-solid fa-print"></i> Print ID Cards</button>
 
 <?php if (!$selected_employee): ?>
-    <div class="selector-panel" style="padding: 20px; background: white;">
-        <h3>Select Employee to Generate</h3>
+    <div class="selector-panel" style="padding: 40px; background: white; text-align: center;">
+        <h3 class="text-2xl font-black text-gray-800 mb-6">Select Employee</h3>
         <form method="GET">
-            <select name="id" onchange="this.form.submit()" style="padding: 10px; width: 300px;">
+            <select name="id" onchange="this.form.submit()" class="p-4 border-2 border-gray-100 rounded-2xl w-full max-w-md text-lg">
                 <option value="">-- Choose Employee --</option>
                 <?php foreach ($employees as $emp): ?>
-                    <option value="<?php echo $emp['id']; ?>"><?php echo htmlspecialchars($emp['full_name']); ?>
-                        (<?php echo $emp['employee_code']; ?>)</option>
+                    <option value="<?php echo $emp['id']; ?>"><?php echo htmlspecialchars($emp['full_name']); ?> (<?php echo $emp['employee_code']; ?>)</option>
                 <?php endforeach; ?>
             </select>
         </form>
@@ -178,24 +118,23 @@ include_once '../../../includes/header.php';
 <?php else: ?>
 
     <div class="page-container">
-
-        <!-- Generate FRONT and BACK for Selected Employee -->
         <?php
         $emp = $selected_employee;
+        $config = json_decode($settings['id_card_designer_config'] ?? '{}', true);
+        
+        // Merge with defaults if missing
+        $frontConfig = $config['front'] ?? [];
+        $backConfig = $config['back'] ?? [];
 
-        // Mappings
-        // DB stores path as relative to modules/hr/pages/ (e.g. "../assets/uploads/...")
-        // So we can use it directly if we are in that directory.
         $photo_url = !empty($emp['passport_path']) ? $emp['passport_path'] : 'https://ui-avatars.com/api/?name=' . urlencode($emp['full_name']) . '&size=200&background=ccc&color=fff';
-
         $signature_url = !empty($emp['signature_path']) ? $emp['signature_path'] : '';
         $signature_html = $signature_url ? '<img src="' . $signature_url . '" style="height: 40px; width: auto;">' : '<span style="font-family:cursive; font-size:12px;">Authorized Sig.</span>';
 
-        $qr_data = $emp['employee_code'] . '|' . $emp['full_name'] . '|' . $company_name;
+        $qr_data = $emp['employee_code'] . '|' . $emp['full_name'];
         $qr_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($qr_data);
-        $qr_img = '<img src="' . $qr_url . '" class="qr-code" style="width: 70px; height: 70px;">';
+        $qr_img = '<img src="' . $qr_url . '" class="qr-code" style="width: 100%; height: 100%;">';
 
-        $placeholders = [
+        $commonData = [
             '{{company_name}}' => $company_name,
             '{{company_logo}}' => $logo_html,
             '{{photo_url}}' => $photo_url,
@@ -211,33 +150,38 @@ include_once '../../../includes/header.php';
             '{{company_phone}}' => $company_phone,
             '{{company_email}}' => $company_email,
             '{{company_website}}' => defined('COMPANY_WEBSITE') ? COMPANY_WEBSITE : '',
-            '{{subtitle}}' => htmlspecialchars($subtitle),
-            '{{emergency_label}}' => htmlspecialchars($emergency_label),
-            '{{disclaimer}}' => $disclaimer, // HTML allowed
-            '{{color_primary}}' => $color_primary,
-            '{{color_secondary}}' => $color_secondary,
-            '{{color_tertiary}}' => $color_tertiary
+            '{{emergency_label}}' => htmlspecialchars($settings['id_card_emergency_label'] ?? 'EMERGENCY CONTACT'),
+            '{{disclaimer}}' => $settings['id_card_disclaimer_text'] ?? 'Terms and conditions apply.',
+            '{{color_primary}}' => $frontConfig['primary_color'] ?? '#0072bc',
+            '{{color_secondary}}' => $frontConfig['secondary_color'] ?? '#39b54a'
         ];
 
-        // Replace
-        $final_front = str_replace(array_keys($placeholders), array_values($placeholders), $front_template);
-        $final_back = str_replace(array_keys($placeholders), array_values($placeholders), $back_template);
+        // Map config to placeholders
+        $frontMap = [];
+        foreach($frontConfig as $k => $v) $frontMap['{{'.$k.'}}'] = $v;
+        
+        $backMap = [];
+        foreach($backConfig as $k => $v) $backMap['{{'.$k.'}}'] = $v;
+
+        // Render Front
+        $front_template = file_get_contents('../templates/id-front-advanced.html');
+        $final_front = str_replace(array_keys($commonData), array_values($commonData), $front_template);
+        $final_front = str_replace(array_keys($frontMap), array_values($frontMap), $final_front);
+
+        // Render Back
+        $back_template = file_get_contents('../templates/id-back-advanced.html');
+        $final_back = str_replace(array_keys($commonData), array_values($commonData), $back_template);
+        $final_back = str_replace(array_keys($backMap), array_values($backMap), $final_back);
         ?>
 
         <div class="card-wrapper">
-            <div class="id-card">
-                <?php echo $final_front; ?>
-            </div>
+            <?php echo $final_front; ?>
         </div>
 
         <div class="card-wrapper">
-            <div class="id-card">
-                <?php echo $final_back; ?>
-            </div>
+            <?php echo $final_back; ?>
         </div>
-
     </div>
-
 <?php endif; ?>
 
 <?php include_once '../../../includes/footer.php'; ?>

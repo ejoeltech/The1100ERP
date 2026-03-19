@@ -21,7 +21,8 @@ $success = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Handle File Uploads
-        $uploadDir = '../assets/uploads/employees/';
+        $uploadDir = dirname(__DIR__, 3) . '/modules/hr/assets/uploads/employees/';
+        $dbUploadDir = '../assets/uploads/employees/'; // Correct relative path from HR pages
         if (!file_exists($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
                 $filename = 'passport_' . bin2hex(random_bytes(16)) . '.' . $ext;
                 move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
-                $passport_path = $uploadDir . $filename;
+                $passport_path = $dbUploadDir . $filename;
             }
         }
 
@@ -42,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
                 $filename = 'sig_' . bin2hex(random_bytes(16)) . '.' . $ext;
                 move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
-                $signature_path = $uploadDir . $filename;
+                $signature_path = $dbUploadDir . $filename;
             }
         }
 
@@ -132,7 +133,7 @@ include_once '../../../includes/header.php';
     <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo $success; ?></div>
 <?php endif; ?>
 
-<form method="POST" enctype="multipart/form-data" class="space-y-6">
+<form method="POST" enctype="multipart/form-data" class="space-y-6" data-is-edit="<?php echo isset($_GET['id']) ? 'true' : 'false'; ?>">
     <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
 
     <!-- 1. Personal & Identity -->
@@ -144,8 +145,10 @@ include_once '../../../includes/header.php';
                 <label class="block text-sm font-medium text-gray-700 mb-2">Passport Photo</label>
                 <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer relative bg-gray-50"
                     onclick="document.getElementById('passportInput').click()">
-                    <?php if (!empty($_POST['existing_passport']) || !empty($employee['passport_path'])):
-                        $path = $_POST['existing_passport'] ?? $employee['passport_path']; ?>
+                    <?php 
+                        $path = $_POST['existing_passport'] ?? $employee['passport_path'] ?? null;
+                        $diskPath = dirname(__DIR__, 3) . '/' . str_replace('../', 'modules/hr/', $path);
+                        if ($path && file_exists($diskPath)): ?>
                         <img src="<?php echo htmlspecialchars($path); ?>"
                             class="w-32 h-32 object-cover mx-auto rounded-md mb-2">
                         <input type="hidden" name="existing_passport" value="<?php echo htmlspecialchars($path); ?>">
@@ -396,8 +399,10 @@ include_once '../../../includes/header.php';
         <div
             class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors bg-gray-50">
             <label class="cursor-pointer block">
-                <?php if (!empty($_POST['existing_signature']) || !empty($employee['signature_path'])):
-                    $path = $_POST['existing_signature'] ?? $employee['signature_path']; ?>
+                <?php 
+                    $path = $_POST['existing_signature'] ?? $employee['signature_path'] ?? null;
+                    $diskPath = dirname(__DIR__, 3) . '/' . str_replace('../', 'modules/hr/', $path);
+                    if ($path && file_exists($diskPath)): ?>
                     <img src="<?php echo htmlspecialchars($path); ?>" class="h-20 object-contain mx-auto mb-2">
                     <input type="hidden" name="existing_signature" value="<?php echo htmlspecialchars($path); ?>">
                     <p class="text-xs text-green-600">Signature Uploaded</p>

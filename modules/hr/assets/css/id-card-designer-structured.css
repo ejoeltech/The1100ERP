@@ -1,0 +1,190 @@
+/* ID Card Designer - Structured Layout System */
+
+.id-card-canvas {
+    width: 350px;
+    height: 550px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+}
+
+/* Zone Definitions */
+.zone {
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+.zone-header {
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.zone-header.horizontal {
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
+}
+
+.zone-header.horizontal .logo-container {
+    flex-shrink: 0;
+}
+
+.zone-header.horizontal .text-container {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.zone-photo {
+    height: 180px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.zone-identity {
+    height: 80px;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.zone-contact {
+    flex: 1;
+    padding: 10px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.zone-footer {
+    height: 100px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Component Styles */
+.comp-logo {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comp-photo-frame {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-color, #0072bc);
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.comp-photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.comp-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-transform: uppercase;
+}
+
+.comp-role {
+    font-size: 14px;
+    color: var(--primary-color, #0072bc);
+    font-weight: 600;
+}
+
+.comp-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.8);
+    padding: 6px 15px;
+    border-radius: 50px;
+    border: 1px solid #eee;
+}
+
+.comp-icon-box {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: var(--secondary-color, #39b54a);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.comp-contact-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.comp-qr-box {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    border-radius: 8px;
+    background: white;
+    padding: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 5;
+}
+
+/* Background/Wave Layer */
+.comp-waves {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Designer Specific UI */
+.designer-grid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    height: 100%;
+}
+
+.control-panel {
+    background: white;
+    border-right: 1px solid #e5e7eb;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.preview-stage {
+    background: #f3f4f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}

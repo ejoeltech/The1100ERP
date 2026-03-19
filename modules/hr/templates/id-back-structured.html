@@ -1,0 +1,47 @@
+<div class="id-card-canvas" style="--primary-color: {{color_primary}}; --secondary-color: {{color_secondary}};">
+    <div class="zone back-header" style="text-align: center; padding: 30px 20px;">
+        <div style="color: var(--primary-color); font-weight: 700; font-size: 16px; margin-bottom: 10px;">
+            RENEWABLE INVERTER<br>INSTALLATION EXPERTS
+        </div>
+        <div style="font-size: 11px; text-transform: uppercase;">{{emergency_label}}</div>
+    </div>
+
+    <div class="zone" style="padding: 0 30px; flex: 1;">
+        <div class="comp-contact-row" style="margin-bottom: 15px;">
+            <div class="comp-icon-box"><i class="fa-solid fa-phone"></i></div>
+            <div class="comp-contact-text">{{emergency_contact}}</div>
+        </div>
+        <div class="comp-contact-row">
+            <div class="comp-icon-box"><i class="fa-solid fa-location-dot"></i></div>
+            <div class="comp-contact-text" style="font-size: 11px;">{{company_address}}</div>
+        </div>
+    </div>
+
+    <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">ID#: {{employee_code}}</div>
+    
+    <div style="display: flex; justify-content: center; align-items: center; gap: 20px; padding: 10px;">
+        <div class="comp-qr-box" style="position: static; shadow: none; border: 1px solid #eee;">
+            {{qr_code}}
+        </div>
+        <div style="text-align: center;">
+            {{signature}}
+            <div style="font-size: 8px; color: #888; margin-top: 2px;">Authorized Signature</div>
+        </div>
+    </div>
+
+    <div style="text-align: center; font-size: 10px; color: #666; padding: 0 30px; margin-bottom: 20px;">
+        {{disclaimer}}
+    </div>
+
+    <div class="zone-footer" style="height: 60px;">
+        <div class="comp-waves" style="height: 100%;">
+            <svg viewBox="0 0 350 60" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+                <path d="M0,20 C100,0 200,40 350,10 L350,60 L0,60 Z" fill="{{color_primary}}" />
+            </svg>
+        </div>
+        <div style="position: absolute; bottom: 5px; width: 100%; display: flex; justify-content: space-around; font-size: 9px; color: white; z-index: 10;">
+            <span>{{company_phone}}</span>
+            <span>{{company_email}}</span>
+        </div>
+    </div>
+</div>

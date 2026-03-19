@@ -175,7 +175,7 @@ function setSecurityHeaders() {
     
     // Content Security Policy
     // Note: 'unsafe-inline' is currently required for Tailwind CDN and some dynamic styles
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self'; font-src 'self' https://fonts.gstatic.com");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com");
 }
 
 // ============================================

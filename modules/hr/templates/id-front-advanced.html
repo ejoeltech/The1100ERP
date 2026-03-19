@@ -1,0 +1,45 @@
+<div class="id-card-canvas" style="background-color: {{bg_color}};">
+    <!-- Background Waves -->
+    <div class="comp-waves" style="height: {{wave_height}}px; opacity: {{wave_opacity}};">
+        <svg viewBox="0 0 350 150" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+            <path d="M0,50 C100,30 200,80 350,40 L350,150 L0,150 Z" fill="{{color_secondary}}" opacity="0.8" />
+            <path d="M0,70 C120,50 250,100 350,70 L350,150 L0,150 Z" fill="{{color_primary}}" opacity="0.9" />
+        </svg>
+    </div>
+
+    <!-- logo -->
+    <div class="comp-logo" style="left: {{logo_x}}px; top: {{logo_y}}px; width: {{logo_width}}px; height: {{logo_height}}px;">
+        {{company_logo}}
+    </div>
+
+    <!-- brand-name -->
+    <div class="brand-name" style="left: {{brand_x}}px; top: {{brand_y}}px; font-size: {{brand_size}}px; color: {{brand_color}};">
+        {{company_name}}
+    </div>
+
+    <!-- photo -->
+    <div class="comp-photo-frame" style="left: {{photo_x}}px; top: {{photo_y}}px; width: {{photo_w}}px; height: {{photo_h}}px; border-radius: {{photo_radius}}%; border: {{photo_border_w}}px solid {{photo_border_color}};">
+        <img src="{{photo_url}}" alt="Photo">
+    </div>
+
+    <!-- name -->
+    <div class="comp-name" style="left: {{name_x}}px; top: {{name_y}}px; font-size: {{name_size}}px; color: {{name_color}};">
+        {{full_name}}
+    </div>
+
+    <!-- role -->
+    <div class="comp-role" style="left: {{role_x}}px; top: {{role_y}}px; font-size: {{role_size}}px; color: {{role_color}};">
+        {{designation}}
+    </div>
+
+    <!-- emp-code -->
+    <div class="comp-contact-row" style="left: {{code_x}}px; top: {{code_y}}px;">
+        <div class="comp-icon-box"><i class="fa-regular fa-id-card"></i></div>
+        <div class="comp-contact-text">ID: {{employee_code}}</div>
+    </div>
+
+    <!-- QR -->
+    <div class="comp-qr-box" style="left: {{qr_x}}px; top: {{qr_y}}px; display: {{show_qr}};">
+        {{qr_code}}
+    </div>
+</div>

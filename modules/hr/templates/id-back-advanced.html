@@ -1,0 +1,36 @@
+<div class="id-card-canvas" style="background-color: {{bg_color_back}};">
+    <!-- Background Waves (Reversed or same) -->
+    <div class="comp-waves" style="height: {{wave_height_back}}px; opacity: {{wave_opacity_back}};">
+        <svg viewBox="0 0 350 150" preserveAspectRatio="none" style="width: 100%; height: 100%; transform: scaleX(-1);">
+            <path d="M0,50 C100,30 200,80 350,40 L350,150 L0,150 Z" fill="{{color_secondary}}" opacity="0.8" />
+            <path d="M0,70 C120,50 250,100 350,70 L350,150 L0,150 Z" fill="{{color_primary}}" opacity="0.9" />
+        </svg>
+    </div>
+
+    <!-- back-title -->
+    <div class="brand-name" style="left: {{btitle_x}}px; top: {{btitle_y}}px; font-size: {{btitle_size}}px; color: {{btitle_color}};">
+        TERMS & CONDITIONS
+    </div>
+
+    <!-- back-text -->
+    <div style="position: absolute; left: {{btext_x}}px; top: {{btext_y}}px; width: 300px; font-size: 11px; line-height: 1.4; color: #666; text-align: center;">
+        {{disclaimer}}
+    </div>
+
+    <!-- emergency -->
+    <div style="position: absolute; left: {{em_x}}px; top: {{em_y}}px; width: 300px; text-align: center;">
+        <div style="font-size: 10px; font-bold; color: #444;">{{emergency_label}}</div>
+        <div style="font-size: 14px; font-weight: 800; color: var(--primary-color);">{{emergency_contact}}</div>
+    </div>
+
+    <!-- signature -->
+    <div class="comp-signature-box" style="left: {{sig_x}}px; top: {{sig_y}}px;">
+        <div style="border-bottom: 2px solid #ddd; width: 150px; margin-bottom: 5px;">{{signature}}</div>
+        <div style="font-size: 10px; color: #888;">Authorized Representative</div>
+    </div>
+
+    <!-- website -->
+    <div style="position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 12px; color: var(--primary-color); font-weight: bold;">
+        {{company_website}}
+    </div>
+</div>

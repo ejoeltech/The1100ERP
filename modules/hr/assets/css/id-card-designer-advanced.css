@@ -1,0 +1,152 @@
+/* Advanced ID Card Designer - Absolute Positioning System */
+
+.id-card-canvas {
+    width: 350px;
+    height: 550px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Base Component Styles - Now Absolute */
+.comp-logo, 
+.comp-photo-frame, 
+.comp-name, 
+.comp-role, 
+.comp-contact-row, 
+.comp-qr-box,
+.brand-name,
+.brand-subtitle,
+.comp-signature-box {
+    position: absolute;
+    z-index: 10;
+    transition: outline 0.2s ease;
+}
+
+.comp-logo {
+    max-width: 150px;
+    max-height: 80px;
+    object-fit: contain;
+}
+
+.comp-photo-frame {
+    width: 150px;
+    height: 150px;
+    border: 4px solid var(--primary-color, #0072bc);
+    overflow: hidden;
+    background: #f0f0f0;
+}
+
+.comp-photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.comp-name {
+    font-weight: 800;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.comp-role {
+    color: var(--primary-color, #0072bc);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.comp-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.8);
+    padding: 6px 12px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+}
+
+.comp-icon-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--secondary-color, #39b54a);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+}
+
+.comp-contact-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+}
+
+.comp-qr-box {
+    background: white;
+    padding: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 5px;
+}
+
+.comp-signature-box {
+    text-align: center;
+}
+
+/* Background Layers */
+.canvas-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.comp-waves {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 150px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Selection State */
+.id-card-canvas *:hover {
+    outline: 1px dashed #6366f1;
+}
+
+.id-card-canvas .is-selected {
+    outline: 2px solid #6366f1 !important;
+}
+
+/* Designer Grid & Stage */
+.designer-grid {
+    display: grid;
+    grid-template-columns: 450px 1fr;
+    height: 100%;
+}
+
+.control-panel {
+    background: white;
+    border-right: 1px solid #e5e7eb;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.preview-stage {
+    background: #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    padding: 40px;
+}
