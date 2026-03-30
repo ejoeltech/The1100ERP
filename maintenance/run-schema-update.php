@@ -259,6 +259,41 @@ executeSql($pdo, $sql, "Create 'ai_recommendations' table");
 
 echo "</div>";
 
+echo "<div class='box'><h3>1.5 Store/Inventory Tables</h3>";
+
+// Item Categories
+$sql = "CREATE TABLE IF NOT EXISTS `item_categories` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `description` text COLLATE utf8mb4_unicode_ci,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+executeSql($pdo, $sql, "Create 'item_categories' table");
+
+// Items
+$sql = "CREATE TABLE IF NOT EXISTS `items` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `sku` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `category_id` int(10) unsigned DEFAULT NULL,
+    `description` text COLLATE utf8mb4_unicode_ci,
+    `unit` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `price` decimal(15,2) DEFAULT '0.00',
+    `cost_price` decimal(15,2) DEFAULT '0.00',
+    `stock_quantity` int(11) DEFAULT 0,
+    `minimum_stock` int(11) DEFAULT 0,
+    `status` enum('active','archived') COLLATE utf8mb4_unicode_ci DEFAULT 'active',
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_category_id` (`category_id`),
+    CONSTRAINT `items_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `item_categories` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+executeSql($pdo, $sql, "Create 'items' table");
+
+echo "</div>";
+
 
 echo "<div class='box'><h3>2. Adding Missing Columns</h3>";
 
@@ -285,6 +320,8 @@ addColumnIfNotExists($pdo, 'products', 'created_by', 'INT(11) DEFAULT NULL');
 
 // 6. Quote Fields
 addColumnIfNotExists($pdo, 'quotes', 'delivery_period', 'VARCHAR(255) DEFAULT NULL');
+addColumnIfNotExists($pdo, 'quote_line_items', 'item_id', 'INT(11) DEFAULT NULL');
+addColumnIfNotExists($pdo, 'quote_line_items', 'item_name', 'VARCHAR(255) DEFAULT NULL');
 
 // 7. Receipt Fields
 addColumnIfNotExists($pdo, 'receipts', 'receipt_number', 'VARCHAR(50) DEFAULT NULL');

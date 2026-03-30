@@ -73,6 +73,32 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_is_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Item Categories (Store/Inventory)
+CREATE TABLE IF NOT EXISTS item_categories (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Items (Store/Inventory)
+CREATE TABLE IF NOT EXISTS items (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100),
+    category_id INT UNSIGNED,
+    description TEXT,
+    unit VARCHAR(50),
+    price DECIMAL(15,2) DEFAULT '0.00',
+    cost_price DECIMAL(15,2) DEFAULT '0.00',
+    stock_quantity INT DEFAULT 0,
+    minimum_stock INT DEFAULT 0,
+    status ENUM('active', 'archived') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES item_categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Customers table
 CREATE TABLE IF NOT EXISTS customers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -133,6 +159,8 @@ CREATE TABLE IF NOT EXISTS quote_line_items (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     quote_id INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED,
+    item_id INT UNSIGNED DEFAULT NULL,
+    item_name VARCHAR(255) DEFAULT NULL,
     item_number INT NOT NULL,
     quantity DECIMAL(10,2) NOT NULL,
     description TEXT NOT NULL,
