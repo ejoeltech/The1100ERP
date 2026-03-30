@@ -101,8 +101,8 @@ try {
     imagefill($image, 0, 0, $white);
 
     // Fonts
-    $fontPath = 'C:/Windows/Fonts/arial.ttf';
-    $fontBoldPath = 'C:/Windows/Fonts/arialbd.ttf';
+    $fontPath = __DIR__ . '/../vendor/mpdf/mpdf/ttfonts/DejaVuSans.ttf';
+    $fontBoldPath = __DIR__ . '/../vendor/mpdf/mpdf/ttfonts/DejaVuSans-Bold.ttf';
 
     $margin = 120;
     $y = 100;

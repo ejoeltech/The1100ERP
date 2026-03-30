@@ -1,5 +1,5 @@
 <?php
-require 'c:\xampp\htdocs\1100erp\config.php';
+require_once __DIR__ . '/../config.php';
 
 try {
     $pdo->exec("

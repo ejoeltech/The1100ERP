@@ -21,6 +21,23 @@ try {
         $logFile = 'c:/xampp/apache/logs/error.log';
     }
 
+    // Add Linux/cPanel fallbacks
+    if (!$logFile || !file_exists($logFile)) {
+        $fallbacks = [
+            '/usr/local/apache/logs/error_log',
+            '/var/log/apache2/error.log',
+            '/var/log/httpd/error_log',
+            __DIR__ . '/../../error_log',
+            __DIR__ . '/../../../error_log'
+        ];
+        foreach ($fallbacks as $fb) {
+            if (file_exists($fb)) {
+                $logFile = $fb;
+                break;
+            }
+        }
+    }
+
     if (!file_exists($logFile)) {
         echo json_encode(['status' => 'clean', 'message' => 'No error log file found directly. System appears clean or logging is disabled.']);
         exit;
