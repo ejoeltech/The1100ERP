@@ -389,7 +389,7 @@ echo "<div class='box'><h3>4. Checking Configuration File</h3>";
 
 function repairConfig()
 {
-    $configFile = 'config.php';
+    $configFile = __DIR__ . '/../config.php';
     if (!file_exists($configFile)) {
         echo "<div class='error'>✗ config.php not found!</div>";
         return;
