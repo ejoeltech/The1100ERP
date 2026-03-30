@@ -87,11 +87,12 @@ $requirements = checkRequirements();
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="margin-bottom: 10px;">What this wizard will do:</h3>
                     <ul style="list-style-position: inside; line-height: 2;">
-                        <li>✅ Check server requirements</li>
-                        <li>✅ Set up your database connection</li>
-                        <li>✅ Create all necessary tables</li>
-                        <li>✅ Create your admin account</li>
-                        <li>✅ Configure basic company settings</li>
+                        <li>✅ Check server requirements & PDO connectivity</li>
+                        <li>✅ Set up your database connection & prefixes</li>
+                        <li>✅ **Intelligent Readymade Quotes**: Pre-configured templates</li>
+                        <li>✅ **Advanced ID Card Designer**: High-fidelity generation</li>
+                        <li>✅ **GitHub-Powered Updates**: One-click system sync</li>
+                        <li>✅ Create your admin account & company profile</li>
                     </ul>
                 </div>
 
@@ -334,14 +335,23 @@ $requirements = checkRequirements();
                         <h3 style="margin: 0 0 10px 0;">🎉 Installation Complete!</h3>
                         <p style="margin-bottom: 20px;">Your 1100-ERP system has been installed successfully.</p>
 
-                        <div
-                            style="background: #FFF; border: 1px solid #e5e7eb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                            <strong style="color: #d32f2f;">⚠️ Critical Post-Install Step:</strong>
-                            <p style="margin: 5px 0 15px 0; font-size: 0.9em;">To prevent "500 Server Errors" and ensure
-                                all database tables are perfect, please <strong>click the button below</strong>.</p>
+                        <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <strong style="color: #c53030; display: block; margin-bottom: 8px;">🛡️ CRITICAL SECURITY LOCKDOWN:</strong>
+                            <p style="margin-bottom: 12px; font-size: 0.9em; color: #742a2a;">To prevent unauthorized access to your database structure and credentials, you <strong>MUST</strong> perform the following deletions:</p>
+                            <ul style="font-size: 0.85em; list-style-type: none; padding: 0; color: #742a2a; margin-bottom: 15px;">
+                                <li style="margin-bottom: 4px;">📂 Delete folder: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/setup/</code></li>
+                                <li style="margin-bottom: 4px;">📄 Delete file: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/bluedots_1100erp.sql</code></li>
+                                <li style="margin-bottom: 4px;">📄 Delete file: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/migrate_readymade.php</code></li>
+                            </ul>
+                            <small style="color: #c53030; font-weight: bold;">Failure to delete these files is a high security risk.</small>
+                        </div>
+
+                        <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <strong style="color: #0369a1;">📋 Final Step:</strong>
+                            <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Click the button below to ensure all database tables are perfectly synchronized.</p>
                             <a href="../run-schema-update.php" target="_blank" class="btn btn-primary"
-                                style="background: #d32f2f; border-color: #d32f2f; width: 100%; display: block; text-align: center; text-decoration: none;">
-                                Run Database Updater & Check
+                                style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center; text-decoration: none;">
+                                Run Database Final Check
                             </a>
                         </div>
 
