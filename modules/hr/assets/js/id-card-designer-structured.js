@@ -75,6 +75,8 @@ class IDCardDesigner {
         const allData = { 
             ...this.mockData, 
             ...this.config,
+            color_primary: this.config.primary_color,
+            color_secondary: this.config.secondary_color,
             photo_border_color: this.config.photo_border_color || this.config.primary_color 
         };
         const frontFinal = this.applyPlaceholders(frontHtml, allData);

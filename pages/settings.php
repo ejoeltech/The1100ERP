@@ -946,6 +946,92 @@ include '../includes/header.php';
             </div>
         </div>
 
+        <!-- Selective Data Migration -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Selective Data Migration (JSON)
+            </h4>
+            <p class="text-sm text-gray-600 mb-6">Migrate specific categories of data from one installation to another. Perfect for moving customers or settings without a full database restore.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Export Section -->
+                <div class="space-y-4">
+                    <h5 class="font-semibold text-indigo-900 border-b border-indigo-100 pb-2">1. Select Data to Export</h5>
+                    <div class="grid grid-cols-1 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="export_opt[]" value="settings" checked class="w-4 h-4 text-indigo-600 rounded">
+                            <span class="text-sm font-medium">System Settings & Banks</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="export_opt[]" value="customers" checked class="w-4 h-4 text-indigo-600 rounded">
+                            <span class="text-sm font-medium">Customers Database</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="export_opt[]" value="inventory" checked class="w-4 h-4 text-indigo-600 rounded">
+                            <span class="text-sm font-medium">Inventory & Products</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="export_opt[]" value="financials" checked class="w-4 h-4 text-indigo-600 rounded">
+                            <span class="text-sm font-medium">Financials (Quotes, Invoices, Receipts)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-white rounded transition-colors">
+                            <input type="checkbox" name="export_opt[]" value="hr" checked class="w-4 h-4 text-indigo-600 rounded">
+                            <span class="text-sm font-medium">HR (Employees, Departments)</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="startSelectiveExport()" class="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold shadow-sm text-sm flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Migration JSON
+                    </button>
+                </div>
+
+                <!-- Import Section -->
+                <div class="space-y-4 border-l border-indigo-100 pl-8">
+                    <h5 class="font-semibold text-indigo-900 border-b border-indigo-100 pb-2">2. Import from File</h5>
+                    <p class="text-xs text-gray-500">Upload a <code>.json</code> file exported from another installation.</p>
+                    <input type="file" id="migrationFile" accept=".json" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200">
+                    <button type="button" onclick="startSelectiveImport()" class="w-full py-2 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-200 font-semibold text-sm flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"></path></svg>
+                        Start Selective Import
+                    </button>
+                    <div id="import-details" class="hidden text-xs bg-white p-3 rounded border border-indigo-100 text-indigo-800 animate-pulse">Processing...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Readymade Quote Management -->
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+            <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                Readymade Quote Management
+            </h4>
+            <div class="flex flex-col md:flex-row gap-6 items-start">
+                <div class="flex-1">
+                    <p class="text-sm text-gray-700 mb-4">Automatically generate categories for your Readymade Quotes based on your existing Inventory (Product) categories.</p>
+                    <button type="button" onclick="autopopulateCategories()" id="btn-autopopulate"
+                        class="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-semibold shadow-sm text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Autopopulate Categories
+                    </button>
+                    <div id="autopopulate-status" class="mt-2 text-sm font-semibold"></div>
+                </div>
+                <div class="w-full md:w-64 p-4 bg-white rounded border border-amber-100 text-center">
+                    <p class="text-xs text-gray-500 mb-2">Need to manage templates?</p>
+                    <a href="readymade-quotes.php" class="text-sm font-bold text-amber-700 hover:underline flex items-center justify-center gap-1">
+                        Go to Readymade Quotes
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Developer Tools -->
         <div class="bg-gray-100 border border-gray-200 rounded-lg p-6">
             <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -1583,6 +1669,100 @@ include '../includes/header.php';
             }
         } catch (error) {
             alert('Error clearing logs: ' + error.message);
+        }
+    }
+
+    // Selective Migration Functions
+    function autopopulateCategories() {
+        if (!confirm('This will extract unique categories from your inventory and add them to Readymade Quotes. Proceed?')) return;
+
+        const btn = document.getElementById('btn-autopopulate');
+        const status = document.getElementById('autopopulate-status');
+
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        status.innerHTML = '<span class="text-gray-600 animate-pulse">Processing categories...</span>';
+
+        fetch('../api/system/autopopulate-categories.php')
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+
+                if (data.success) {
+                    status.innerHTML = `<span class="text-green-600 font-bold">✓ ${data.message}</span>`;
+                    if (data.added_count > 0) {
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                } else {
+                    status.innerHTML = `<span class="text-red-600 font-bold">✗ Error: ${data.error}</span>`;
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                status.innerHTML = '<span class="text-red-600 font-bold">✗ Network Error</span>';
+                console.error(err);
+            });
+    }
+
+    function startSelectiveExport() {
+        const checkboxes = document.querySelectorAll('input[name="export_opt[]"]:checked');
+        if (checkboxes.length === 0) {
+            alert('Please select at least one category to export.');
+            return;
+        }
+
+        const options = Array.from(checkboxes).map(cb => cb.value);
+        const queryParams = options.map(opt => `options[]=${opt}`).join('&');
+        window.location.href = `../api/system/selective-export.php?${queryParams}`;
+    }
+
+    async function startSelectiveImport() {
+        const fileInput = document.getElementById('migrationFile');
+        if (!fileInput.files[0]) {
+            alert('Please select a migration JSON file first.');
+            return;
+        }
+
+        if (!confirm('This will MERGE data from the file into your current database. Existing records with matching IDs may be updated. Continue?')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        const btn = event.target;
+        const statusDiv = document.getElementById('import-details');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Importing...';
+        btn.disabled = true;
+        statusDiv.classList.remove('hidden');
+
+        try {
+            const response = await fetch('../api/system/selective-import.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            statusDiv.classList.remove('animate-pulse');
+
+            if (data.success) {
+                statusDiv.innerHTML = `<span class="text-green-600 font-bold">✓ Success:</span> ${data.message}`;
+                alert(data.message);
+            } else {
+                statusDiv.innerHTML = `<span class="text-red-600 font-bold">✗ Error:</span> ${data.message}`;
+                alert('Error: ' + data.message);
+            }
+        } catch (err) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            statusDiv.classList.remove('animate-pulse');
+            statusDiv.innerHTML = `<span class="text-red-600 font-bold">✗ Failed:</span> ${err.message}`;
+            alert('Request failed: ' + err.message);
         }
     }
 

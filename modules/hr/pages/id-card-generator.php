@@ -53,10 +53,9 @@ $front_template = $settings['id_card_front_html'] ?? '';
 $back_template = $settings['id_card_back_html'] ?? '';
 $custom_css = $settings['id_card_custom_css'] ?? '';
 
-// Fallback if empty (Shouldn't happen if Designer accessed once)
-if (empty($front_template) || empty($custom_css)) {
-    echo "Please visit the <a href='id-card-designer.php'>ID Card Designer</a> first to initialize the templates.";
-    exit;
+// Templates are now loaded from files, we only need the custom CSS if it exists
+if (empty($custom_css)) {
+    // We can still proceed, but the designer is recommended
 }
 
 include_once '../../../includes/header.php';
@@ -101,7 +100,10 @@ include_once '../../../includes/header.php';
     }
 </style>
 
-<button onclick="window.print()" class="print-btn"><i class="fa-solid fa-print"></i> Print ID Cards</button>
+<div class="fixed top-5 right-5 flex gap-3 z-[1000]">
+    <button onclick="window.print()" class="print-btn bg-gray-800 hover:bg-black transition-all shadow-lg"><i class="fa-solid fa-print"></i> Print</button>
+    <a href="../api/export-id-pdf.php?id=<?php echo $selected_employee['id']; ?>" class="print-btn !static bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg"><i class="fa-solid fa-file-pdf"></i> Download HD PDF</a>
+</div>
 
 <?php if (!$selected_employee): ?>
     <div class="selector-panel" style="padding: 40px; background: white; text-align: center;">
@@ -123,16 +125,54 @@ include_once '../../../includes/header.php';
         $config = json_decode($settings['id_card_designer_config'] ?? '{}', true);
         
         // Merge with defaults if missing
-        $frontConfig = $config['front'] ?? [];
-        $backConfig = $config['back'] ?? [];
+        $frontConfig = array_merge([
+            'primary_color' => '#0072bc',
+            'secondary_color' => '#39b54a',
+            'logo_x' => 100, 'logo_y' => 20, 'logo_width' => 80, 'logo_height' => 50,
+            'brand_x' => 80, 'brand_y' => 80, 'brand_size' => 24, 'brand_color' => '#1a1a1a', 'show_brand' => 'block',
+            'photo_x' => 100, 'photo_y' => 130, 'photo_w' => 150, 'photo_h' => 150, 'photo_radius' => 50, 'photo_border_w' => 4, 'photo_border_color' => '#0072bc',
+            'name_x' => 75, 'name_y' => 290, 'name_size' => 22, 'name_color' => '#1a1a1a', 'name_w' => 200,
+            'role_x' => 110, 'role_y' => 365, 'role_size' => 16, 'role_color' => '#0072bc', 'show_role' => 'block',
+            'code_x' => 100, 'code_y' => 400, 'show_code' => 'block',
+            'qr_x' => 260, 'qr_y' => 460, 'show_qr' => 'block',
+            'qr_size' => 150,
+            'qr_template' => '{{employee_code}} | {{full_name}}'
+        ], $config['front'] ?? []);
+        
+        $backConfig = array_merge([
+            'bg_color_back' => '#f9f9f9',
+            'wave_height_back' => 120,
+            'wave_opacity_back' => 0.7,
+            'back_title' => 'THIS IS TO CERTIFY THAT',
+            'back_content' => "The bearer of this identification card is a duly registered member/staff of {{company_name}}. \n\nThis card is issued for identification purposes only and must be presented upon request. If found, please return to the address below. \n\nUnauthorized use, duplication, or possession of this card is strictly prohibited and may result in disciplinary or legal action.",
+            'btitle_x' => 0, 'btitle_y' => 35, 'btitle_w' => 350, 'btitle_size' => 11,
+            'btext_x' => 0, 'btext_y' => 70, 'btext_w' => 350,
+            'sig_x' => 35, 'sig_y' => 260, 'sig_w' => 280,
+            'business_address' => $company_address ?: "123 Business Street, Lagos, Nigeria\n+234 800 000 0000 | info@bluedots.com",
+            'addr_x' => 35, 'addr_y' => 430, 'addr_w' => 200,
+            'qr_x_back' => 260, 'qr_y_back' => 450, 'qr_size_back' => 65,
+            'show_qr_back' => 'block'
+        ], $config['back'] ?? []);
 
         $photo_url = !empty($emp['passport_path']) ? $emp['passport_path'] : 'https://ui-avatars.com/api/?name=' . urlencode($emp['full_name']) . '&size=200&background=ccc&color=fff';
         $signature_url = !empty($emp['signature_path']) ? $emp['signature_path'] : '';
         $signature_html = $signature_url ? '<img src="' . $signature_url . '" style="height: 40px; width: auto;">' : '<span style="font-family:cursive; font-size:12px;">Authorized Sig.</span>';
 
-        $qr_data = $emp['employee_code'] . '|' . $emp['full_name'];
-        $qr_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode($qr_data);
-        $qr_img = '<img src="' . $qr_url . '" class="qr-code" style="width: 100%; height: 100%;">';
+        // QR Logic (Front)
+        $qr_template = $frontConfig['qr_template'] ?? '{{employee_code}} | {{full_name}}';
+        $qr_data = str_replace(
+            ['{{employee_code}}', '{{full_name}}', '{{phone}}', '{{email}}'],
+            [$emp['employee_code'], $emp['full_name'], $emp['phone'], $emp['email']],
+            $qr_template
+        );
+        $qr_size_front = $frontConfig['qr_size'] ?? 150;
+        $qr_url_front = 'https://api.qrserver.com/v1/create-qr-code/?size='.$qr_size_front.'x'.$qr_size_front.'&data=' . urlencode($qr_data);
+        $qr_img_front = '<img src="' . $qr_url_front . '" class="qr-code" style="width: 100%; height: 100%;">';
+
+        // QR Logic (Back)
+        $qr_size_back = $backConfig['qr_size_back'] ?? 65;
+        $qr_url_back = 'https://api.qrserver.com/v1/create-qr-code/?size='.$qr_size_back.'x'.$qr_size_back.'&data=' . urlencode($qr_data);
+        $qr_img_back = '<img src="' . $qr_url_back . '" class="qr-code" style="width: 100%; height: 100%; border:none;">';
 
         $commonData = [
             '{{company_name}}' => $company_name,
@@ -143,7 +183,8 @@ include_once '../../../includes/header.php';
             '{{employee_code}}' => $emp['employee_code'],
             '{{phone}}' => $emp['phone'],
             '{{email}}' => $emp['email'],
-            '{{qr_code}}' => $qr_img,
+            '{{qr_code}}' => $qr_img_front,
+            '{{qr_placeholder_back}}' => $qr_img_back,
             '{{signature}}' => $signature_html,
             '{{emergency_contact}}' => $emp['next_of_kin_phone'] ?? 'N/A',
             '{{company_address}}' => $company_address,
@@ -152,26 +193,37 @@ include_once '../../../includes/header.php';
             '{{company_website}}' => defined('COMPANY_WEBSITE') ? COMPANY_WEBSITE : '',
             '{{emergency_label}}' => htmlspecialchars($settings['id_card_emergency_label'] ?? 'EMERGENCY CONTACT'),
             '{{disclaimer}}' => $settings['id_card_disclaimer_text'] ?? 'Terms and conditions apply.',
+            '{{business_address}}' => $backConfig['business_address'] ?? $company_address,
+            '{{back_title}}' => $backConfig['back_title'] ?? 'TERMS & CONDITIONS',
+            '{{back_content}}' => $backConfig['back_content'] ?? 'If found, please return to any of our offices.',
             '{{color_primary}}' => $frontConfig['primary_color'] ?? '#0072bc',
-            '{{color_secondary}}' => $frontConfig['secondary_color'] ?? '#39b54a'
+            '{{color_secondary}}' => $frontConfig['secondary_color'] ?? '#39b54a',
+            '{{bg_color_back}}' => $backConfig['bg_color_back'] ?? '#f9f9f9',
+            '{{wave_height_back}}' => $backConfig['wave_height_back'] ?? 120,
+            '{{wave_opacity_back}}' => $backConfig['wave_opacity_back'] ?? 0.7
         ];
 
-        // Map config to placeholders
+        // Map config to placeholders (Front & Back)
         $frontMap = [];
         foreach($frontConfig as $k => $v) $frontMap['{{'.$k.'}}'] = $v;
         
         $backMap = [];
         foreach($backConfig as $k => $v) $backMap['{{'.$k.'}}'] = $v;
+        
+        // Merge to ensure all coordinates are available to both templates if needed
+        $fullConfigMap = array_merge($frontMap, $backMap);
 
         // Render Front
         $front_template = file_get_contents('../templates/id-front-advanced.html');
         $final_front = str_replace(array_keys($commonData), array_values($commonData), $front_template);
-        $final_front = str_replace(array_keys($frontMap), array_values($frontMap), $final_front);
+        $final_front = str_replace(array_keys($fullConfigMap), array_values($fullConfigMap), $final_front);
+        $final_front = str_replace(array_keys($commonData), array_values($commonData), $final_front); // Second pass for nested placeholders
 
         // Render Back
         $back_template = file_get_contents('../templates/id-back-advanced.html');
         $final_back = str_replace(array_keys($commonData), array_values($commonData), $back_template);
-        $final_back = str_replace(array_keys($backMap), array_values($backMap), $final_back);
+        $final_back = str_replace(array_keys($fullConfigMap), array_values($fullConfigMap), $final_back);
+        $final_back = str_replace(array_keys($commonData), array_values($commonData), $final_back); // Second pass for nested placeholders
         ?>
 
         <div class="card-wrapper">
