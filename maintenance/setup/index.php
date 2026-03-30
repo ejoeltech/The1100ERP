@@ -462,7 +462,7 @@ function checkRequirements()
     ];
 
     // File Permissions
-    $configWritable = is_writable(dirname(__DIR__));
+    $configWritable = is_writable(dirname(__DIR__, 2));
     $requirements[] = [
         'name' => 'File Permissions',
         'status' => $configWritable ? 'success' : 'error',

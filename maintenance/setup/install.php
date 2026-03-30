@@ -139,7 +139,7 @@ function importSchema()
         ]);
 
         // Read schema file
-        $schemaFile = dirname(__DIR__) . '/database/install-schema.sql';
+        $schemaFile = dirname(__DIR__, 2) . '/database/install-schema.sql';
         if (!file_exists($schemaFile)) {
             throw new Exception('Schema file not found');
         }
@@ -346,7 +346,7 @@ function finalizeInstallation()
     try {
         // Generate config.php
         $configContent = generateConfig($dbHost, $dbName, $dbUser, $dbPassword, $dbPrefix);
-        $configFile = dirname(__DIR__) . '/config.php';
+        $configFile = dirname(__DIR__, 2) . '/config.php';
 
         // Force cleanup of existing file
         if (file_exists($configFile)) {
