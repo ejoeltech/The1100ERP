@@ -13,7 +13,7 @@ if (isset($_SESSION['user_id'])) {
         exit;
     }
 }
- Linda
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
 }

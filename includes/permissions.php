@@ -98,6 +98,8 @@ function hasPermission($action, $resource = null, $ownerId = null)
         case 'delete_invoice':
         case 'delete_receipt':
         case 'archive_document':
+        // Settings Management (Admin only)
+        case 'manage_settings':
             return $role === 'admin';
 
         // Convert & Generate (Admin, Manager, Accountant)

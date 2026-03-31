@@ -59,21 +59,9 @@ try {
         throw new Exception('Invalid payment amount. Balance is ' . $remaining);
     }
 
-    // Generate receipt number
-    $stmt = $pdo->query("
-        SELECT receipt_number 
-        FROM receipts 
-        ORDER BY id DESC 
-        LIMIT 1
-    ");
-    $lastReceipt = $stmt->fetch();
-    if ($lastReceipt) {
-        $lastNumber = intval(substr($lastReceipt['receipt_number'], 4));
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
-    }
-    $receipt_number = 'REC-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    // Generate receipt number using centralized helper for consistent format
+    require_once __DIR__ . '/../includes/helpers.php';
+    $receipt_number = generateReceiptNumber($pdo);
 
     // Create receipt
     // Receipts table has: receipt_number, invoice_id, customer_id, customer_name, amount_paid, payment_method, payment_date, reference_number, notes, created_by

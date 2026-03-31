@@ -323,6 +323,13 @@ addColumnIfNotExists($pdo, 'quotes', 'delivery_period', 'VARCHAR(255) DEFAULT NU
 addColumnIfNotExists($pdo, 'quote_line_items', 'item_id', 'INT(11) DEFAULT NULL');
 addColumnIfNotExists($pdo, 'quote_line_items', 'item_name', 'VARCHAR(255) DEFAULT NULL');
 
+// 6b. Invoice line items fields (needed by convert-to-invoice.php)
+addColumnIfNotExists($pdo, 'invoice_line_items', 'item_id', 'INT(11) DEFAULT NULL');
+addColumnIfNotExists($pdo, 'invoice_line_items', 'item_name', 'VARCHAR(255) DEFAULT NULL');
+
+// 6c. Audit log: hash column (needed by audit.php chain integrity)
+addColumnIfNotExists($pdo, 'audit_log', 'hash', 'VARCHAR(64) DEFAULT NULL');
+
 // 7. Receipt Fields
 addColumnIfNotExists($pdo, 'receipts', 'receipt_number', 'VARCHAR(50) DEFAULT NULL');
 addColumnIfNotExists($pdo, 'receipts', 'payment_id', 'INT(11) DEFAULT NULL');

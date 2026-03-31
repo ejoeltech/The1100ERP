@@ -36,9 +36,6 @@ if ($roleColumnExists && file_exists(__DIR__ . '/permissions.php')) {
         $_SESSION['role'] = $current_user['role'];
     }
 
-    // DISABLED: audit.php causes error 500 - keeping it disabled for now
-    // The fallback stub functions below will handle audit calls
-    /*
     if (file_exists(__DIR__ . '/audit.php')) {
         try {
             $stmt = $pdo->query("SHOW TABLES LIKE 'audit_log'");
@@ -49,7 +46,6 @@ if ($roleColumnExists && file_exists(__DIR__ . '/permissions.php')) {
             // Audit table doesn't exist yet
         }
     }
-    */
 }
 
 // Fallback functions (Always available if not defined above)

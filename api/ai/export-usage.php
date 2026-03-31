@@ -4,7 +4,7 @@ require_once '../../includes/session-check.php';
 require_once '../../includes/db.php';
 
 // Admin only
-if ($_SESSION['role'] !== 'Admin') {
+if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
     header('Location: ../../dashboard.php');
     exit;
 }

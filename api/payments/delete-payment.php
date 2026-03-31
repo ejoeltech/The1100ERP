@@ -69,7 +69,7 @@ try {
                 $new_balance_due = floatval($invoice['grand_total']) - $new_amount_paid;
 
                 $status = ($new_balance_due <= 0) ? 'paid' :
-                    (($new_amount_paid > 0) ? 'partial' : 'pending');
+                    (($new_amount_paid > 0) ? 'partially_paid' : 'draft');
 
                 $updateInv = $pdo->prepare("UPDATE invoices SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?");
                 $updateInv->execute([$new_amount_paid, $new_balance_due, $status, $invoice_id]);

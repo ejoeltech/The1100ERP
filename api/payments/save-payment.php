@@ -116,7 +116,7 @@ try {
         // Update Invoice
         $new_amount_paid = $invoice['amount_paid'] + $alloc_amount;
         $new_balance_due = max(0, $invoice['grand_total'] - $new_amount_paid);
-        $status = ($new_balance_due <= 0) ? 'paid' : 'partial';
+        $status = ($new_balance_due <= 0) ? 'paid' : 'partially_paid';
 
         $stmt = $pdo->prepare("UPDATE invoices SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?");
         $stmt->execute([$new_amount_paid, $new_balance_due, $status, $invoice_id]);
@@ -170,7 +170,7 @@ try {
                 // Update Invoice
                 $new_amount_paid = $inv['amount_paid'] + $allocate_here;
                 $new_balance_due = max(0, $inv['grand_total'] - $new_amount_paid);
-                $status = ($new_balance_due <= 0) ? 'paid' : 'partial';
+                $status = ($new_balance_due <= 0) ? 'paid' : 'partially_paid';
 
                 $stmt = $pdo->prepare("UPDATE invoices SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?");
                 $stmt->execute([$new_amount_paid, $new_balance_due, $status, $inv['id']]);

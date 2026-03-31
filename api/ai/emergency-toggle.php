@@ -6,7 +6,7 @@ require_once '../../includes/db.php';
 header('Content-Type: application/json');
 
 // Admin only
-if ($_SESSION['role'] !== 'Admin') {
+if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;

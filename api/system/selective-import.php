@@ -25,10 +25,19 @@ try {
     $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
 
     $importedTables = [];
+    $skippedTables = [];
     $totalRecords = 0;
 
     foreach ($importData['data'] as $table => $rows) {
         if (empty($rows)) continue;
+
+        // Check if table exists
+        $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
+        $stmt->execute([$table]);
+        if (!$stmt->fetch()) {
+            $skippedTables[] = $table;
+            continue;
+        }
 
         // Get columns from the first row
         $columns = array_keys($rows[0]);
@@ -61,11 +70,17 @@ try {
     $pdo->commit();
 
     header('Content-Type: application/json');
+    $message = "Import successful! Processed $totalRecords records across " . count($importedTables) . " tables.";
+    if (!empty($skippedTables)) {
+        $message .= " Skipped " . count($skippedTables) . " missing tables: " . implode(', ', $skippedTables);
+    }
+    
     echo json_encode([
         'success' => true,
-        'message' => "Import successful! Processed $totalRecords records across " . count($importedTables) . " tables.",
+        'message' => $message,
         'details' => [
             'tables' => $importedTables,
+            'skipped' => $skippedTables,
             'records' => $totalRecords
         ]
     ]);

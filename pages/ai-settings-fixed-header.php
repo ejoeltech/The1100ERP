@@ -1,6 +1,5 @@
 <?php
-session_start();
-require_once '../includes/db.php';
+require_once '../includes/session-check.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -9,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Admin only - show helpful error if not admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
     echo '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center;">';
     echo '<h1>Access Denied</h1>';
     echo '<p>AI Settings requires <strong>Admin</strong> role.</p>';
