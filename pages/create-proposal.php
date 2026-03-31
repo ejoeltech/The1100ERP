@@ -143,26 +143,63 @@ include '../includes/header.php';
     </div>
 </div>
 
-<!-- TinyMCE -->
-<!-- TinyMCE -->
-<script src="../assets/vendors/tinymce/tinymce.min.js"></script>
-<script>
-    tinymce.init({
-        selector: '#proposalEditor',
-        height: 600,
-        menubar: false,
-        plugins: ['advlist', 'autolink', 'lists', 'link', 'preview', 'wordcount', 'table'],
-        toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
-        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }',
-        // XSS Protection: Whitelist allowed elements and attributes
-        valid_elements: 'p,br,b,i,strong,em,ul,ol,li,table,thead,tbody,tr,th,td,h1,h2,h3,h4,h5,h6,div[class|style],span[class|style],a[href|target|title|class]',
-        valid_styles: {
-            '*': 'color,font-size,font-weight,text-decoration,text-align,background-color'
-        },
-        extended_valid_elements: 'svg[class|fill|viewBox|stroke|stroke-width|stroke-linecap|stroke-linejoin],path[d|fill|stroke]',
-        convert_urls: false,
-        entity_encoding: 'raw',
-        verify_html: true
+    /**
+     * Robust TinyMCE Loader
+     * Tries local vendor first, falls back to CDN if local fails
+     */
+    function loadTinyMCE(callback) {
+        if (typeof tinymce !== 'undefined') {
+            callback();
+            return;
+        }
+
+        const localPath = '<?php echo $base_path; ?>/assets/vendors/tinymce/tinymce.min.js';
+        const apiKey = '<?php echo (defined("TINYMCE_API_KEY") && TINYMCE_API_KEY !== "no-api-key") ? TINYMCE_API_KEY : "no-api-key"; ?>';
+        const cdnPath = `https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js`;
+
+        console.log('Attempting to load local TinyMCE...');
+        const script = document.createElement('script');
+        script.src = localPath;
+        script.onload = () => {
+            console.log('Local TinyMCE loaded successfully.');
+            callback();
+        };
+        script.onerror = function() {
+            console.warn('Local TinyMCE failed, falling back to CDN...');
+            const backup = document.createElement('script');
+            backup.src = cdnPath;
+            backup.referrerpolicy = 'origin';
+            backup.onload = () => {
+                console.log('CDN TinyMCE loaded successfully.');
+                callback();
+            };
+            backup.onerror = () => {
+                console.error('TinyMCE loading failed completely. Check internet connection or API key.');
+                alert('Advanced Editor Error: The rich text editor could not be loaded. Some features may be limited.');
+            };
+            document.head.appendChild(backup);
+        };
+        document.head.appendChild(script);
+    }
+
+    loadTinyMCE(() => {
+        if (typeof tinymce === 'undefined') return;
+        tinymce.init({
+            selector: '#proposalEditor',
+            height: 600,
+            menubar: false,
+            plugins: ['advlist', 'autolink', 'lists', 'link', 'preview', 'wordcount', 'table'],
+            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
+            content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }',
+            valid_elements: 'p,br,b,i,strong,em,ul,ol,li,table,thead,tbody,tr,th,td,h1,h2,h3,h4,h5,h6,div[class|style],span[class|style],a[href|target|title|class]',
+            valid_styles: {
+                '*': 'color,font-size,font-weight,text-decoration,text-align,background-color'
+            },
+            extended_valid_elements: 'svg[class|fill|viewBox|stroke|stroke-width|stroke-linecap|stroke-linejoin],path[d|fill|stroke]',
+            convert_urls: false,
+            entity_encoding: 'raw',
+            verify_html: true
+        });
     });
 
     async function getRecommendation() {

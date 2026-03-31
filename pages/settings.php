@@ -1366,28 +1366,65 @@ include '../includes/header.php';
 </form>
 </div>
 
-<!-- TinyMCE -->
-<!-- TinyMCE -->
-<script src="../assets/vendors/tinymce/tinymce.min.js"></script>
-<script>
-    tinymce.init({
-        selector: '#quote_terms, #quote_warranty',
-        height: 600,
-        menubar: false,
-        plugins: [
-            'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-            'insertdatetime', 'table', 'help', 'wordcount'
-        ],
-        toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
-        setup: function (editor) {
-            editor.on('change', function () {
-                editor.save();
-            });
-        },
-        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
+    /**
+     * Robust TinyMCE Loader
+     * Tries local vendor first, falls back to CDN if local fails
+     */
+    function loadTinyMCE(callback) {
+        if (typeof tinymce !== 'undefined') {
+            callback();
+            return;
+        }
+
+        const localPath = '../assets/vendors/tinymce/tinymce.min.js';
+        const apiKey = '<?php echo (defined("TINYMCE_API_KEY") && TINYMCE_API_KEY !== "no-api-key") ? TINYMCE_API_KEY : "no-api-key"; ?>';
+        const cdnPath = `https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js`;
+
+        console.log('Attempting to load local TinyMCE...');
+        const script = document.createElement('script');
+        script.src = localPath;
+        script.onload = () => {
+            console.log('Local TinyMCE loaded successfully.');
+            callback();
+        };
+        script.onerror = function() {
+            console.warn('Local TinyMCE failed, falling back to CDN...');
+            const backup = document.createElement('script');
+            backup.src = cdnPath;
+            backup.referrerpolicy = 'origin';
+            backup.onload = () => {
+                console.log('CDN TinyMCE loaded successfully.');
+                callback();
+            };
+            backup.onerror = () => {
+                console.error('TinyMCE loading failed completely. Check internet connection or API key.');
+                alert('Advanced Editor Error: The rich text editor could not be loaded. Some features may be limited.');
+            };
+            document.head.appendChild(backup);
+        };
+        document.head.appendChild(script);
+    }
+
+    loadTinyMCE(() => {
+        if (typeof tinymce === 'undefined') return;
+        tinymce.init({
+            selector: '#quote_terms, #quote_warranty',
+            height: 600,
+            menubar: false,
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            },
+            content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
+        });
     });
-</script>
 
 <script>
     function switchTab(tabName) {
