@@ -18,59 +18,28 @@ $year = $_GET['year'] ?? date('Y');
 $message = '';
 $error = '';
 
-// Handle Payroll Generation
+// Handle Payroll Generation (delegates to the Nigeria-compliant engine)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) {
     if (!isAdmin()) {
         $error = "Only admins can generate payroll.";
     } else {
-        try {
-            $pdo->beginTransaction();
-            $generated_count = 0;
-
-            foreach ($employees as $emp) {
-                // Check if payroll already exists
-                $stmt = $pdo->prepare("SELECT id FROM hr_payroll WHERE employee_id = ? AND month = ? AND year = ?");
-                $stmt->execute([$emp['id'], $month, $year]);
-                if ($stmt->fetch())
-                    continue; // Skip if exists
-
-                // Calculations
-                $basic = $emp['basic_salary'];
-                $housing = $emp['housing_allowance'];
-                $transport = $emp['transport_allowance'];
-                $allowances = $housing + $transport + ($emp['other_allowances'] ?? 0);
-
-                // Simple assumption: Tax is 0 unless defined (should be robust in real app)
-                $tax = $emp['tax_deduction'] ?? 0;
-                $pension = $emp['pension_deduction'] ?? 0;
-                $deductions = $tax + $pension;
-
-                $net = ($basic + $allowances) - $deductions;
-
-                $stmt = $pdo->prepare("
-                    INSERT INTO hr_payroll (
-                        employee_id, month, year, basic_salary, allowances, 
-                        deductions, tax, net_salary, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'generated')
-                ");
-                $stmt->execute([
-                    $emp['id'],
-                    $month,
-                    $year,
-                    $basic,
-                    $allowances,
-                    $deductions,
-                    $tax,
-                    $net
-                ]);
-                $generated_count++;
-            }
-
-            $pdo->commit();
-            $message = "Payroll generated for $generated_count employees.";
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $error = "Error: " . $e->getMessage();
+        // Call the API endpoint to keep one code path for the computation.
+        $apiUrl = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST']
+            . dirname($_SERVER['REQUEST_URI']) . '/api/payroll-generate.php';
+        $ctx = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => 'Content-Type: application/json',
+                'content' => json_encode(['month' => $month, 'year' => $year]),
+                'timeout' => 120
+            ]
+        ]);
+        $resp = @file_get_contents($apiUrl, false, $ctx);
+        $decoded = $resp ? json_decode($resp, true) : null;
+        if ($decoded && !empty($decoded['success'])) {
+            $message = $decoded['message'];
+        } else {
+            $error = $decoded['message'] ?? 'Payroll generation failed (check server error log).';
         }
     }
 }
@@ -176,7 +145,7 @@ include_once '../../../includes/header.php';
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="#" class="text-primary hover:text-blue-900">Payslip</a>
+                            <a href="../api/payslip-pdf.php?employee_id=<?php echo $pay['employee_id']; ?>&month=<?php echo $month; ?>&year=<?php echo $year; ?>" class="text-primary hover:text-blue-900">Payslip</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
