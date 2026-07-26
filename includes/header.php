@@ -124,6 +124,10 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         👥 Customers
                     </a>
+                    <a href="<?php echo $base_path; ?>/pages/leads/manage-leads.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🎯 Leads
+                    </a>
                 </div>
 
                 <!-- Documents Section -->
@@ -331,6 +335,11 @@ if (function_exists('setSecurityHeaders')) {
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
                                     <div class="font-semibold">Customers</div>
                                     <div class="text-xs text-gray-500">Manage clients</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/leads/manage-leads.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">🎯 Leads</div>
+                                    <div class="text-xs text-gray-500">Capture & follow-up</div>
                                 </a>
                             </div>
                         </div>
