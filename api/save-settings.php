@@ -76,6 +76,16 @@ try {
 
         // Integrations
         'groq_api_key' => $_POST['groq_api_key'] ?? '',
+
+        // Leads & Follow-up
+        'lead_followup_enabled' => isset($_POST['lead_followup_enabled']) ? '1' : '0',
+        'lead_followup_interval_days' => (int)($_POST['lead_followup_interval_days'] ?? 3),
+        'lead_followup_max_attempts' => (int)($_POST['lead_followup_max_attempts'] ?? 3),
+        'lead_digest_enabled' => isset($_POST['lead_digest_enabled']) ? '1' : '0',
+        'telegram_bot_token' => $_POST['telegram_bot_token'] ?? '',
+        'telegram_chat_id' => $_POST['telegram_chat_id'] ?? '',
+        'whatsapp_verify_token' => $_POST['whatsapp_verify_token'] ?? '',
+        'whatsapp_app_secret' => $_POST['whatsapp_app_secret'] ?? '',
     ];
 
     // Create settings table if it doesn't exist
