@@ -5,10 +5,8 @@ session_start();
 require_once '../../config.php';
 require_once '../../includes/helpers.php';
 
-// Include DOMPDF
+// Use mPDF (already installed via composer; Dompdf is not a dependency)
 require_once __DIR__ . '/../../vendor/autoload.php';
-use Dompdf\Dompdf;
-use Dompdf\Options;
 
 header('Content-Type: application/pdf');
 
@@ -58,22 +56,21 @@ try {
     include __DIR__ . '/../../includes/recommendation-pdf-template.php';
     $html = ob_get_clean();
 
-    // Configure DOMPDF
-    $options = new Options();
-    $options->set('isHtml5ParserEnabled', true);
-    $options->set('isRemoteEnabled', true);
-    $options->set('defaultFont', 'Inter');
-
-    $dompdf = new Dompdf($options);
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-
     // Generate filename
     $filename = 'Solar_Recommendation_' . date('Y-m-d_His') . '.pdf';
 
-    // Output PDF
-    $dompdf->stream($filename, array('Attachment' => 1));
+    // Configure mPDF (mirrors the previous DOMPDF settings)
+    $mpdf = new \Mpdf\Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4',
+        'margin_left' => 15,
+        'margin_right' => 15,
+        'margin_top' => 15,
+        'margin_bottom' => 15,
+        'default_font' => 'Inter'
+    ]);
+    $mpdf->WriteHTML($html);
+    $mpdf->Output($filename, \Mpdf\Output\Destination::DOWNLOAD);
 
 } catch (Exception $e) {
     error_log("PDF Export Error: " . $e->getMessage());
