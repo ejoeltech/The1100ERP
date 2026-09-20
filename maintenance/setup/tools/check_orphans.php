@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 echo "Checking for orphaned HR employees...\n";
 

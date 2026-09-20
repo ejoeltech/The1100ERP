@@ -18,6 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendError('Invalid request method');
 }
 
+// Block re-install once lock exists. Delete maintenance/setup/ after install.
+if (file_exists(__DIR__ . '/../lock')) {
+    sendError('Already installed. Delete maintenance/setup/ to reinstall.');
+}
+
 // 1. Validate Input
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     sendError('No file uploaded or upload error');
@@ -85,7 +90,7 @@ try {
             // Logic: Move contents of extracted 'uploads' folder to system uploads
             $extractedUploads = $tempDir . '/uploads';
             if (is_dir($extractedUploads)) {
-                $targetUploads = realpath(__DIR__ . '/../../uploads');
+                $targetUploads = dirname(__DIR__, 3) . '/uploads';
                 if (!is_dir($targetUploads))
                     mkdir($targetUploads, 0777, true);
 
@@ -146,7 +151,7 @@ define('COMPANY_NAME', 'Restored Company'); // Temporarily set
 define('CURRENCY_SYMBOL', '₦'); // Default
 ?>";
 
-    file_put_contents(__DIR__ . '/../../config.php', $configContent);
+    file_put_contents(dirname(__DIR__, 3) . '/config.php', $configContent);
 
     // Create lock file
     file_put_contents(__DIR__ . '/../lock', 'Installed via Restore on ' . date('Y-m-d H:i:s'));

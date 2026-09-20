@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 echo "<!DOCTYPE html>
 <html>
@@ -396,7 +396,7 @@ echo "<div class='box'><h3>4. Checking Configuration File</h3>";
 
 function repairConfig()
 {
-    $configFile = __DIR__ . '/../config.php';
+    $configFile = dirname(__DIR__, 2) . '/config.php';
     if (!file_exists($configFile)) {
         echo "<div class='error'>✗ config.php not found!</div>";
         return;
@@ -450,12 +450,10 @@ echo "</div>";
 
 echo "<div class='box' style='background: #fff3cd; border: 1px solid #ffeeba;'>";
 echo "<h3 style='margin-top:0; color: #856404;'>🛡️ Security Cleanup Recommended</h3>";
-echo "<p>For security reasons, please <strong>DELETE</strong> the following files/folders from your server using your File Manager or FTP:</p>";
+echo "<p>For security reasons, please <strong>DELETE</strong> the entire one-time installer folder from your server:</p>";
 echo "<ul style='background: #fff; padding: 15px 30px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;'>";
-echo "<li style='color:red; font-weight:bold;'>setup/ (The entire folder)</li>";
-echo "<li>factory-reset.php (DANGER: Wipes entire DB)</li>";
-echo "<li style='color:red; font-weight:bold;'>run-schema-update.php (This file)</li>";
-echo "<li>clear-company-data.php (If you used it)</li>";
+echo "<li style='color:red; font-weight:bold;'>maintenance/setup/ (The entire folder - wizard, tools/, factory-reset, this file)</li>";
+echo "<li>maintenance/*.sql dumps and 1100erp-production-*.zip if present</li>";
 echo "<li>create_installer.ps1</li>";
 echo "<li>rename-to-1100erp.ps1</li>";
 echo "<li>check_columns.php</li>";
@@ -467,7 +465,7 @@ echo "<li>schema.txt</li>";
 echo "<li>Any file ending in .php in the root that starts with 'test_' or 'debug_'</li>";
 echo "</ul>";
 echo "<p>Once deleted, you can safely use your system.</p>";
-echo "<strong><a href='dashboard.php' style='display:inline-block; padding:10px 20px; background:#0076BE; color:white; text-decoration:none; border-radius:5px;'>Go to Dashboard</a></strong>";
+echo "<strong><a href='../../dashboard.php' style='display:inline-block; padding:10px 20px; background:#0076BE; color:white; text-decoration:none; border-radius:5px;'>Go to Dashboard</a></strong>";
 echo "</div>";
 echo "</body></html>";
 ?>

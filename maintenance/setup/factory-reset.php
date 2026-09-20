@@ -5,8 +5,9 @@
 if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
 
     // 1. Load config to get DB credentials
-    if (file_exists('../config.php')) {
-        require_once '../config.php';
+    $rootConfig = dirname(__DIR__, 2) . '/config.php';
+    if (file_exists($rootConfig)) {
+        require_once $rootConfig;
 
         try {
             // Disable FK checks
@@ -29,9 +30,9 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
 
     // 2. Delete Config Files
     $filesToDelete = [
-        '../config.php',
-        '../config.php.bak',
-        'setup/lock'
+        dirname(__DIR__, 2) . '/config.php',
+        dirname(__DIR__, 2) . '/config.php.bak',
+        __DIR__ . '/lock'
     ];
 
     foreach ($filesToDelete as $file) {
@@ -41,7 +42,7 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
     }
 
     // 3. Redirect to Setup
-    header("Location: setup/index.php");
+    header("Location: index.php");
     exit;
 }
 ?>
@@ -84,7 +85,7 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
                     class="w-full px-6 py-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 shadow-lg transition-colors">
                     ⚠️ YES, DELETE EVERYTHING
                 </button>
-                <a href="dashboard.php"
+                <a href="../../dashboard.php"
                     class="w-full px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">
                     No, Cancel
                 </a>

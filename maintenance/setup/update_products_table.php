@@ -1,6 +1,6 @@
 <?php
 // Script to add missing columns to products table
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 try {
     echo "Updating products table schema...\n";

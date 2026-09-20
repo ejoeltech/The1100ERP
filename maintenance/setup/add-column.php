@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 try {
     echo "Adding payment_terms column...\n";

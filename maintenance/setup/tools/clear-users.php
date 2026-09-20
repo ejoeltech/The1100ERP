@@ -6,7 +6,7 @@
  */
 
 // Include config
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 // Confirmation check
 $confirmed = isset($_GET['confirm']) && $_GET['confirm'] === 'yes';

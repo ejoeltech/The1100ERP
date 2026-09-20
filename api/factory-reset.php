@@ -1,13 +1,13 @@
 <?php
-session_start();
-require_once '../config.php';
+define('IS_API', true);
+require_once '../includes/session-check.php';
 
 header('Content-Type: application/json');
 
 // 1. Security Check: Admin Only
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+if (!isAdmin()) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Access denied']);
+    echo json_encode(['success' => false, 'message' => 'Access denied: Administrator privileges required']);
     exit;
 }
 
@@ -54,7 +54,7 @@ try {
         unlink($configPath);
     }
 
-    $lockPath = '../setup/lock';
+    $lockPath = '../maintenance/setup/lock';
     if (file_exists($lockPath)) {
         unlink($lockPath);
     }

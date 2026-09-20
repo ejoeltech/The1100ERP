@@ -2,7 +2,7 @@
 // Recreate Users Table Script
 // Usage: Run this script via browser or CLI
 
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 try {
     echo "Starting users table restoration...\n";

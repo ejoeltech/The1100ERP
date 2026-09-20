@@ -1,5 +1,5 @@
 <?php
-require_once dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 try {
     echo "Adding signature_file column to users table...\n";

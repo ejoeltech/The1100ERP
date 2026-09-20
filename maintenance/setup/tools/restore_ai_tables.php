@@ -2,13 +2,13 @@
 // Restore AI Tables Script
 // Reads ai-rate-limiting.sql and applies it to the database
 
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 echo "Starting AI Table Restoration...\n";
 
 try {
     // 1. Read Schema File
-    $schemaFile = __DIR__ . '/ai-rate-limiting.sql';
+    $schemaFile = dirname(__DIR__, 3) . '/database/ai-rate-limiting.sql';
     if (!file_exists($schemaFile)) {
         die("Error: Schema file not found at $schemaFile\n");
     }

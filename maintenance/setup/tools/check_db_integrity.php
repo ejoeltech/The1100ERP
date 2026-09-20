@@ -2,13 +2,13 @@
 // Database Integrity Check Script
 // Checks if all tables defined in install-schema.sql exist in the database
 
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 echo "Starting Database Integrity Check...\n";
 echo "Database: " . DB_NAME . "\n";
 
 // 1. Get List of Expected Tables from Schema File
-$schemaFile = __DIR__ . '/install-schema.sql';
+$schemaFile = dirname(__DIR__, 3) . '/database/install-schema.sql';
 if (!file_exists($schemaFile)) {
     die("Error: Schema file not found at $schemaFile\n");
 }

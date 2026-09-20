@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 // Check submitted onboarding entries
 $entries = $pdo->query("SELECT * FROM hr_onboarding_entries WHERE status = 'submitted'")->fetchAll();

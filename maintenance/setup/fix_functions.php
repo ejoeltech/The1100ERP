@@ -5,7 +5,7 @@
  */
 
 header('Content-Type: text/html');
-require_once '../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 echo "<h1>Database Integrity Fix</h1>";
 echo "<style>body{font-family:sans-serif;line-height:1.5;padding:20px;background:#f5f5f5} .box{background:white;padding:20px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1);margin-bottom:20px;} .ok{color:green} .err{color:red}</style>";

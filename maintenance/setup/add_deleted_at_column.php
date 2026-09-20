@@ -1,6 +1,6 @@
 <?php
 // Script to add deleted_at column to document tables
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 2) . '/config.php';
 
 try {
     echo "Updating document tables with deleted_at column...\n";

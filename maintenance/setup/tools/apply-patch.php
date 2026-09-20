@@ -1,6 +1,6 @@
 <?php
-require_once '../../config.php';
-require_once '../../includes/session-check.php';
+require_once dirname(__DIR__, 3) . '/config.php';
+require_once dirname(__DIR__, 3) . '/includes/session-check.php';
 
 requirePermission('manage_settings');
 
@@ -27,7 +27,7 @@ try {
     if ($zip->open($file['tmp_name']) === TRUE) {
 
         // Root path
-        $rootPath = realpath(__DIR__ . '/../../');
+        $rootPath = dirname(__DIR__, 3);
 
         // Extract
         $zip->extractTo($rootPath);

@@ -12,7 +12,7 @@ if (file_exists(__DIR__ . '/lock')) {
         <h1>Already Installed</h1>
         <p>1100-ERP is already installed on this server.</p>
         <p>To reinstall, delete the file: <code>setup/lock</code></p>
-        <p><a href="../login.php">Go to Login</a></p>
+        <p><a href="../../login.php">Go to Login</a></p>
     ');
 }
 
@@ -336,26 +336,21 @@ $requirements = checkRequirements();
                         <p style="margin-bottom: 20px;">Your 1100-ERP system has been installed successfully.</p>
 
                         <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                            <strong style="color: #c53030; display: block; margin-bottom: 8px;">🛡️ CRITICAL SECURITY LOCKDOWN:</strong>
-                            <p style="margin-bottom: 12px; font-size: 0.9em; color: #742a2a;">To prevent unauthorized access to your database structure and credentials, you <strong>MUST</strong> perform the following deletions:</p>
-                            <ul style="font-size: 0.85em; list-style-type: none; padding: 0; color: #742a2a; margin-bottom: 15px;">
-                                <li style="margin-bottom: 4px;">📂 Delete folder: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/setup/</code></li>
-                                <li style="margin-bottom: 4px;">📄 Delete file: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/bluedots_1100erp.sql</code></li>
-                                <li style="margin-bottom: 4px;">📄 Delete file: <code style="background: #fffaf0; padding: 2px 4px;">maintenance/migrate_readymade.php</code></li>
-                            </ul>
-                            <small style="color: #c53030; font-weight: bold;">Failure to delete these files is a high security risk.</small>
+                            <strong style="color: #c53030; display: block; margin-bottom: 8px;">CRITICAL SECURITY LOCKDOWN:</strong>
+                            <p style="margin-bottom: 12px; font-size: 0.9em; color: #742a2a;">All one-time installer files now live in <code>maintenance/setup/</code> (wizard, <code>run-schema-update.php</code>, <code>factory-reset.php</code>, <code>tools/</code>). After login, delete the folder via <code>maintenance/setup/cleanup.php</code> (admin login required).</p>
+                            <small style="color: #c53030; font-weight: bold;">Failure to delete this folder is a high security risk.</small>
                         </div>
 
                         <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                             <strong style="color: #0369a1;">📋 Final Step:</strong>
                             <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Click the button below to ensure all database tables are perfectly synchronized.</p>
-                            <a href="../run-schema-update.php" target="_blank" class="btn btn-primary"
+                            <a href="./run-schema-update.php" target="_blank" class="btn btn-primary"
                                 style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center; text-decoration: none;">
                                 Run Database Final Check
                             </a>
                         </div>
 
-                        <a href="../login.php" class="btn btn-secondary"
+                        <a href="../../login.php" class="btn btn-secondary"
                             style="width: 100%; display: block; text-align: center; text-decoration: none;">
                             Go to Login Page
                         </a>

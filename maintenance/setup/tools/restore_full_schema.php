@@ -2,13 +2,13 @@
 // Restore Full Database Schema Script
 // Recreates all tables from install-schema.sql and adds default admin user
 
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 echo "Starting Full Schema Restoration...\n";
 
 try {
     // 1. Read Schema File
-    $schemaFile = __DIR__ . '/install-schema.sql';
+    $schemaFile = dirname(__DIR__, 3) . '/database/install-schema.sql';
     if (!file_exists($schemaFile)) {
         die("Error: Schema file not found at $schemaFile\n");
     }

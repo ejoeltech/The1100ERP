@@ -3,7 +3,7 @@
  * Migration Script for Readymade Quotes (V7.0)
  * Creates tables and migrates data from tmp_migration to live 1100erp database
  */
-require_once __DIR__ . '/../config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 try {
     $live_pdo = $pdo;

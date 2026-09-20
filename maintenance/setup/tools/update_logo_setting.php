@@ -1,8 +1,8 @@
 <?php
-require_once 'config.php';
+require_once dirname(__DIR__, 3) . '/config.php';
 
 try {
-    $logoPath = 'uploads/logo/company_logo_1770280404.jpg'; // Using the latest one found
+    $logoPath = dirname(__DIR__, 3) . '/uploads/logo/company_logo_1770280404.jpg'; // Using the latest one found
 
     // Check if file exists relative to where this script runs (root)
     if (!file_exists($logoPath)) {

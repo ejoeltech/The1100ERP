@@ -507,7 +507,7 @@ window.performSetupRestore = async function() {
             statusDiv.className = 'alert alert-success';
             statusDiv.innerHTML = '<strong>Success!</strong> System restored. Redirecting to login...';
             setTimeout(() => {
-                window.location.href = '../login.php';
+                window.location.href = '../../login.php';
             }, 2000);
         } else {
             statusDiv.className = 'alert alert-error';

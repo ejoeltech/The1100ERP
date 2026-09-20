@@ -7,6 +7,13 @@
 // CRITICAL: Start session FIRST before any output
 session_start();
 
+// Block re-install once lock exists. Delete maintenance/setup/ after install.
+if (file_exists(__DIR__ . '/lock')) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Already installed. Delete maintenance/setup/ to reinstall.']);
+    exit;
+}
+
 // Suppress any output except JSON
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 ini_set('display_errors', 0);
@@ -366,7 +373,7 @@ function finalizeInstallation()
 
         $response['success'] = true;
         $response['message'] = 'Installation finalized successfully';
-        $response['redirect'] = '../login.php';
+        $response['redirect'] = '../../login.php';
     } catch (Exception $e) {
         throw new Exception('Failed to finalize installation: ' . $e->getMessage());
     }
