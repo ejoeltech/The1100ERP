@@ -1,7 +1,7 @@
 -- Solar Inverter Products Update
 -- Replaces existing products with solar inverter catalog
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- Clear existing products
 DELETE FROM products;

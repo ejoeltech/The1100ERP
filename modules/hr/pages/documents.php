@@ -89,70 +89,22 @@ include_once '../../../includes/header.php';
                 </div>
             </div>
 
-            <textarea id="documentEditor" class="flex-grow min-h-[500px]"></textarea>
+            <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/vendors/quill/quill.snow.css">
+            <textarea id="documentEditor" class="hidden"></textarea>
         </div>
     </div>
 </div>
 
-    /**
-     * Robust TinyMCE Loader
-     * Tries local vendor first, falls back to CDN if local fails
-     */
-    function loadTinyMCE(callback) {
-        if (typeof tinymce !== 'undefined') {
-            callback();
-            return;
-        }
+<script src="<?php echo $base_path; ?>/assets/js/quill-loader.js"></script>
+<script>
+    var documentQuill = null;
 
-        const localPath = '<?php echo $base_path; ?>/assets/vendors/tinymce/tinymce.min.js';
-        const apiKey = '<?php echo (defined("TINYMCE_API_KEY") && TINYMCE_API_KEY !== "no-api-key") ? TINYMCE_API_KEY : "no-api-key"; ?>';
-        const cdnPath = `https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js`;
-
-        console.log('Attempting to load local TinyMCE...');
-        const script = document.createElement('script');
-        script.src = localPath;
-        script.onload = () => {
-            console.log('Local TinyMCE loaded successfully.');
-            callback();
-        };
-        script.onerror = function() {
-            console.warn('Local TinyMCE failed, falling back to CDN...');
-            const backup = document.createElement('script');
-            backup.src = cdnPath;
-            backup.referrerpolicy = 'origin';
-            backup.onload = () => {
-                console.log('CDN TinyMCE loaded successfully.');
-                callback();
-            };
-            backup.onerror = () => {
-                console.error('TinyMCE loading failed completely. Check internet connection or API key.');
-                alert('Advanced Editor Error: The rich text editor could not be loaded. Some features may be limited.');
-            };
-            document.head.appendChild(backup);
-        };
-        document.head.appendChild(script);
-    }
-
-    loadTinyMCE(() => {
-        if (typeof tinymce === 'undefined') return;
-        tinymce.init({
-            selector: '#documentEditor',
-            height: 600,
-            menubar: false,
-            plugins: ['advlist', 'autolink', 'lists', 'link', 'preview', 'wordcount', 'table'],
-            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
-            content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }',
-            // XSS Protection
-            valid_elements: 'p,br,b,i,strong,em,ul,ol,li,table,thead,tbody,tr,th,td,h1,h2,h3,h4,h5,h6,div[class|style],span[class|style],a[href|target|title|class]',
-            valid_styles: {
-                '*': 'color,font-size,font-weight,text-decoration,text-align,background-color'
-            },
-            extended_valid_elements: 'svg[class|fill|viewBox|stroke|stroke-width|stroke-linecap|stroke-linejoin],path[d|fill|stroke]',
-            convert_urls: false,
-            entity_encoding: 'raw',
-            verify_html: true
-        });
-    });
+    loadQuill(function () {
+        if (typeof Quill === 'undefined') return;
+        documentQuill = QuillHelper.create('documentEditor', { height: 500 });
+    }, '<?php echo $base_path; ?>/assets');
+</script>
+<script>
 
     async function generateDocument(e) {
         e.preventDefault();
@@ -185,7 +137,7 @@ include_once '../../../includes/header.php';
             const data = await response.json();
 
             if (data.success) {
-                tinymce.get('documentEditor').setContent(data.content);
+                if (documentQuill) documentQuill.setHTML(data.content);
             } else {
                 alert('Error: ' + (data.error || 'Unknown error'));
             }
@@ -199,12 +151,12 @@ include_once '../../../includes/header.php';
     }
 
     function copyContent() {
-        const content = tinymce.get('documentEditor').getContent({ format: 'text' });
+        const content = documentQuill ? documentQuill.getText() : '';
         navigator.clipboard.writeText(content).then(() => alert('Copied to clipboard'));
     }
 
     function printContent() {
-        const content = tinymce.get('documentEditor').getContent();
+        const content = documentQuill ? documentQuill.getHTML() : '';
         const printWindow = window.open('', '', 'height=600,width=800');
         printWindow.document.write('<html><head><title>Print Document</title>');
         printWindow.document.write('</head><body>');

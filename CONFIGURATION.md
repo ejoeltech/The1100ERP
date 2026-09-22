@@ -22,7 +22,7 @@ Update database connection settings:
 
 ```php
 define('DB_HOST', 'localhost');     // Your database host
-define('DB_NAME', 'bluedots_quotes'); // Your database name
+define('DB_NAME', '1100erp'); // Your database name
 define('DB_USER', 'root');          // Your database username  
 define('DB_PASS', '');              // Your database password (change for production!)
 ```

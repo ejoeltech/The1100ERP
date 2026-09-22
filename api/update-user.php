@@ -61,7 +61,7 @@ try {
         if (strlen($password) < 6) {
             throw new Exception('Password must be at least 6 characters');
         }
-        $update_fields .= ", password_hash = ?";
+        $update_fields .= ", password = ?";
         $params[] = password_hash($password, PASSWORD_DEFAULT);
     }
 

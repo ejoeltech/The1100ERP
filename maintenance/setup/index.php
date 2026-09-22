@@ -6,6 +6,16 @@
 
 session_start();
 
+// Refuse on configured systems: the wizard must never run where a config exists.
+// (Allows safe reset flow: reset deletes config.php, wizard runs, cleanup deletes setup/.)
+if (file_exists(dirname(__DIR__, 2) . '/config.php')) {
+    die('
+        <h1>Already Installed</h1>
+        <p>1100-ERP is already installed on this server.</p>
+        <p><a href="../../login.php">Go to Login</a></p>
+    ');
+}
+
 // Check if already installed
 if (file_exists(__DIR__ . '/lock')) {
     die('
@@ -67,6 +77,10 @@ $requirements = checkRequirements();
                 <div class="progress-step">
                     <div class="step-circle">6</div>
                     <div class="step-label">Install</div>
+                </div>
+                <div class="progress-step">
+                    <div class="step-circle">7</div>
+                    <div class="step-label">Cleanup</div>
                 </div>
             </div>
         </div>
@@ -330,32 +344,42 @@ $requirements = checkRequirements();
                         <li>Initializing settings</li>
                         <li>Finalizing installation</li>
                     </ul>
-
-                    <div class="alert alert-success" id="installComplete" style="margin-top: 20px; display: none;">
-                        <h3 style="margin: 0 0 10px 0;">🎉 Installation Complete!</h3>
-                        <p style="margin-bottom: 20px;">Your 1100-ERP system has been installed successfully.</p>
-
-                        <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                            <strong style="color: #c53030; display: block; margin-bottom: 8px;">CRITICAL SECURITY LOCKDOWN:</strong>
-                            <p style="margin-bottom: 12px; font-size: 0.9em; color: #742a2a;">All one-time installer files now live in <code>maintenance/setup/</code> (wizard, <code>run-schema-update.php</code>, <code>factory-reset.php</code>, <code>tools/</code>). After login, delete the folder via <code>maintenance/setup/cleanup.php</code> (admin login required).</p>
-                            <small style="color: #c53030; font-weight: bold;">Failure to delete this folder is a high security risk.</small>
-                        </div>
-
-                        <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                            <strong style="color: #0369a1;">📋 Final Step:</strong>
-                            <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Click the button below to ensure all database tables are perfectly synchronized.</p>
-                            <a href="./run-schema-update.php" target="_blank" class="btn btn-primary"
-                                style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center; text-decoration: none;">
-                                Run Database Final Check
-                            </a>
-                        </div>
-
-                        <a href="../../login.php" class="btn btn-secondary"
-                            style="width: 100%; display: block; text-align: center; text-decoration: none;">
-                            Go to Login Page
-                        </a>
-                    </div>
                 </div>
+            </div>
+
+            <!-- Step 7: Final Check + Cleanup -->
+            <div id="step7" class="step-content">
+                <h2>Final Check &amp; Cleanup</h2>
+                <p class="description">Two one-click actions finish the job. No separate login needed.</p>
+
+                <div id="cleanupStatus" class="alert alert-info" style="margin-bottom: 20px;">
+                    Installation complete. Run the final check, then delete the installer.
+                </div>
+
+                <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <strong style="color: #0369a1;">Step 1 — Final check:</strong>
+                    <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Synchronizes all database tables with the codebase. Opens the full report in a new tab.</p>
+                    <a href="./run-schema-update.php" target="_blank" class="btn btn-primary"
+                        style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center; text-decoration: none;"
+                        onclick="document.getElementById('step7Delete').style.display='block';">
+                        Run Database Final Check
+                    </a>
+                </div>
+
+                <div id="step7Delete" style="background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                    <strong style="color: #c53030; display: block; margin-bottom: 8px;">Step 2 — Delete installer:</strong>
+                    <p style="margin: 5px 0 15px 0; font-size: 0.9em; color: #742a2a;">Removes the entire <code>maintenance/</code> folder. After this, use <strong>System Update</strong> inside the app.</p>
+                    <button type="button" id="step7CleanupBtn" class="btn btn-secondary"
+                        style="width: 100%; display: block; background: #c53030; border-color: #c53030; color: white;"
+                        onclick="runStep7Cleanup()">
+                        Delete Installer Now
+                    </button>
+                </div>
+
+                <a href="../../login.php" class="btn btn-secondary"
+                    style="width: 100%; display: block; text-align: center; text-decoration: none;">
+                    Go to Login Page
+                </a>
             </div>
 
         </div>
@@ -373,25 +397,64 @@ $requirements = checkRequirements();
 
     <script src="assets/wizard.js"></script>
     <script>
+        // Step 7: one-click installer delete (works: installer auto-logs in the new admin)
+        async function runStep7Cleanup() {
+            const status = document.getElementById('cleanupStatus');
+            const btn = document.getElementById('step7CleanupBtn');
+            if (!window.wizard || !window.wizard.installDone) {
+                status.className = 'alert alert-error';
+                status.textContent = 'Complete the installation first (Step 6), then clean up.';
+                return;
+            }
+            if (!confirm('Permanently delete the entire maintenance/ folder?')) return;
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            status.className = 'alert alert-info';
+            status.textContent = 'Deleting installer...';
+            try {
+                const formData = new FormData();
+                formData.append('confirm', 'YES');
+                formData.append('format', 'json');
+                const response = await fetch('cleanup.php', { method: 'POST', body: formData });
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    // HTML means: not logged in (e.g. restore-mode install). Login first.
+                    status.className = 'alert alert-error';
+                    status.innerHTML = 'Cleanup needs an admin login. <a href="../../login.php">Log in</a>, then open <strong>System Update &gt; Delete Installer</strong>.';
+                    btn.disabled = false;
+                    btn.textContent = 'Delete Installer Now';
+                    return;
+                }
+                if (result.success) {
+                    status.className = 'alert alert-success';
+                    status.innerHTML = '<strong>Installer deleted.</strong> ' + result.message + ' <a href="../../login.php">Go to Login Page</a>';
+                    btn.textContent = 'Deleted ✓';
+                } else {
+                    status.className = 'alert alert-error';
+                    status.textContent = 'Cleanup incomplete: ' + result.message;
+                    btn.disabled = false;
+                    btn.textContent = 'Delete Installer Now';
+                }
+            } catch (e) {
+                status.className = 'alert alert-error';
+                status.textContent = 'Error: ' + e.message;
+                btn.disabled = false;
+                btn.textContent = 'Delete Installer Now';
+            }
+        }
+
         // Auto-start installation on step 6
         document.addEventListener('DOMContentLoaded', () => {
             const observer = new MutationObserver((mutations) => {
                 const step6 = document.getElementById('step6');
                 if (step6 && step6.classList.contains('active')) {
-                    // Start installation automatically
+                    // Render the manual per-step buttons once.
+                    // Completion is handled by runSingleStep(): last step advances to Step 7.
                     setTimeout(() => {
-                        window.wizard.installDatabase().then(success => {
-                            if (success) {
-                                // Show completion message
-                                const installComplete = document.getElementById('installComplete');
-                                if (installComplete) {
-                                    installComplete.style.display = 'block';
-                                    document.querySelector('.progress-bar').style.display = 'none';
-                                    document.querySelector('.installation-steps').style.display = 'none';
-                                    document.getElementById('installStatus').textContent = "Installation Successful!";
-                                }
-                            }
-                        });
+                        window.wizard.installDatabase();
                     }, 500);
                 }
             });

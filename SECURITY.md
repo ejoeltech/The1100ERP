@@ -44,7 +44,7 @@ if ($rateLimitCheck !== true) {
 
 ### 5. Run Database Migration
 ```bash
-mysql -u root bluedots_quotes < database/create-audit-log.sql
+mysql -u root 1100erp < database/create-audit-log.sql
 ```
 
 ### 6. Production Checklist

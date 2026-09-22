@@ -15,7 +15,8 @@ $currentPage = 'hr_onboarding';
 // Handle Code Generation
 if (isset($_POST['generate_code'])) {
     $code = strtoupper('OB-' . substr(md5(uniqid()), 0, 6)); // Example: OB-A1B2C3
-    $role = $_POST['role'] ?? 'employee';
+    $role = $_POST['role'] ?? 'viewer';
+    if (!in_array($role, ['viewer','intern'], true)) $role = 'viewer';
 
     $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, role, created_by) VALUES (?, ?, ?)");
     $stmt->execute([$code, $role, $_SESSION['user_id']]);
@@ -121,7 +122,7 @@ include_once '../../../includes/header.php';
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <select name="role" class="w-full rounded-lg border-gray-300">
-                        <option value="staff">Staff</option>
+                        <option value="viewer">Staff (Viewer)</option>
                         <option value="intern">Intern</option>
                     </select>
                 </div>

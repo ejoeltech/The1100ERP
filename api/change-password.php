@@ -24,11 +24,11 @@ try {
     }
 
     // Verify current password
-    $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
     $stmt->execute([$current_user['id']]);
     $user = $stmt->fetch();
 
-    if (!password_verify($current_password, $user['password_hash'])) {
+    if (!password_verify($current_password, $user['password'])) {
         throw new Exception('Current password is incorrect');
     }
 
@@ -37,14 +37,14 @@ try {
 
     $stmt = $pdo->prepare("
         UPDATE users 
-        SET password_hash = ?, updated_at = NOW() 
+        SET password = ?, updated_at = NOW() 
         WHERE id = ?
     ");
     $stmt->execute([$new_password_hash, $current_user['id']]);
 
     // Log audit
     if (function_exists('logUserUpdate')) {
-        logUserUpdate($current_user['id'], ['password' => 'changed']);
+        logUserUpdate($current_user['id'], $current_user['username'], ['password' => 'changed']);
     }
 
     header('Location: ../pages/users/change-password.php?success=1');

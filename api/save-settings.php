@@ -68,14 +68,21 @@ try {
         'pdf_quality' => $_POST['pdf_quality'] ?? 'high',
         'theme_color' => $_POST['theme_color'] ?? '#0076BE',
         'footer_text' => $_POST['footer_text'] ?? 'We appreciate your business! Thank you',
-        'tinymce_api_key' => $_POST['tinymce_api_key'] ?? 'no-api-key',
 
         // Quote Appendices
         'quote_terms' => $_POST['quote_terms'] ?? '',
         'quote_warranty' => $_POST['quote_warranty'] ?? '',
 
-        // Integrations
-        'groq_api_key' => $_POST['groq_api_key'] ?? '',
+        // AI Integrations (multi-provider)
+        'ai_provider' => $_POST['ai_provider'] ?? 'groq',
+        'ai_api_key' => $_POST['ai_api_key'] ?? '',
+        'ai_model' => $_POST['ai_model'] ?? '',
+        'ai_base_url' => $_POST['ai_base_url'] ?? '',
+        'ai_custom_api_key' => $_POST['ai_custom_api_key'] ?? '',
+        'ai_custom_base_url' => $_POST['ai_custom_base_url'] ?? '',
+        'ai_custom_model' => $_POST['ai_custom_model'] ?? '',
+        // Backward compat
+        'groq_api_key' => $_POST['groq_api_key'] ?? $_POST['ai_api_key'] ?? '',
     ];
 
     // Create settings table if it doesn't exist

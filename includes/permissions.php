@@ -1,7 +1,7 @@
 <?php
 /**
  * Permission System
- * Role-based access control for Bluedots ERP
+ * Role-based access control for Eleven100 ERP
  */
 
 // Get current user's role (with fallback)

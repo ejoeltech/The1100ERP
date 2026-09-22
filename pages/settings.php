@@ -1,5 +1,6 @@
 <?php
 include '../includes/session-check.php';
+require_once '../includes/security.php';
 
 // Only admins can access settings
 // Note: requirePermission() always exists (defined as fallback in session-check.php)
@@ -103,6 +104,12 @@ include '../includes/header.php';
                             <p class="text-sm text-gray-600 mb-2">Current Logo:</p>
                             <img src="<?php echo $logo_path; ?>" alt="Company Logo"
                                 class="h-20 object-contain bg-white p-2 rounded border border-gray-300">
+                        </div>
+                    <?php else: ?>
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-2">Current Logo: <span class="text-gray-400">(placeholder — upload to replace)</span></p>
+                            <img src="../assets/img/logo-placeholder.svg" alt="Placeholder Logo"
+                                class="h-16 object-contain bg-white p-2 rounded border border-dashed border-gray-300 opacity-80">
                         </div>
                     <?php endif; ?>
 
@@ -307,16 +314,6 @@ include '../includes/header.php';
                     <input type="text" name="currency_symbol"
                         value="<?php echo htmlspecialchars(getSetting('currency_symbol', '₦')); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">TinyMCE API Key</label>
-                    <input type="text" name="tinymce_api_key"
-                        value="<?php echo htmlspecialchars(getSetting('tinymce_api_key', 'no-api-key')); ?>"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                    <p class="text-xs text-gray-500 mt-1">Get your free key at <a href="https://www.tiny.cloud/"
-                            target="_blank" class="text-blue-600 hover:underline">tiny.cloud</a> to remove the warning.
-                    </p>
                 </div>
 
                 <div>
@@ -733,13 +730,49 @@ include '../includes/header.php';
                 <h4 class="font-semibold text-gray-900">Artificial Intelligence (AI)</h4>
             </div>
 
+                        <?php
+            require_once __DIR__ . '/../includes/ai-config.php';
+            $providers = getAiProviders();
+            $currentProvider = getSetting('ai_provider', 'groq');
+            $currentModel = getSetting('ai_model', '');
+            $currentBaseUrl = getSetting('ai_base_url', '');
+            $currentApiKey = htmlspecialchars(getSetting('ai_api_key', getSetting('groq_api_key', '')));
+            if (empty($currentModel) && isset($providers[$currentProvider])) $currentModel = $providers[$currentProvider]['default_model'];
+            if (empty($currentBaseUrl) && isset($providers[$currentProvider])) $currentBaseUrl = $providers[$currentProvider]['base_url'];
+            ?>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Provider</label>
+                    <select name="ai_provider" id="ai_provider" onchange="onProviderChange()"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <?php foreach ($providers as $id => $p): ?>
+                            <option value="<?php echo $id; ?>" <?php echo $currentProvider === $id ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p id="provider-note" class="text-xs text-purple-600 mt-1"></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Model</label>
+                    <select name="ai_model" id="ai_model" onchange="onModelChange()"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    </select>
+                    <input type="text" id="ai_model_custom" placeholder="Or type custom model"
+                        class="w-full mt-2 px-3 py-1 text-sm border border-dashed border-gray-300 rounded"
+                        oninput="document.getElementById('ai_model').value = this.value; syncAiHidden()">
+                    <p class="text-xs text-gray-500 mt-1">Free: pick <b>:free</b> on OpenRouter</p>
+                </div>
+            </div>
+
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Groq API Key
+                    API Key <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
-                    <input type="password" name="groq_api_key"
-                        value="<?php echo htmlspecialchars(getSetting('groq_api_key', '')); ?>"
+                    <input type="password" name="ai_api_key" id="ai_api_key"
+                        value="<?php echo $currentApiKey; ?>"
+                        placeholder="sk-..., gsk_..., AIza..."
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10">
                     <button type="button" onclick="togglePasswordVisibility(this)"
                         class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
@@ -753,67 +786,113 @@ include '../includes/header.php';
                     </button>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">
-                    Required for AI Quote Descriptions and Solar System Design.
-                    <a href="https://console.groq.com" target="_blank" class="text-primary hover:underline">Get a free
-                        key here</a>.
+                    <span id="provider-docs"></span> |
+                    Legacy Groq key auto-migrated. <a id="provider-docs-link" href="#" target="_blank" class="text-primary hover:underline">Get free key</a>
                 </p>
+                <input type="hidden" name="groq_api_key" id="groq_api_key" value="<?php echo $currentApiKey; ?>">
             </div>
 
-            <!-- Test Connection Area -->
-            <div class="flex items-center gap-3 mt-3">
-                <button type="button" onclick="testGroqConnection()" id="btn-test-groq"
+            <div id="custom-url-group" class="mb-4 hidden">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Custom Base URL (OpenAI-Compatible)</label>
+                <input type="text" name="ai_base_url" id="ai_base_url"
+                    value="<?php echo htmlspecialchars($currentBaseUrl); ?>"
+                    placeholder="https://api.openai.com/v1/chat/completions"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                <p class="text-xs text-gray-500 mt-1">Must be OpenAI chat/completions compatible. For Gemini use Gemini provider.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 mt-4 p-3 bg-white rounded border border-purple-100">
+                <button type="button" onclick="testAiConnection()" id="btn-test-ai"
                     class="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 font-semibold flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                     </svg>
                     Test Connection
                 </button>
-                <div id="groq-test-status" class="text-sm"></div>
+                <div id="ai-test-status" class="text-sm"></div>
+                <span id="ai-test-meta" class="text-xs text-gray-400 ml-auto"></span>
             </div>
+            <p class="text-xs text-amber-600 mt-2">Tip: If Groq says "model does not exist", switch to <b>llama-3.1-8b-instant</b> or try OpenRouter/Gemini.</p>
 
         </div>
 
         <script>
-            function testGroqConnection() {
-                const btn = document.getElementById('btn-test-groq');
-                const status = document.getElementById('groq-test-status');
-                const apiKey = document.querySelector('input[name="groq_api_key"]').value;
+            const AI_PROVIDERS = <?php echo json_encode($providers); ?>;
+            const CURRENT_PROVIDER = "<?php echo $currentProvider; ?>";
+            const CURRENT_MODEL = <?php echo json_encode($currentModel); ?>;
 
+            function onProviderChange() {
+                const id = document.getElementById('ai_provider').value;
+                const p = AI_PROVIDERS[id];
+                const modelSel = document.getElementById('ai_model');
+                const note = document.getElementById('provider-note');
+                const docs = document.getElementById('provider-docs');
+                const docsLink = document.getElementById('provider-docs-link');
+                const customGroup = document.getElementById('custom-url-group');
+                modelSel.innerHTML = '';
+                Object.entries(p.models).forEach(([val,label]) => {
+                    const opt = document.createElement('option');
+                    opt.value = val; opt.textContent = label;
+                    if (val === p.default_model) opt.selected = true;
+                    modelSel.appendChild(opt);
+                });
+                if (CURRENT_PROVIDER === id && CURRENT_MODEL) {
+                    let found = false;
+                    [...modelSel.options].forEach(o => { if(o.value===CURRENT_MODEL){ o.selected=true; found=true; }});
+                    if(!found){ modelSel.innerHTML += `<option value="${CURRENT_MODEL}" selected>${CURRENT_MODEL} (current)</option>`; }
+                }
+                note.textContent = p.free_note || '';
+                docs.textContent = p.name + ' API';
+                docsLink.href = p.docs || '#';
+                docsLink.textContent = p.docs ? 'Get free key' : '';
+                if (id === 'custom') customGroup.classList.remove('hidden');
+                else customGroup.classList.add('hidden');
+                syncAiHidden();
+            }
+            function onModelChange(){ syncAiHidden(); }
+            function syncAiHidden(){
+                document.getElementById('groq_api_key').value = document.getElementById('ai_api_key').value;
+            }
+            document.getElementById('ai_api_key')?.addEventListener('input', syncAiHidden);
+            onProviderChange();
+
+            function testAiConnection() {
+                const btn = document.getElementById('btn-test-ai');
+                const status = document.getElementById('ai-test-status');
+                const meta = document.getElementById('ai-test-meta');
+                const provider = document.getElementById('ai_provider').value;
+                const model = document.getElementById('ai_model').value || document.getElementById('ai_model_custom').value;
+                const base_url = document.getElementById('ai_base_url').value;
+                const apiKey = document.getElementById('ai_api_key').value;
                 if (!apiKey) {
-                    status.innerHTML = '<span class="text-red-600 font-semibold">Please enter an API Key first</span>';
+                    status.innerHTML = '<span class="text-red-600 font-semibold">Enter API Key first</span>';
                     return;
                 }
-
-                // UI Loading State
-                btn.disabled = true;
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
-                status.innerHTML = '<span class="text-gray-600 animate-pulse">Testing connection...</span>';
-
-                // API Call
+                btn.disabled = true; btn.classList.add('opacity-75','cursor-not-allowed');
+                status.innerHTML = '<span class="text-gray-600 animate-pulse">Testing '+provider+' ...</span>';
+                meta.textContent = model;
                 fetch('../api/test/test-ai-connection.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ api_key: apiKey })
+                    body: JSON.stringify({ api_key: apiKey, provider, model, base_url })
                 })
-                    .then(res => res.json())
-                    .then(data => {
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-
-                        if (data.success) {
-                            status.innerHTML = `<span class="text-green-600 font-bold">✓ Success! (${data.latency})</span>`;
-                        } else {
-                            status.innerHTML = `<span class="text-red-600 font-bold">✗ Failed: ${data.error}</span>`;
-                        }
-                    })
-                    .catch(err => {
-                        btn.disabled = false;
-                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                        status.innerHTML = '<span class="text-red-600 font-bold">✗ Network Error</span>';
-                        console.error(err);
-                    });
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false; btn.classList.remove('opacity-75','cursor-not-allowed');
+                    if (data.success) {
+                        status.innerHTML = `<span class="text-green-600 font-bold">✓ ${data.provider} OK (${data.latency}) - ${data.model}</span>`;
+                        meta.textContent = `reply: ${data.reply}`;
+                    } else {
+                        status.innerHTML = `<span class="text-red-600 font-bold">✗ ${data.provider||provider}: ${data.error}</span>`;
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false; btn.classList.remove('opacity-75','cursor-not-allowed');
+                    status.innerHTML = '<span class="text-red-600 font-bold">✗ Network Error</span>';
+                    console.error(err);
+                });
             }
+            function testGroqConnection(){ testAiConnection(); }
         </script>
 
 
@@ -1366,65 +1445,15 @@ include '../includes/header.php';
 </form>
 </div>
 
-    /**
-     * Robust TinyMCE Loader
-     * Tries local vendor first, falls back to CDN if local fails
-     */
-    function loadTinyMCE(callback) {
-        if (typeof tinymce !== 'undefined') {
-            callback();
-            return;
-        }
-
-        const localPath = '../assets/vendors/tinymce/tinymce.min.js';
-        const apiKey = '<?php echo (defined("TINYMCE_API_KEY") && TINYMCE_API_KEY !== "no-api-key") ? TINYMCE_API_KEY : "no-api-key"; ?>';
-        const cdnPath = `https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js`;
-
-        console.log('Attempting to load local TinyMCE...');
-        const script = document.createElement('script');
-        script.src = localPath;
-        script.onload = () => {
-            console.log('Local TinyMCE loaded successfully.');
-            callback();
-        };
-        script.onerror = function() {
-            console.warn('Local TinyMCE failed, falling back to CDN...');
-            const backup = document.createElement('script');
-            backup.src = cdnPath;
-            backup.referrerpolicy = 'origin';
-            backup.onload = () => {
-                console.log('CDN TinyMCE loaded successfully.');
-                callback();
-            };
-            backup.onerror = () => {
-                console.error('TinyMCE loading failed completely. Check internet connection or API key.');
-                alert('Advanced Editor Error: The rich text editor could not be loaded. Some features may be limited.');
-            };
-            document.head.appendChild(backup);
-        };
-        document.head.appendChild(script);
-    }
-
-    loadTinyMCE(() => {
-        if (typeof tinymce === 'undefined') return;
-        tinymce.init({
-            selector: '#quote_terms, #quote_warranty',
-            height: 600,
-            menubar: false,
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
-                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                'insertdatetime', 'table', 'help', 'wordcount'
-            ],
-            toolbar: 'undo redo | formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
-            setup: function (editor) {
-                editor.on('change', function () {
-                    editor.save();
-                });
-            },
-            content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }'
-        });
-    });
+    <link rel="stylesheet" href="../assets/vendors/quill/quill.snow.css">
+    <script src="../assets/js/quill-loader.js"></script>
+    <script>
+    loadQuill(function () {
+        if (typeof Quill === 'undefined') return;
+        QuillHelper.create('quote_terms', { height: 300 });
+        QuillHelper.create('quote_warranty', { height: 300 });
+    }, '../assets');
+    </script>
 
 <script>
     function switchTab(tabName) {
@@ -1485,9 +1514,15 @@ include '../includes/header.php';
             </p>
 
             <form id="resetForm" onsubmit="performFactoryReset(event)">
+                <input type="hidden" id="resetCsrf" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
                 <div class="mb-4">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Admin Password</label>
                     <input type="password" id="resetPassword" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Type RESET to confirm</label>
+                    <input type="text" id="resetConfirm" required placeholder="RESET"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                 </div>
 
@@ -1520,16 +1555,25 @@ include '../includes/header.php';
     async function performFactoryReset(event) {
         event.preventDefault();
         const password = document.getElementById('resetPassword').value;
+        const confirm = document.getElementById('resetConfirm').value;
+        const csrf = document.getElementById('resetCsrf').value;
 
-        if (!confirm('Final Warning: This will delete ALL data. Continue?')) {
+        if (confirm !== 'RESET') {
+            alert('Type RESET to confirm.');
+            return;
+        }
+
+        if (!confirm('Final Warning: This will delete ALL data. The installer is kept so you can reinstall immediately. Continue?')) {
             return;
         }
 
         try {
             const formData = new FormData();
             formData.append('password', password);
+            formData.append('csrf_token', csrf);
+            formData.append('confirm', 'RESET');
 
-            const response = await fetch('../api/factory-reset.php', {
+            const response = await fetch('../api/system/factory-reset.php', {
                 method: 'POST',
                 body: formData
             });
@@ -1538,7 +1582,7 @@ include '../includes/header.php';
 
             if (result.success) {
                 alert('System reset successfully. Redirecting to setup...');
-                window.location.href = '../index.php';
+                window.location.href = '../maintenance/setup/index.php';
             } else {
                 alert('Reset Failed: ' + result.message);
             }

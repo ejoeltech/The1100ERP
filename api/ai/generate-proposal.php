@@ -27,7 +27,7 @@ if (empty($data['inverter']) || empty($data['batteries'])) {
 
 try {
     // Construct System Prompt
-    $systemPrompt = "You are a Senior Solar Engineer at Bluedots Technologies in Nigeria. 
+    $systemPrompt = "You are a Senior Solar Engineer at Eleven100 ERP in Nigeria. 
     Your task is to write a professional, persuasive, and technically accurate solar system proposal in HTML format.
     
     Structure the proposal with these sections:

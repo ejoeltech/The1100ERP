@@ -4,7 +4,6 @@
 // Payload: { receipt_id: 123, reason: "Entered in error" }
 
 define('IS_API', true);
-require_once '../config.php';
 require_once '../includes/session-check.php';
 
 header('Content-Type: application/json');

@@ -1,6 +1,10 @@
 <?php
 include '../includes/session-check.php';
 require_once '../vendor/autoload.php';
+require_once '../includes/validate-pdf-env.php';
+
+// Validate environment (extensions, permissions, etc.)
+validatePdfEnvironment(__DIR__ . '/../tmp/mpdf');
 
 $receipt_id = $_GET['id'] ?? null;
 
@@ -31,26 +35,44 @@ try {
         $parent_invoice = $stmt->fetch();
     }
 
-    // Generate HTML
-    $html = include '../includes/receipt-pdf-template.php';
+    // Increase memory and time for PDF generation
+    ini_set('memory_limit', '256M');
+    set_time_limit(120);
 
     // Create PDF
-    $mpdf = new \Mpdf\Mpdf([
-        'format' => 'A4',
-        'margin_left' => 15,
-        'margin_right' => 15,
-        'margin_top' => 15,
-        'margin_bottom' => 15
-    ]);
+    try {
+        $mpdf = new \Mpdf\Mpdf([
+            'format' => 'A4',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+            'tempDir' => __DIR__ . '/../tmp/mpdf' // Explicitly set temp directory
+        ]);
 
-    $mpdf->WriteHTML($html);
+        $html = include '../includes/receipt-pdf-template.php';
+        
+        // Safety check for HTML content
+        if (!$html || is_int($html)) {
+            throw new Exception("Receipt PDF template did not return valid content.");
+        }
 
-    // Output
-    $filename = $receipt['document_number'] . '_' . date('Ymd') . '.pdf';
-    $mpdf->Output($filename, 'D');
+        $mpdf->WriteHTML($html);
 
+        // Output
+        $filename = $receipt['document_number'] . '_' . date('Ymd') . '.pdf';
+        $mpdf->Output($filename, \Mpdf\Output\Destination::DOWNLOAD);
+
+    } catch (Exception $e) {
+        error_log("Receipt PDF Export Failure: " . $e->getMessage());
+        
+        if (!headers_sent()) {
+            header('HTTP/1.1 500 Internal Server Error');
+        }
+        die('Error generating Receipt PDF. Please check server logs for details. Error: ' . $e->getMessage());
+    }
 } catch (Exception $e) {
-    error_log("Receipt PDF export error: " . $e->getMessage());
-    die('Failed to generate PDF');
+    error_log("General Receipt Export error: " . $e->getMessage());
+    die("General Error: " . $e->getMessage());
 }
 ?>

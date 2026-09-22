@@ -184,15 +184,16 @@ $html = '
             font-size: 10px;
             letter-spacing: 1px;
         }
-        .bank-details {
+        .bank-details-wrapper {
             background: #e3f2fd;
             padding: 10px;
-            display: table;
             width: 100%;
         }
+        .bank-details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
         .bank-item {
-            display: table-cell;
-            width: 50%;
             text-align: center;
             padding: 6px;
         }
@@ -200,10 +201,12 @@ $html = '
             font-weight: bold;
             font-size: 10px;
             margin-bottom: 3px;
+            display: block;
         }
         .bank-account {
             font-size: 10px;
             color: #555;
+            display: block;
         }
         .prepared-by {
             background: ' . $theme_color . ';
@@ -228,13 +231,15 @@ $html = '
     <!-- Header -->
     <div class="header">';
 
-// Logo Logic
+// Logo Logic — placeholder PNG if no upload (mPDF-safe; change in Settings → Company Information)
+$placeholder = __DIR__ . '/../uploads/logo/placeholder_logo.png';
 $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
 if (!empty($logo_files)) {
     $html .= '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 50px; max-width: 180px;">';
+} elseif (file_exists($placeholder)) {
+    $html .= '<img src="' . $placeholder . '" style="height: 42px; max-width: 240px;">';
 } else {
-    $html .= '<div class="logo">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
-              <div class="subtitle">TECHNOLOGIES</div>';
+    $html .= '<div class="logo">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP') . '</div>';
 }
 
 $html .= '
@@ -358,27 +363,35 @@ if (!empty($bank_accounts)) {
     $account_name = htmlspecialchars($bank_accounts[0]['account_name'] ?? COMPANY_NAME);
     $html .= '
         <div class="payment-header">MAKE ALL PAYMENTS IN FAVOUR OF: ' . $account_name . '</div>
-        <div class="bank-details">';
+        <div class="bank-details-wrapper">
+            <table class="bank-details-table">
+                <tr>';
 
     $column_width = floor(100 / count($bank_accounts));
     foreach ($bank_accounts as $index => $account) {
         $border_style = ($index < count($bank_accounts) - 1) ? 'border-right: 1px solid ' . THEME_COLOR . ';' : '';
         $html .= '
-            <div class="bank-item" style="width: ' . $column_width . '%; ' . $border_style . ' vertical-align: middle;">
-                <span class="bank-name" style="font-size: 10px;">' . htmlspecialchars($account['bank_name']) . ':</span>
-                <span class="bank-account" style="font-size: 10px; font-weight: bold;">' . htmlspecialchars($account['account_number']) . '</span>
-            </div>';
+                    <td class="bank-item" style="width: ' . $column_width . '%; ' . $border_style . ' vertical-align: middle;">
+                        <span class="bank-name" style="font-size: 10px;">' . htmlspecialchars($account['bank_name']) . ':</span>
+                        <span class="bank-account" style="font-size: 10px; font-weight: bold;">' . htmlspecialchars($account['account_number']) . '</span>
+                    </td>';
     }
 
     $html .= '
+                </tr>
+            </table>
         </div>';
 } else {
     $html .= '
         <div class="payment-header">PAYMENT DETAILS</div>
-        <div class="bank-details" style="text-align: center;">
-            <div class="bank-item" style="width: 100%;">
-                Please contact us for payment details.
-            </div>
+        <div class="bank-details-wrapper" style="text-align: center;">
+            <table class="bank-details-table">
+                <tr>
+                    <td class="bank-item" style="width: 100%;">
+                        Please contact us for payment details.
+                    </td>
+                </tr>
+            </table>
         </div>';
 }
 

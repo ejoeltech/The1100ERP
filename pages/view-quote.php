@@ -206,19 +206,13 @@ include '../includes/header.php';
     <div class="text-center mb-8 pb-6 border-b-2 border-gray-200">
         <div class="flex justify-center items-center gap-2 mb-3">
             <?php
-            // Use uploaded logo if available
+            // Use uploaded logo if available, else placeholder (Settings → Company Information)
             $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
             if (!empty($logo_files)) {
                 $latest_logo = basename(end($logo_files));
-                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" class="h-28 object-contain">';
+                echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . htmlspecialchars(COMPANY_NAME) . '" class="h-28 object-contain">';
             } else {
-                echo '<div class="flex flex-col items-center">';
-                echo '<div class="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-3xl mb-2">';
-                echo substr(COMPANY_NAME, 0, 1);
-                echo '</div>';
-                echo '<h1 class="text-3xl font-bold tracking-tight mb-1">' . COMPANY_NAME . '</h1>';
-                echo '<p class="text-[9px] tracking-[0.3em] uppercase font-bold text-gray-600">TECHNOLOGIES</p>';
-                echo '</div>';
+                echo '<img src="../assets/img/logo-placeholder.svg" alt="Logo Placeholder" class="h-16 object-contain opacity-80">';
             }
             ?>
         </div>

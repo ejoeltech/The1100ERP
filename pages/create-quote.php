@@ -150,7 +150,7 @@ include '../includes/header.php';
                 </label>
                 <input type="text" name="salesperson"
                     value="<?php echo htmlspecialchars($current_user['full_name']); ?>"
-                    placeholder="e.g., Joel Okenabirhie" required
+                    placeholder="e.g., Jane Doe" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 

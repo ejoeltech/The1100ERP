@@ -1,13 +1,13 @@
--- Bluedots Technologies Quote Management System
+-- Eleven100 ERP Quote Management System
 -- Phase 0 Database Schema
 -- Created: 2026-01-14
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS bluedots_quotes 
+CREATE DATABASE IF NOT EXISTS 1100erp 
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- Documents table (quotes only for Phase 0)
 CREATE TABLE documents (
@@ -54,7 +54,7 @@ INSERT INTO documents (
     'QT-0001',
     'Website Development Project',
     'ABC Limited',
-    'Joel Okenabirhie',
+    'Sample Salesperson',
     '2026-01-15',
     125000.00,
     9000.00,

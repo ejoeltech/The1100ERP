@@ -1,8 +1,15 @@
 <?php
 // Check if installation is required
 if (!file_exists('config.php') && !file_exists('maintenance/setup/lock')) {
-    header('Location: maintenance/setup/index.php');
-    exit;
+    if (is_dir('maintenance/setup')) {
+        header('Location: maintenance/setup/index.php');
+        exit;
+    }
+    die('
+        <h1>Installer Not Present</h1>
+        <p>No configuration found and the installer was removed after setup (expected).</p>
+        <p>To reinstall, re-upload the <code>maintenance/setup/</code> folder from your deployment package, then refresh this page.</p>
+    ');
 }
 
 // Check if system is installed but config is missing (corrupted)

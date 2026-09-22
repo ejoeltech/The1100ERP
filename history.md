@@ -276,3 +276,17 @@ git push origin main
 ---
 
 *Last updated: 2026-03-18*
+
+---
+
+## Milestone v2 — ID Card Studio & Hardening (2026-09-23, tag milestone-v2-id-card-studio)
+
+| Area | Change |
+|---|---|
+| HR ID Card Studio | Integrated standalone maker: id-maker.php (templates), id-produce.php (manual), id-auto.php (bulk from HR/CSV/REST); api/id-cards.php (10 actions, admin/manager gate); hr_id_cards/templates/defaults tables via update_schema_v10; old generator/designer removed |
+| AI providers | Multi-provider hub includes/ai-config.php (Groq/OpenRouter/Mistral/Together/Gemini/DeepSeek/Custom) with per-provider testing in Settings; Groq default fixed after llama retirements |
+| Editor | TinyMCE replaced with locally vendored Quill 2 (assets/vendors/quill) — no API keys |
+| Installer | One-time maintenance/setup consolidated, self-deleting cleanup.php, config-gated wizard, permanent admin pages/system-update.php + hardened api/system/factory-reset.php |
+| Branding | Bluedots to Eleven100 ERP rebrand; dynamic logo placeholder; stale dumps/backups removed |
+| HR fixes | Schema consolidation loop in modules/hr/install.php; split user/employee updates; live dashboard stats; attendance/leave/payroll guards |
+| Demo seeds | Known-password demo accounts removed from legacy migrations |

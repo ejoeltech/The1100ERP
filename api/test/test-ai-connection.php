@@ -1,14 +1,12 @@
 <?php
 /**
- * Test AI Connection API
- * Tests the connection to Groq API
+ * Test AI Connection API - Multi-Provider
  */
-
 header('Content-Type: application/json');
 require_once '../../includes/public-init.php';
+require_once '../../includes/ai-config.php';
 require_once '../../includes/groq-config.php';
 
-// strict admin check
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Unauthorized access']);
@@ -16,95 +14,57 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
-$apiKey = $input['api_key'] ?? '';
+$apiKey = trim($input['api_key'] ?? '');
+$provider = $input['provider'] ?? getSetting('ai_provider', 'groq');
+$model = trim($input['model'] ?? '');
+$baseUrl = trim($input['base_url'] ?? '');
 
-// If key provided in request, override constant for this request only
-if (!empty($apiKey)) {
-    // We can't redefine the constant, so we'll need to handle this manually 
-    // or modify callGroqAPI to accept an optional key
-    // For now, let's assume callGroqAPI might need a small tweak or we pass it
-} else {
-    // If no key provided, check if configured
-    if (!defined('GROQ_API_KEY') || empty(GROQ_API_KEY)) {
-        echo json_encode(['success' => false, 'error' => 'No API Key configured or provided']);
-        exit;
-    }
-    $apiKey = GROQ_API_KEY;
+// If testing unsaved form values, use provided key directly
+if (empty($apiKey)) {
+    $cfg = getAiProviderConfig($provider);
+    $apiKey = $cfg['api_key'];
+}
+if (empty($model)) {
+    $cfg = getAiProviderConfig($provider);
+    $model = $cfg['model'];
+}
+if (empty($baseUrl)) {
+    $cfg = getAiProviderConfig($provider);
+    $baseUrl = $cfg['base_url'];
+}
+
+if (empty($apiKey)) {
+    echo json_encode(['success' => false, 'error' => 'No API Key provided for ' . $provider]);
+    exit;
 }
 
 try {
     $startTime = microtime(true);
+    $override = ['provider' => $provider, 'api_key' => $apiKey, 'model' => $model];
+    if (!empty($baseUrl)) $override['base_url'] = $baseUrl;
 
-    // Simple test prompt
-    $testPrompt = "Reply with exactly 'OK'";
+    // Minimal test: ask for OK
+    $reply = callAiAPI("Reply with exactly 'OK'", '', ['temperature' => 0.1, 'max_tokens' => 10], $override);
 
-    // We need to support passing key to callGroqAPI. 
-    // Since current helpers use the constant, we might need to modify public-init/groq-config 
-    // OR we just assume the constant is set if we are testing stored settings.
-    // BUT the user might want to test BEFORE saving.
+    $duration = round((microtime(true) - $startTime) * 1000) . 'ms';
 
-    // Let's modify callGroqAPI in groq-config.php to accept a key override first?
-    // Or we just temporarily define it if not defined?
-    // Constants are permanent.
-
-    // BEST APPROACH: Modify callGroqAPI to accept key as 4th arg or in options
-
-    // Temporary hack: validation logic inside this script similar to callGroqAPI
-    // to avoid refactoring everything right now.
-
-    $messages = [
-        ['role' => 'user', 'content' => $testPrompt]
-    ];
-
-    $data = [
-        'model' => GROQ_MODEL,
-        'messages' => $messages,
-        'temperature' => 0.1,
-        'max_tokens' => 10
-    ];
-
-    $ch = curl_init(GROQ_API_URL);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $apiKey
-    ]);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    $endTime = microtime(true);
-    $duration = round(($endTime - $startTime) * 1000) . 'ms';
-
-    if ($curlError) {
-        throw new Exception("Connection error: {$curlError}");
-    }
-
-    if ($httpCode !== 200) {
-        $errFn = json_decode($response, true);
-        $msg = $errFn['error']['message'] ?? "HTTP $httpCode";
-        throw new Exception("API Error: $msg");
-    }
-
-    $result = json_decode($response, true);
-    $reply = $result['choices'][0]['message']['content'] ?? '';
+    // Mask key for logging
+    $masked = substr($apiKey, 0, 7) . str_repeat('*', max(0, strlen($apiKey)-10)) . substr($apiKey, -3);
 
     echo json_encode([
         'success' => true,
         'message' => 'Connection Successful!',
         'latency' => $duration,
-        'reply' => $reply
+        'reply' => $reply,
+        'provider' => $provider,
+        'model' => $model,
+        'key_preview' => $masked,
     ]);
-
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
+        'provider' => $provider,
+        'model' => $model,
     ]);
 }
-?>

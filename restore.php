@@ -1,6 +1,6 @@
 <?php
-require_once '../../config.php';
-require_once '../../includes/session-check.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/session-check.php';
 
 requirePermission('manage_settings');
 

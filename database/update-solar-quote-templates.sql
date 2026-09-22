@@ -1,5 +1,5 @@
 -- Update Quote Templates for Solar Inverter Business
-USE bluedots_quotes;
+USE 1100erp;
 
 DELETE FROM quote_templates;
 ALTER TABLE quote_templates AUTO_INCREMENT = 1;

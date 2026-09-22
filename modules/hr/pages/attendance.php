@@ -32,23 +32,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "You have already clocked in today.";
             } else {
                 $time = date('H:i:s');
-                $status = ($time > getSetting('hr_work_start_time', '09:00')) ? 'late' : 'present';
+                $start = getSetting('hr_work_start_time', '09:00');
+                // Normalize to H:i:s for reliable comparison
+                $startNorm = strlen($start) === 5 ? $start . ':00' : $start;
+                $status = (strtotime($time) > strtotime($startNorm)) ? 'late' : 'present';
                 $stmt = $pdo->prepare("INSERT INTO hr_attendance (employee_id, date, clock_in, status) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$current_emp['id'], $today, $time, $status]);
                 $message = "Clocked in successfully at " . date('g:i A');
             }
         } elseif ($action === 'clock_out') {
-            $time = date('H:i:s');
-            $stmt = $pdo->prepare("UPDATE hr_attendance SET clock_out = ? WHERE employee_id = ? AND date = ?");
-            $stmt->execute([$time, $current_emp['id'], $today]);
-            $message = "Clocked out successfully at " . date('g:i A');
+            // Prevent double clock-out
+            $stmt = $pdo->prepare("SELECT clock_out FROM hr_attendance WHERE employee_id = ? AND date = ?");
+            $stmt->execute([$current_emp['id'], $today]);
+            $row = $stmt->fetch();
+            if ($row && !empty($row['clock_out'])) {
+                $error = "You have already clocked out today.";
+            } else {
+                $time = date('H:i:s');
+                $stmt = $pdo->prepare("UPDATE hr_attendance SET clock_out = ? WHERE employee_id = ? AND date = ?");
+                $stmt->execute([$time, $current_emp['id'], $today]);
+                $message = "Clocked out successfully at " . date('g:i A');
+            }
         }
     }
 }
 
 // Fetch Attendance History (Use 'month' parameter or current)
-$month = $_GET['month'] ?? date('n');
-$year = $_GET['year'] ?? date('Y');
+$month = max(1, min(12, (int) ($_GET['month'] ?? date('n'))));
+$year = max(2020, min(2035, (int) ($_GET['year'] ?? date('Y'))));
 
 $attendance_log = [];
 if ($current_emp) {
@@ -158,7 +169,7 @@ include_once '../../../includes/header.php';
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="font-bold text-gray-900">Attendance Log</h3>
-        <select onchange="window.location.search = '?month='+this.value" class="rounded-lg border-gray-300 text-sm">
+        <select onchange="window.location.search = '?month='+this.value+'&year=<?php echo $year; ?>'" class="rounded-lg border-gray-300 text-sm">
             <?php for($m=1; $m<=12; $m++): ?>
                 <option value="<?php echo $m; ?>" <?php echo $m==$month?'selected':''; ?>>
                     <?php echo date('F', mktime(0,0,0,$m,1)); ?>

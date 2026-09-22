@@ -4,7 +4,8 @@
 class SetupWizard {
     constructor() {
         this.currentStep = 1;
-        this.totalSteps = 6;
+        this.totalSteps = 7;
+        this.installDone = false;
         this.init();
     }
 
@@ -103,6 +104,13 @@ class SetupWizard {
         }
     }
 
+    goToStep(n) {
+        if (n >= 1 && n <= this.totalSteps) {
+            this.currentStep = n;
+            this.updateStep();
+        }
+    }
+
     updateButtons() {
         // Update prev button visibility
         const prevBtn = document.querySelector('[data-prev]');
@@ -112,10 +120,12 @@ class SetupWizard {
 
         // Update next button text on company step (before installation)
         const nextBtn = document.querySelector('[data-next]');
-        if (nextBtn && this.currentStep === 5) {
-            nextBtn.textContent = 'Start Installation →';
-        } else if (nextBtn) {
-            nextBtn.textContent = 'Next →';
+        if (!nextBtn) return;
+        if (this.currentStep >= this.totalSteps) {
+            nextBtn.style.visibility = 'hidden';
+        } else {
+            nextBtn.style.visibility = 'visible';
+            nextBtn.textContent = this.currentStep === 5 ? 'Start Installation →' : 'Next →';
         }
     }
 
@@ -409,12 +419,13 @@ class SetupWizard {
                     statusText.innerHTML = `<strong>Step ${index + 1} Complete!</strong><br><small>Click 'Run Step ${nextIndex + 1}' to continue.</small>`;
                 }
             } else {
-                // ALL DONE
-                statusText.innerHTML = `<strong style="color: #10b981;">Installation Complete!</strong><br><small>Redirecting to login...</small>`;
-                log('🎉 All steps finished successfully!', 'success');
+                // ALL DONE -> advance to Step 7 (Cleanup)
+                window.wizard.installDone = true;
+                statusText.innerHTML = `<strong style="color: #10b981;">Installation Complete!</strong><br><small>Taking you to final cleanup...</small>`;
+                log('All steps finished successfully! Advancing to cleanup.', 'success');
                 setTimeout(() => {
-                    if (result.redirect) window.location.href = result.redirect;
-                }, 2000);
+                    window.wizard.goToStep(7);
+                }, 1200);
             }
 
         } catch (error) {

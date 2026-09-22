@@ -56,8 +56,6 @@ if (!defined('CURRENCY_SYMBOL'))
     define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
 if (!defined('DEFAULT_PAYMENT_TERMS'))
     define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', '80% Initial Deposit'));
-if (!defined('TINYMCE_API_KEY'))
-    define('TINYMCE_API_KEY', getSetting('tinymce_api_key', 'no-api-key'));
 if (!defined('THEME_COLOR'))
     define('THEME_COLOR', getSetting('theme_color', '#0076BE'));
 if (!defined('FOOTER_TEXT'))

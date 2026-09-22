@@ -52,7 +52,7 @@ if ($roleColumnExists && file_exists(__DIR__ . '/permissions.php')) {
 if (!function_exists('getRoleFilter')) {
     function getRoleFilter($tableName = 'd')
     {
-        return '';
+        return ['sql' => '', 'params' => []];
     }
 }
 if (!function_exists('hasPermission')) {

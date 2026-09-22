@@ -62,10 +62,10 @@ If you need to run the installation wizard again (e.g., after a failed install o
 
 ### Updating to a New Version
 1.  Upload the new files (overwrite existing ones).
-2.  Run the schema updater by visiting: `https://your-site.com/maintenance/setup/run-schema-update.php`
+2.  After installing, run the schema patcher from **System Update** (admin nav) or during setup via `maintenance/setup/run-schema-update.php`.
 3.  This script will automatically add any missing database columns or configuration settings required by the new version.
 
 ### Common Issues
 *   **"Too Many Redirects"**: Ensure your `config.php` has the fix for CDN assets (change local Tom Select paths to CDN).
-*   **White Screen on Quote Page**: Check that `COMPANY_LOGO` is defined in `config.php` (run `maintenance/setup/run-schema-update.php` to fix this automatically).
+*   **White Screen on Quote Page**: Check that `COMPANY_LOGO` is defined in `config.php` (run **System Update** as admin to fix this automatically).
 *   **Mobile Table Issues**: Clear your browser cache to load the latest JavaScript fixes.

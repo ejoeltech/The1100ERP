@@ -7,12 +7,11 @@ if (!$quote_id) {
     die('No quote specified');
 }
 
-// Check if vendor/autoload.php exists (mPDF installed)
-if (!file_exists('../vendor/autoload.php')) {
-    die('PDF export requires mPDF library. Please run "composer install" or see PHASE1-SETUP.md for installation instructions.');
-}
-
 require_once '../vendor/autoload.php';
+require_once '../includes/validate-pdf-env.php';
+
+// Validate environment (extensions, permissions, etc.)
+validatePdfEnvironment(__DIR__ . '/../tmp/mpdf');
 
 try {
     // Fetch quote
@@ -36,41 +35,58 @@ try {
 
     // Generate HTML for PDF
     require_once '../includes/helpers.php';
-    $html = include '../includes/pdf-template.php';
+    
+    // Increase memory and time for PDF generation
+    ini_set('memory_limit', '256M');
+    set_time_limit(120);
 
     // Create PDF
-    $mpdf = new \Mpdf\Mpdf([
-        'format' => 'A4',
-        'margin_left' => 15,
-        'margin_right' => 15,
-        'margin_top' => 15,
-        'margin_bottom' => 15
-    ]);
+    try {
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+            'tempDir' => __DIR__ . '/../tmp/mpdf' // Explicitly set temp directory
+        ]);
 
-    $mpdf->WriteHTML($html);
+        $html = include '../includes/pdf-template.php';
+        
+        // Safety check for HTML content
+        if (!$html || is_int($html)) {
+            throw new Exception("PDF template did not return valid content.");
+        }
 
-    // Append Terms & Conditions if set
-    $terms = getSetting('quote_terms', '');
-    if (!empty(trim($terms))) {
-        $mpdf->AddPage();
-        $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Terms & Conditions</h2>');
-        $mpdf->WriteHTML($terms);
+        $mpdf->WriteHTML($html);
+
+        // Append Terms & Conditions if set
+        $terms = getSetting('quote_terms', '');
+        if (!empty(trim($terms))) {
+            $mpdf->AddPage();
+            $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Terms & Conditions</h2>');
+            $mpdf->WriteHTML($terms);
+        }
+
+        // Append Warranty Information if set
+        $warranty = getSetting('quote_warranty', '');
+        if (!empty(trim($warranty))) {
+            $mpdf->AddPage();
+            $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Warranty Information</h2>');
+            $mpdf->WriteHTML($warranty);
+        }
+
+        // Output PDF
+        $filename = $quote['document_number'] . '_' . date('Ymd') . '.pdf';
+        $mpdf->Output($filename, \Mpdf\Output\Destination::DOWNLOAD);
+
+    } catch (Exception $e) {
+        error_log("PDF Export Fail: " . $e->getMessage());
+        die("System error: " . $e->getMessage());
     }
-
-    // Append Warranty Information if set
-    $warranty = getSetting('quote_warranty', '');
-    if (!empty(trim($warranty))) {
-        $mpdf->AddPage();
-        $mpdf->WriteHTML('<h2 style="font-family: sans-serif; color: #0076BE; font-size: 24px; margin-bottom: 20px;">Warranty Information</h2>');
-        $mpdf->WriteHTML($warranty);
-    }
-
-    // Output PDF
-    $filename = $quote['document_number'] . '_' . date('Ymd') . '.pdf';
-    $mpdf->Output($filename, 'D'); // 'D' = Download
-
 } catch (Exception $e) {
-    error_log("PDF export error: " . $e->getMessage());
-    die('Failed to generate PDF: ' . $e->getMessage());
+    error_log("General Export error: " . $e->getMessage());
+    die("General Error: " . $e->getMessage());
 }
 ?>

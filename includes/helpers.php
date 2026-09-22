@@ -69,9 +69,11 @@ function sanitizeInput($input)
  * @param string $data
  * @return string
  */
-function h($data)
-{
-    return htmlspecialchars((string)$data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+if (!function_exists('h')) {
+    function h($data)
+    {
+        return htmlspecialchars((string)$data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
 }
 
 /**

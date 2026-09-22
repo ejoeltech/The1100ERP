@@ -61,7 +61,7 @@ try {
     }
 
     // Temporary directory for PDFs
-    $tempDir = sys_get_temp_dir() . '/bluedots_bulk_' . uniqid();
+    $tempDir = sys_get_temp_dir() . '/1100erp_bulk_' . uniqid();
     mkdir($tempDir);
 
     $pdfFiles = [];

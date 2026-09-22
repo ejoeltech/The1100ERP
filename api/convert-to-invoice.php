@@ -101,7 +101,7 @@ try {
     foreach ($line_items as $item) {
         $stmt->execute([
             $invoice_id,
-            $item['product_id'],
+            $item['product_id'] ?? $item['item_id'] ?? null,
             $item['item_id'] ?? null,
             $item['item_name'] ?? null,
             $item['item_number'],

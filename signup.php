@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($error): ?>
             <div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200">
-                <?php echo $error; ?>
+                <?php echo htmlspecialchars($error, ENT_QUOTES | ENT_HTML5, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 

@@ -1,5 +1,5 @@
 -- Restore Solar Quote Templates - CORRECT VERSION
-USE bluedots_quotes;
+USE 1100erp;
 
 -- Basic Home Solar System (1.5KVA) - ₦483,750
 INSERT INTO quote_templates (template_name, estimated_total, template_description)

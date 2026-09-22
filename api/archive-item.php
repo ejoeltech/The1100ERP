@@ -3,7 +3,6 @@
 // POST /api/archive-item.php
 // Payload: { type: 'quote'|'invoice'|'receipt', id: 123, action: 'archive'|'unarchive' }
 
-require_once '../config.php';
 require_once '../includes/session-check.php';
 
 header('Content-Type: application/json');

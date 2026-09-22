@@ -9,7 +9,7 @@ ADD COLUMN `signature_path` varchar(255) DEFAULT NULL AFTER `passport_path`,
 ADD COLUMN `secondary_phone` varchar(50) DEFAULT NULL AFTER `address`,
 ADD COLUMN `nin_number` varchar(50) DEFAULT NULL AFTER `account_name`,
 ADD COLUMN `bvn_number` varchar(50) DEFAULT NULL AFTER `nin_number`,
--- Tin Number already exists in v1
+/* Tin Number already exists in v1 */
 ADD COLUMN `next_of_kin_name` varchar(255) DEFAULT NULL AFTER `emergency_contact_phone`,
 ADD COLUMN `next_of_kin_phone` varchar(50) DEFAULT NULL AFTER `next_of_kin_name`,
 ADD COLUMN `next_of_kin_relationship` varchar(100) DEFAULT NULL AFTER `next_of_kin_phone`,

@@ -173,38 +173,47 @@ if (function_exists('setSecurityHeaders')) {
                 </div>
 
                 <!-- HR Section -->
+                <?php $hrActive = isset($currentPage) && strpos($currentPage, 'hr_') === 0; ?>
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">HR Management</p>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/dashboard.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_dashboard'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         📊 HR Dashboard
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/employees.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_employees'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         👥 Employees
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_attendance'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🕒 Attendance
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/leave.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_leave'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         📅 Leave
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_payroll'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         💰 Payroll
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/voting.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_voting'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🗳️ Staff Voting
                     </a>
-                    <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-generator.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
-                        🪪 ID Cards
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/id-maker.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_idcards'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        🎨 ID Templates
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/id-produce.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_idproduce'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        🪪 Produce ID Cards
+                    </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/id-auto.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_idauto'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        ⚡ Bulk ID Production
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/onboarding-admin.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_onboarding'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🚀 Onboarding
                     </a>
                 </div>
@@ -224,6 +233,10 @@ if (function_exists('setSecurityHeaders')) {
                         <a href="<?php echo $base_path; ?>/pages/audit-log.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             📊 Audit Log
+                        </a>
+                        <a href="<?php echo $base_path; ?>/pages/system-update.php"
+                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                            🔧 System Update
                         </a>
                         <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg flex items-center gap-2">
@@ -261,20 +274,13 @@ if (function_exists('setSecurityHeaders')) {
                 <a href="<?php echo $base_path; ?>/dashboard.php"
                     class="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <?php
-                    // Use uploaded logo if available
-                    $logo_path = 'uploads/logo/company_logo_';
+                    // Use uploaded logo if available, else placeholder (change in Settings → Company Information)
                     $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
                     if (!empty($logo_files)) {
                         $latest_logo = basename(end($logo_files));
-                        echo '<img src="' . $base_path . '/uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="Company Logo" class="h-12 object-contain">';
+                        echo '<img src="' . $base_path . '/uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . htmlspecialchars(COMPANY_NAME) . '" class="h-12 object-contain">';
                     } else {
-                        // Default Placeholder
-                        echo '<div class="flex items-center gap-2">';
-                        echo '<div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary font-bold text-xl">';
-                        echo substr(COMPANY_NAME, 0, 1);
-                        echo '</div>';
-                        echo '<h1 class="text-xl font-bold text-gray-900">' . htmlspecialchars(COMPANY_NAME) . '</h1>';
-                        echo '</div>';
+                        echo '<img src="' . $base_path . '/assets/img/logo-placeholder.svg" alt="Logo Placeholder" class="h-10 object-contain opacity-80" title="Upload your logo in Settings → Company Information">';
                     }
                     ?>
                 </a>
@@ -452,15 +458,20 @@ if (function_exists('setSecurityHeaders')) {
                                     <div class="font-semibold">🗳️ Staff Voting</div>
                                     <div class="text-xs text-gray-500">Vote for Colleague</div>
                                 </a>
-                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-designer.php"
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-maker.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">🎨 ID Card Designer</div>
-                                    <div class="text-xs text-gray-500">Customize Templates</div>
+                                    <div class="font-semibold">🎨 ID Templates</div>
+                                    <div class="text-xs text-gray-500">Design card templates</div>
                                 </a>
-                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-card-generator.php"
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-produce.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">🪪 ID Cards</div>
-                                    <div class="text-xs text-gray-500">Print Employee IDs</div>
+                                    <div class="font-semibold">🪪 Produce ID Cards</div>
+                                    <div class="text-xs text-gray-500">Manual card production</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/id-auto.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">⚡ Bulk ID Production</div>
+                                    <div class="text-xs text-gray-500">Generate from HR records</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/onboarding-admin.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">

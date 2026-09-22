@@ -312,20 +312,15 @@ $line_items = $stmt->fetchAll();
     <div class="container">
         <div class="header">
             <?php
-            // Use uploaded logo if available
+            // Use uploaded logo if available, else generic placeholder (Settings → Company Information)
             $logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*');
             if (!empty($logo_files)) {
                 $latest_logo = basename(end($logo_files));
                 echo '<img src="../uploads/logo/' . htmlspecialchars($latest_logo) . '" alt="' . COMPANY_NAME . '" style="height: 80px; max-width: 300px; margin-bottom: 15px;">';
+            } elseif (file_exists(__DIR__ . '/../uploads/logo/placeholder_logo.png')) {
+                echo '<img src="../uploads/logo/placeholder_logo.png" alt="Logo Placeholder" style="height: 60px; max-width: 280px; margin-bottom: 15px; opacity:0.9;">';
             } else {
-                echo '<div class="logo">
-                    <div class="logo-dot"></div>
-                    <div class="logo-dot"></div>
-                    <div class="logo-dot"></div>
-                    <div class="logo-dot"></div>
-                </div>';
-                echo '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>';
-                echo '<div class="company-tagline">TECHNOLOGIES</div>';
+                echo '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP') . '</div>';
             }
             ?>
             <div class="company-info">

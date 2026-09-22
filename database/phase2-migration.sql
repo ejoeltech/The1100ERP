@@ -1,8 +1,8 @@
--- Bluedots Technologies Quote Management System
+-- Eleven100 ERP Quote Management System
 -- Phase 2A Database Migration
 -- Run this in phpMyAdmin AFTER Phase 1
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- Add users table for authentication
 CREATE TABLE IF NOT EXISTS users (
@@ -18,10 +18,9 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Create default admin user
--- Password: admin123 (CHANGE THIS AFTER FIRST LOGIN!)
-INSERT INTO users (username, password_hash, full_name, email) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin@bluedots.com.ng');
+-- Default admin user (DISABLED BY DEFAULT)
+-- Former seed used a publicly-known password hash and was removed.
+-- The setup wizard creates the real admin account; never seed default credentials.
 
 -- Add document_type column
 ALTER TABLE documents 
@@ -64,7 +63,7 @@ INSERT INTO documents (
     'INV-0001',
     'Website Development Project',
     'ABC Limited',
-    'Joel Okenabirhie',
+    'Sample Salesperson',
     '2026-01-16',
     125000.00,
     9000.00,

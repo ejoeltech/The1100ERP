@@ -21,3 +21,7 @@ config.php
 
 *.zip
 .env
+
+# PDF Temporary directory
+tmp/
+!tmp/.htaccess

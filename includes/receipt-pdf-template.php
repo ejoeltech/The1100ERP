@@ -34,8 +34,7 @@ $html = '
         ' . (
     ($logo_files = glob(__DIR__ . '/../uploads/logo/company_logo_*')) && !empty($logo_files)
     ? '<img src="' . __DIR__ . '/../uploads/logo/' . basename(end($logo_files)) . '" style="height: 60px; max-width: 200px; display: block; margin: 0 auto 10px;">'
-    : '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Bluedots') . '</div>
-               <div class="company-tagline">TECHNOLOGIES</div>'
+    : (file_exists($ph = __DIR__ . '/../uploads/logo/placeholder_logo.png') ? '<img src="' . $ph . '" style="height: 42px; max-width: 240px; display: block; margin: 0 auto 10px;">' : '<div class="company-name">' . (defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP') . '</div>')
 ) . '
         <div class="company-details">
             <strong>Contact Address:</strong> ' . COMPANY_ADDRESS . '<br>

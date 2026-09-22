@@ -2,7 +2,7 @@
 -- User Management & Advanced Permissions
 -- Run this in phpMyAdmin after backup
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- ============================================
 -- 1. ENHANCE USERS TABLE
@@ -72,14 +72,11 @@ CREATE TABLE IF NOT EXISTS email_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Email send history for documents';
 
 -- ============================================
--- 4. CREATE TEST USERS
+-- 4. TEST USERS (DISABLED BY DEFAULT)
 -- ============================================
-
--- Insert sample users for testing (password: admin123)
-INSERT IGNORE INTO users (username, password_hash, full_name, email, phone, role, is_active) VALUES
-('manager1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John Manager', 'manager@bluedots.com.ng', '08012345678', 'manager', 1),
-('salesrep1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane Sales', 'sales@bluedots.com.ng', '08087654321', 'sales_rep', 1),
-('salesrep2', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Mike Sales', 'mike@bluedots.com.ng', '08098765432', 'sales_rep', 1);
+-- Former demo accounts (manager1 / salesrep1 / salesrep2) removed:
+-- they used a publicly-known password hash and must never exist in production.
+-- To recreate for local testing only, insert users via the app's user management.
 
 -- ============================================
 -- 5. SAMPLE AUDIT LOG ENTRIES

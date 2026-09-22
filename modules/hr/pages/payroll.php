@@ -12,8 +12,8 @@ $currentPage = 'hr_payroll';
 $hr_employee = new HR_Employee($pdo);
 $employees = $hr_employee->getAllEmployees(1000); // Get all active employees
 
-$month = $_GET['month'] ?? date('n');
-$year = $_GET['year'] ?? date('Y');
+$month = max(1, min(12, (int) ($_GET['month'] ?? date('n'))));
+$year = max(2020, min(2035, (int) ($_GET['year'] ?? date('Y'))));
 
 $message = '';
 $error = '';

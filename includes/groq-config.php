@@ -2,17 +2,21 @@
 /**
  * Groq AI Configuration for 1100erp
  * Uses Groq's FREE tier with Llama 3.1 70B
+ * @deprecated Use includes/ai-config.php for multi-provider support. Kept for backward compatibility.
  */
+require_once __DIR__ . '/ai-config.php';
 
-// Groq API Configuration
-// Try env var first, then database setting
-$groq_key = getenv('GROQ_API_KEY');
-if (!$groq_key && function_exists('getSetting')) {
-    $groq_key = getSetting('groq_api_key', '');
+// Backward compat: resolve via provider system, default to Groq
+$_ai_cfg = getAiProviderConfig('groq');
+$groq_key = $_ai_cfg['api_key'];
+// Also respect legacy groq_api_key + env
+if (empty($groq_key)) {
+    $groq_key = getenv('GROQ_API_KEY');
+    if (!$groq_key && function_exists('getSetting')) $groq_key = getSetting('groq_api_key', '');
 }
 define('GROQ_API_KEY', $groq_key);
 define('GROQ_API_URL', 'https://api.groq.com/openai/v1/chat/completions');
-define('GROQ_MODEL', 'llama-3.3-70b-versatile');
+define('GROQ_MODEL', $_ai_cfg['model'] ?: 'llama-3.1-8b-instant');
 define('GROQ_TIMEOUT', 30); // seconds
 
 // Nigerian Solar Market Context
@@ -91,73 +95,18 @@ define('NIGERIAN_APPLIANCES', [
  */
 function callGroqAPI($prompt, $systemPrompt = '', $options = [])
 {
-    if (empty(GROQ_API_KEY)) {
-        throw new Exception('Groq API key not configured. Please set GROQ_API_KEY environment variable.');
+    // Wrapper for backward compatibility - delegates to generic provider
+    // If GROQ_API_KEY is set, it will use Groq; otherwise uses configured provider
+    $override = [];
+    if (!empty(GROQ_API_KEY)) {
+        $override['provider'] = 'groq';
+        $override['api_key'] = GROQ_API_KEY;
+        $override['model'] = GROQ_MODEL;
     }
-
-    $messages = [];
-
-    if (!empty($systemPrompt)) {
-        $messages[] = [
-            'role' => 'system',
-            'content' => $systemPrompt
-        ];
-    }
-
-    $messages[] = [
-        'role' => 'user',
-        'content' => $prompt
-    ];
-
-    $defaultOptions = [
-        'temperature' => 0.7,
-        'max_tokens' => 2048,
-        'top_p' => 1,
-        'stream' => false
-    ];
-
-    $options = array_merge($defaultOptions, $options);
-
-    $data = [
-        'model' => GROQ_MODEL,
-        'messages' => $messages,
-        'temperature' => $options['temperature'],
-        'max_tokens' => $options['max_tokens'],
-        'top_p' => $options['top_p']
-    ];
-
-    $ch = curl_init(GROQ_API_URL);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . GROQ_API_KEY
-    ]);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_TIMEOUT, GROQ_TIMEOUT);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlError) {
-        throw new Exception("Groq API connection error: {$curlError}");
-    }
-
-    if ($httpCode !== 200) {
-        $errorData = json_decode($response, true);
-        $errorMsg = $errorData['error']['message'] ?? "HTTP {$httpCode}";
-        throw new Exception("Groq API error: {$errorMsg}");
-    }
-
-    $result = json_decode($response, true);
-
-    if (!isset($result['choices'][0]['message']['content'])) {
-        throw new Exception('Invalid Groq API response format');
-    }
-
-    return trim($result['choices'][0]['message']['content']);
+    return callAiAPI($prompt, $systemPrompt, $options, $override);
+}
+function callAI($prompt, $systemPrompt = '', $options = [], $override = []) {
+    return callAiAPI($prompt, $systemPrompt, $options, $override);
 }
 
 /**

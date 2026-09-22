@@ -1,17 +1,17 @@
 # QUICK START GUIDE
-# Bluedots Technologies Quote Management System - Phase 0
+# Eleven100 ERP Quote Management System - Phase 0
 
 ## STEP 1: Create Database
 
 1. Open: http://localhost/phpmyadmin
 2. Click "New" (left sidebar)
-3. Database name: bluedots_quotes
+3. Database name: 1100erp
 4. Collation: utf8mb4_unicode_ci
 5. Click "Create"
 
 ## STEP 2: Import Schema
 
-1. Click on "bluedots_quotes" database (left sidebar)
+1. Click on "1100erp" database (left sidebar)
 2. Click "SQL" tab (top menu)
 3. Open file: database/schema.sql
 4. Copy ALL contents
@@ -23,7 +23,7 @@
 
 1. Open browser
 2. Go to: http://localhost/1100erp/
-3. You should see Bluedots landing page
+3. You should see Eleven100 ERP landing page
 
 ## STEP 4: Test the System
 
@@ -52,7 +52,7 @@ Your setup is successful if:
 
 ### Can't connect to database?
 - Check XAMPP: Apache and MySQL must be running
-- Verify database name: bluedots_quotes
+- Verify database name: 1100erp
 - Check config.php credentials
 
 ### VAT not calculating?
@@ -86,4 +86,4 @@ After setup:
 
 ---
 
-**Support:** bluedotsng@gmail.com | 07031635955
+**Support:** support@eleven100erp.com

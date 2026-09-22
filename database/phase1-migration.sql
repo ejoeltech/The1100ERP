@@ -1,8 +1,8 @@
--- Bluedots Technologies Quote Management System
+-- Eleven100 ERP Quote Management System
 -- Phase 1 Database Migration
 -- Run this in phpMyAdmin AFTER Phase 0 schema
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- Create customers table
 CREATE TABLE IF NOT EXISTS customers (
@@ -32,5 +32,5 @@ ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER status;
 INSERT INTO customers (name, contact_person, email, phone, address) VALUES
 ('ABC Limited', 'John Doe', 'john@abclimited.com', '08012345678', '123 Lagos Street, Lagos'),
 ('XYZ Corporation Limited', 'Jane Smith', 'jane@xyzcorp.com', '08087654321', '456 Abuja Road, Abuja'),
-('Tech Solutions Ltd', 'Bob Johnson', 'bob@techsolutions.ng', '08011112222', '789 Port Harcourt Ave, PH')
+('Sample Company Ltd', 'Sample Contact', 'sample@example.com', '08000000000', 'Sample Address')
 ON DUPLICATE KEY UPDATE name = name;

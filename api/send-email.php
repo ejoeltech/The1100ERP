@@ -1,15 +1,12 @@
 <?php
-session_start();
-require_once '../config.php';
+define('IS_API', true);
+require_once '../includes/session-check.php';
 require_once '../includes/simple-mailer.php';
 
-// Check authentication
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Not authenticated']);
-    exit;
-}
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }

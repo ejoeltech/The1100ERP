@@ -49,7 +49,7 @@ include '../../includes/header.php';
                     </label>
                     <input type="email" name="email"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="john@bluedots.com.ng">
+                        placeholder="john@eleven100erp.com.ng">
                 </div>
 
                 <div>

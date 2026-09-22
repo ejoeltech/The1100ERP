@@ -9,6 +9,15 @@ $pageTitle = 'HR Dashboard | ' . COMPANY_NAME;
 $currentPage = 'hr_dashboard';
 
 include_once '../../../includes/header.php';
+
+// Live stats — tolerate missing HR tables on first install
+try { $totalEmployees = (int) $pdo->query("SELECT COUNT(*) FROM hr_employees")->fetchColumn(); } catch (Exception $e) { $totalEmployees = 0; }
+try { $onLeaveToday = (int) $pdo->query("SELECT COUNT(*) FROM hr_leave_requests WHERE status='approved' AND CURDATE() BETWEEN start_date AND end_date")->fetchColumn(); } catch (Exception $e) { $onLeaveToday = 0; }
+try { $openVacancies = (int) $pdo->query("SELECT COUNT(*) FROM hr_recruitment_candidates WHERE status IN ('new','shortlisted','interviewed')")->fetchColumn(); } catch (Exception $e) { $openVacancies = 0; }
+try {
+    $presentToday = (int) $pdo->query("SELECT COUNT(*) FROM hr_attendance WHERE date=CURDATE() AND status IN ('present','late')")->fetchColumn();
+    $attendanceRate = $totalEmployees > 0 ? round($presentToday / $totalEmployees * 100) : 0;
+} catch (Exception $e) { $presentToday = 0; $attendanceRate = 0; }
 ?>
 
 <div class="mb-6 flex justify-between items-center">
@@ -29,7 +38,7 @@ include_once '../../../includes/header.php';
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-medium text-gray-500">Total Employees</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-2">0</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-2"><?php echo $totalEmployees; ?></h3>
             </div>
             <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +54,7 @@ include_once '../../../includes/header.php';
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-medium text-gray-500">On Leave Today</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-2">0</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-2"><?php echo $onLeaveToday; ?></h3>
             </div>
             <div class="p-2 bg-yellow-50 rounded-lg text-yellow-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +70,7 @@ include_once '../../../includes/header.php';
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-medium text-gray-500">Open Vacancies</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-2">0</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-2"><?php echo $openVacancies; ?></h3>
             </div>
             <div class="p-2 bg-green-50 rounded-lg text-green-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,7 +86,7 @@ include_once '../../../includes/header.php';
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-medium text-gray-500">Attendance Rate</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-2">0%</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-2"><?php echo $attendanceRate; ?>%</h3>
             </div>
             <div class="p-2 bg-purple-50 rounded-lg text-purple-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

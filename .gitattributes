@@ -1,0 +1,4 @@
+# Exclude the one-time installer from deployment archives (git archive / some PaaS).
+# Production must never receive maintenance/setup/: run cleanup (or System Update
+# > Delete Installer) after install instead.
+maintenance/setup/ export-ignore

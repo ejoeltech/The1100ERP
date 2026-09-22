@@ -174,8 +174,8 @@ function setSecurityHeaders() {
     header("Referrer-Policy: strict-origin-when-cross-origin");
     
     // Content Security Policy
-    // Note: 'unsafe-inline' is currently required for Tailwind CDN and some dynamic styles
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com");
+    // Note: 'unsafe-inline' + 'unsafe-eval' currently required for Tailwind CDN (uses eval) and dynamic styles
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com");
 }
 
 // ============================================

@@ -7,6 +7,8 @@
 
 header('Content-Type: application/json');
 
+session_start();
+
 // Helper function to send error
 function sendError($message)
 {
@@ -18,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendError('Invalid request method');
 }
 
-// Block re-install once lock exists. Delete maintenance/setup/ after install.
-if (file_exists(__DIR__ . '/../lock')) {
+// Block once configured OR locked. Delete maintenance/setup/ after install.
+if (file_exists(dirname(__DIR__, 3) . '/config.php') || file_exists(__DIR__ . '/../lock')) {
     sendError('Already installed. Delete maintenance/setup/ to reinstall.');
 }
 
@@ -155,6 +157,22 @@ define('CURRENCY_SYMBOL', '₦'); // Default
 
     // Create lock file
     file_put_contents(__DIR__ . '/../lock', 'Installed via Restore on ' . date('Y-m-d H:i:s'));
+
+    // Auto-login the first admin so Step 7 cleanup works with no separate login.
+    try {
+        $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
+        $pdoLogin = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $stmt = $pdoLogin->query("SELECT id, username, full_name FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+        if ($admin = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = $admin['id'];
+            $_SESSION['username'] = $admin['username'];
+            $_SESSION['full_name'] = $admin['full_name'];
+            $_SESSION['role'] = 'admin';
+        }
+    } catch (Exception $e) {
+        // Non-fatal: user logs in manually instead.
+    }
 
     echo json_encode(['success' => true, 'message' => 'System restored successfully']);
 

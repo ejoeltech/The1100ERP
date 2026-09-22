@@ -116,7 +116,7 @@ include '../includes/header.php';
         </div>
     </div>
 
-    <!-- Output Preview (TinyMCE) -->
+    <!-- Output Preview (Rich Text Editor) -->
     <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -136,71 +136,24 @@ include '../includes/header.php';
                 </div>
             </div>
 
-            <textarea id="proposalEditor" class="flex-grow h-screen min-h-[500px]">
+            <link rel="stylesheet" href="<?php echo $base_path; ?>/assets/vendors/quill/quill.snow.css">
+            <textarea id="proposalEditor" class="hidden">
                 <p class="text-gray-400 italic">Generated proposal will appear here...</p>
             </textarea>
         </div>
     </div>
 </div>
 
-    /**
-     * Robust TinyMCE Loader
-     * Tries local vendor first, falls back to CDN if local fails
-     */
-    function loadTinyMCE(callback) {
-        if (typeof tinymce !== 'undefined') {
-            callback();
-            return;
-        }
+<script src="<?php echo $base_path; ?>/assets/js/quill-loader.js"></script>
+<script>
+    var proposalQuill = null;
 
-        const localPath = '<?php echo $base_path; ?>/assets/vendors/tinymce/tinymce.min.js';
-        const apiKey = '<?php echo (defined("TINYMCE_API_KEY") && TINYMCE_API_KEY !== "no-api-key") ? TINYMCE_API_KEY : "no-api-key"; ?>';
-        const cdnPath = `https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js`;
-
-        console.log('Attempting to load local TinyMCE...');
-        const script = document.createElement('script');
-        script.src = localPath;
-        script.onload = () => {
-            console.log('Local TinyMCE loaded successfully.');
-            callback();
-        };
-        script.onerror = function() {
-            console.warn('Local TinyMCE failed, falling back to CDN...');
-            const backup = document.createElement('script');
-            backup.src = cdnPath;
-            backup.referrerpolicy = 'origin';
-            backup.onload = () => {
-                console.log('CDN TinyMCE loaded successfully.');
-                callback();
-            };
-            backup.onerror = () => {
-                console.error('TinyMCE loading failed completely. Check internet connection or API key.');
-                alert('Advanced Editor Error: The rich text editor could not be loaded. Some features may be limited.');
-            };
-            document.head.appendChild(backup);
-        };
-        document.head.appendChild(script);
-    }
-
-    loadTinyMCE(() => {
-        if (typeof tinymce === 'undefined') return;
-        tinymce.init({
-            selector: '#proposalEditor',
-            height: 600,
-            menubar: false,
-            plugins: ['advlist', 'autolink', 'lists', 'link', 'preview', 'wordcount', 'table'],
-            toolbar: 'undo redo | formatselect | bold italic | alignleft aligncenter | bullist numlist | table | preview',
-            content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; line-height:1.6 }',
-            valid_elements: 'p,br,b,i,strong,em,ul,ol,li,table,thead,tbody,tr,th,td,h1,h2,h3,h4,h5,h6,div[class|style],span[class|style],a[href|target|title|class]',
-            valid_styles: {
-                '*': 'color,font-size,font-weight,text-decoration,text-align,background-color'
-            },
-            extended_valid_elements: 'svg[class|fill|viewBox|stroke|stroke-width|stroke-linecap|stroke-linejoin],path[d|fill|stroke]',
-            convert_urls: false,
-            entity_encoding: 'raw',
-            verify_html: true
-        });
-    });
+    loadQuill(function () {
+        if (typeof Quill === 'undefined') return;
+        proposalQuill = QuillHelper.create('proposalEditor', { height: 500 });
+    }, '<?php echo $base_path; ?>/assets');
+</script>
+<script>
 
     async function getRecommendation() {
         const houseType = document.getElementById('recHouseType').value;
@@ -302,7 +255,7 @@ include '../includes/header.php';
             const data = await response.json();
 
             if (data.success) {
-                tinymce.get('proposalEditor').setContent(data.proposal_html);
+                if (proposalQuill) proposalQuill.setHTML(data.proposal_html);
             } else {
                 alert('AI Error: ' + (data.error || 'Unknown error'));
             }
@@ -316,12 +269,12 @@ include '../includes/header.php';
     }
 
     function copyToClipboard() {
-        const content = tinymce.get('proposalEditor').getContent({ format: 'text' });
+        const content = proposalQuill ? proposalQuill.getText() : '';
         navigator.clipboard.writeText(content).then(() => alert('Copied to clipboard!'));
     }
 
     async function saveDraft() {
-        const content = tinymce.get('proposalEditor').getContent();
+        const content = proposalQuill ? proposalQuill.getHTML() : '';
         if (!content || content.length < 20) {
             alert('Please generate or write some content first.');
             return;

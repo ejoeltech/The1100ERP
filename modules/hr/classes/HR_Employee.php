@@ -143,63 +143,65 @@ class HR_Employee
 
     public function updateEmployee($id, $data)
     {
-        // Only updates employee specific fields, not main user account (separate process usually)
-        $fields = [];
-        $values = [];
+        // Maps split between hr_employees and users; encrypts PII; transactional
+        require_once dirname(__DIR__, 3) . '/includes/security.php';
 
-        $allowed = [
-            'full_name',
-            'department_id',
-            'designation_id',
-            'employment_status',
-            'email',
-            'address',
-            'phone',
-            'date_of_birth',
-            'gender',
-            'join_date',
-            'termination_date',
-            'passport_path',
-            'signature_path',
-            'secondary_phone',
-            'nin_number',
-            'bvn_number',
-            'tin_number',
-            'basic_salary',
-            'housing_allowance',
-            'transport_allowance',
-            'next_of_kin_name',
-            'next_of_kin_phone',
-            'next_of_kin_relationship',
-            'reference_1_name',
-            'reference_1_phone',
-            'reference_1_org',
-            'reference_2_name',
-            'reference_2_phone',
-            'reference_2_org',
-            'bank_name',
-            'account_number',
-            'account_name'
+        $userFields = ['full_name', 'email', 'phone'];
+        $hrAllowed = [
+            'department_id','designation_id','employment_status','address','date_of_birth','gender','join_date','termination_date',
+            'passport_path','signature_path','secondary_phone','nin_number','bvn_number','tin_number',
+            'basic_salary','housing_allowance','transport_allowance','next_of_kin_name','next_of_kin_phone','next_of_kin_relationship',
+            'reference_1_name','reference_1_phone','reference_1_org','reference_2_name','reference_2_phone','reference_2_org',
+            'bank_name','account_number','account_name'
         ];
 
-        require_once dirname(__DIR__, 3) . '/includes/security.php';
-        foreach ($data as $key => $value) {
-            if (in_array($key, $allowed)) {
-                $fields[] = "$key = ?";
-                if ($key === 'nin_number' || $key === 'bvn_number') {
-                    $values[] = encryptPII($value);
-                } else {
-                    $values[] = $value;
+        // Fetch user_id for this employee
+        $stmt = $this->pdo->prepare("SELECT user_id FROM hr_employees WHERE id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch();
+        if (!$row) return false;
+
+        $this->pdo->beginTransaction();
+        try {
+            // 1. Update users table if needed
+            $uFields = []; $uVals = [];
+            foreach ($userFields as $k) {
+                if (array_key_exists($k, $data)) {
+                    $col = $k === 'phone' ? 'phone' : $k;
+                    // hr form sends 'full_name' -> users.full_name, etc.
+                    $uFields[] = "$col = ?";
+                    $uVals[] = $data[$k];
                 }
             }
+            if (!empty($uFields)) {
+                $uVals[] = $row['user_id'];
+                $this->pdo->prepare("UPDATE users SET " . implode(', ', $uFields) . " WHERE id = ?")->execute($uVals);
+            }
+
+            // 2. Update hr_employees
+            $fields = []; $values = [];
+            foreach ($data as $key => $value) {
+                if (in_array($key, $hrAllowed, true)) {
+                    $fields[] = "$key = ?";
+                    if ($key === 'nin_number' || $key === 'bvn_number') {
+                        $values[] = encryptPII($value);
+                    } else {
+                        $values[] = $value === '' ? null : $value;
+                    }
+                }
+            }
+            if (!empty($fields)) {
+                $values[] = $id;
+                $sql = "UPDATE hr_employees SET " . implode(', ', $fields) . " WHERE id = ?";
+                $this->pdo->prepare($sql)->execute($values);
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            throw $e;
         }
-
-        if (empty($fields))
-            return false;
-
-        $values[] = $id;
-        $sql = "UPDATE hr_employees SET " . implode(', ', $fields) . " WHERE id = ?";
-        return $this->pdo->prepare($sql)->execute($values);
     }
 
     public function getDepartments()

@@ -1,7 +1,7 @@
 -- Products & Customers Enhancement Migration
 -- Creates products table and enhances customers table
 
-USE bluedots_quotes;
+USE 1100erp;
 
 -- ============================================
 -- 1. CREATE PRODUCTS TABLE

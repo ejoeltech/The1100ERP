@@ -7,8 +7,8 @@
 // CRITICAL: Start session FIRST before any output
 session_start();
 
-// Block re-install once lock exists. Delete maintenance/setup/ after install.
-if (file_exists(__DIR__ . '/lock')) {
+// Block once configured OR locked. Delete maintenance/setup/ after install.
+if (file_exists(dirname(__DIR__, 2) . '/config.php') || file_exists(__DIR__ . '/lock')) {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Already installed. Delete maintenance/setup/ to reinstall.']);
     exit;
@@ -370,6 +370,23 @@ function finalizeInstallation()
         file_put_contents($lockFile, date('Y-m-d H:i:s'));
 
         @chmod($configFile, 0644);
+
+        // Auto-login the new admin in this (wizard) session so Step 7
+        // cleanup works immediately with no separate login.
+        try {
+            $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
+            $pdo = new PDO($dsn, $dbUser, $dbPassword, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            $stmt = $pdo->query("SELECT id, username, full_name FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+            if ($admin = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $admin['id'];
+                $_SESSION['username'] = $admin['username'];
+                $_SESSION['full_name'] = $admin['full_name'];
+                $_SESSION['role'] = 'admin';
+            }
+        } catch (Exception $e) {
+            // Non-fatal: user logs in manually, cleanup runs from System Update instead.
+        }
 
         $response['success'] = true;
         $response['message'] = 'Installation finalized successfully';

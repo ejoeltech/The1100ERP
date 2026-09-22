@@ -21,21 +21,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_leave'])) {
     if (!$current_emp) {
         $error = "You are not linked to an employee record.";
     } else {
-        try {
-            $stmt = $pdo->prepare("
-                INSERT INTO hr_leave_requests (employee_id, leave_type, start_date, end_date, reason) 
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $current_emp['id'],
-                $_POST['leave_type'],
-                $_POST['start_date'],
-                $_POST['end_date'],
-                $_POST['reason']
-            ]);
-            $message = "Leave request submitted successfully.";
-        } catch (Exception $e) {
-            $error = "Error: " . $e->getMessage();
+        $start = $_POST['start_date'] ?? '';
+        $end = $_POST['end_date'] ?? '';
+        if (strtotime($end) < strtotime($start)) {
+            $error = "End date cannot be before start date.";
+        } else {
+            // Check overlapping pending/approved leaves
+            $stmt = $pdo->prepare("SELECT 1 FROM hr_leave_requests WHERE employee_id=? AND status IN ('pending','approved') AND NOT (end_date < ? OR start_date > ?) LIMIT 1");
+            $stmt->execute([$current_emp['id'], $start, $end]);
+            if ($stmt->fetch()) {
+                $error = "You already have a leave covering those dates.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("
+                        INSERT INTO hr_leave_requests (employee_id, leave_type, start_date, end_date, reason) 
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $current_emp['id'],
+                        $_POST['leave_type'],
+                        $start,
+                        $end,
+                        $_POST['reason']
+                    ]);
+                    $message = "Leave request submitted successfully.";
+                } catch (Exception $e) {
+                    $error = "Error: " . $e->getMessage();
+                }
+            }
         }
     }
 }

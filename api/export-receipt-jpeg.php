@@ -111,10 +111,8 @@ try {
     imagefilledrectangle($image, 0, 0, $width, 25, $blue);
     $y += 60;
 
-    // Company Header with blue circles logo
-    imagettftext($image, 56, 0, $margin, $y, $darkBlue, $fontBoldPath, 'Bluedots');
-    $y += 40;
-    imagettftext($image, 20, 0, $margin, $y, $gray, $fontPath, 'TECHNOLOGIES');
+    // Company Header (dynamic name from Settings)
+    imagettftext($image, 56, 0, $margin, $y, $darkBlue, $fontBoldPath, defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP');
     $y += 80;
 
     // Horizontal line
