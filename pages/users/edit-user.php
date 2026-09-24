@@ -21,6 +21,14 @@ if (!$user) {
 
 $pageTitle = 'Edit User - ERP System';
 
+// Groups for assignment dropdown
+try {
+    $groups = $pdo->query("SELECT id, name, description FROM user_groups ORDER BY name ASC")->fetchAll();
+} catch (Exception $e) {
+    $groups = [];
+}
+$isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
+
 include '../../includes/header.php';
 ?>
 
@@ -93,19 +101,41 @@ include '../../includes/header.php';
                 </div>
             </div>
             
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Role <span class="text-red-500">*</span>
-                </label>
-                <select 
-                    name="role"
-                    required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                >
-                    <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin (Full Access)</option>
-                    <option value="manager" <?php echo $user['role'] === 'manager' ? 'selected' : ''; ?>>Manager (View All, Edit Own)</option>
-                    <option value="sales_rep" <?php echo $user['role'] === 'sales_rep' ? 'selected' : ''; ?>>Sales Rep (View Own Only)</option>
-                </select>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Role <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        name="role"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                        <?php if ($isSuper || $user['role'] === 'super_admin'): ?><option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($isSuper || $user['role'] === 'admin'): ?><option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin (Manage users & settings)</option><?php endif; ?>
+                        <option value="manager" <?php echo $user['role'] === 'manager' ? 'selected' : ''; ?>>Manager (View All, Edit Own)</option>
+                        <option value="accountant" <?php echo $user['role'] === 'accountant' ? 'selected' : ''; ?>>Accountant (Invoices & payments)</option>
+                        <option value="sales_rep" <?php echo $user['role'] === 'sales_rep' ? 'selected' : ''; ?>>Sales Rep (View Own Only)</option>
+                        <option value="viewer" <?php echo $user['role'] === 'viewer' ? 'selected' : ''; ?>>Viewer (Read-only)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Group
+                    </label>
+                    <select
+                        name="group_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                        <option value="">-- Keep current --</option>
+                        <?php foreach ($groups as $g): ?>
+                            <?php if ($g['name'] === 'super_admin' && !$isSuper) continue; ?>
+                            <option value="<?php echo $g['id']; ?>" <?php echo (string)($user['group_id'] ?? '') === (string)$g['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($g['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Group grants baseline permissions; <a class="text-primary font-semibold" href="user-permissions.php?id=<?php echo $user['id']; ?>">customize per-user permissions →</a></p>
+                </div>
             </div>
             
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">

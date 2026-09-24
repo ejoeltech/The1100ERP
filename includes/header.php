@@ -226,6 +226,10 @@ if (function_exists('setSecurityHeaders')) {
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             👤 Manage Users
                         </a>
+                        <a href="<?php echo $base_path; ?>/pages/users/manage-groups.php"
+                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                            🛡️ Groups & Permissions
+                        </a>
                         <a href="<?php echo $base_path; ?>/pages/settings.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             ⚙️ Settings
@@ -309,9 +313,14 @@ if (function_exists('setSecurityHeaders')) {
                                     <div class="text-xs text-gray-500">Inventory Items</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/pages/store/categories.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">Categories</div>
                                     <div class="text-xs text-gray-500">Item Groups</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/accessories/items.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">Accessories</div>
+                                    <div class="text-xs text-gray-500">Internal tools & consumables</div>
                                 </a>
                             </div>
                         </div>
@@ -498,6 +507,11 @@ if (function_exists('setSecurityHeaders')) {
                                         class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                         <div class="font-semibold">Manage Users</div>
                                         <div class="text-xs text-gray-500">Users & roles</div>
+                                    </a>
+                                    <a href="<?php echo $base_path; ?>/pages/users/manage-groups.php"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                        <div class="font-semibold">Groups & Permissions</div>
+                                        <div class="text-xs text-gray-500">Access control</div>
                                     </a>
                                     <a href="<?php echo $base_path; ?>/pages/settings.php"
                                         class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">

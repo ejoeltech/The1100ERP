@@ -27,7 +27,7 @@ if ($user_id == $_SESSION['user_id']) {
 
 try {
     // Get current status
-    $stmt = $pdo->prepare("SELECT username, is_active FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT username, is_active, role FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
 
@@ -37,6 +37,14 @@ try {
 
     // Toggle status
     $new_status = $user['is_active'] ? 0 : 1;
+
+    // Never deactivate the last active super_admin
+    if ($new_status == 0 && $user['role'] === 'super_admin') {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin' AND is_active = 1");
+        if ($stmt->fetchColumn() <= 1) {
+            throw new Exception('Cannot deactivate the last active super admin');
+        }
+    }
 
     $stmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ?");
     $stmt->execute([$new_status, $user_id]);

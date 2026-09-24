@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/session-check.php';
 
 $quote_id = $_GET['id'] ?? null;
 
@@ -26,6 +27,12 @@ try {
 
     if (!$quote) {
         die('Quote not found');
+    }
+
+    // Ownership check: sales reps see only own documents
+    if (!canViewDocument($quote)) {
+        http_response_code(403);
+        die('Access denied: you do not have permission to view this document');
     }
 
     // Fetch line items

@@ -335,7 +335,7 @@ function setTemplate(n){
 let DEFAULTS = {};
 async function fetchDefaults(){
   try{
-    const r = await fetch('api.php?action=default_list').then(r=>r.json());
+    const r = await fetch('../api/id-cards.php?action=default_list').then(r=>r.json());
     DEFAULTS = (r.defaults && typeof r.defaults === 'object') ? r.defaults : {};
   }catch(e){ DEFAULTS = {}; }
 }
@@ -375,7 +375,7 @@ async function saveDefaultDesign(){
 async function resetFactoryDefault(){
   const base = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
   if(!confirm('Restore the factory look for Template ' + base + '? Your saved default will be discarded.')) return;
-  await fetch('api.php?action=default_reset&base='+base, {method:'POST'}).then(r=>r.json());
+  await fetch('../api/id-cards.php?action=default_reset&base='+base, {method:'POST'}).then(r=>r.json());
   delete DEFAULTS[base];
   layout = {}; applyLabels({});
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
@@ -513,7 +513,7 @@ async function save(){
 async function loadRecords(){
   if(!$('rows')) return;
   const q = $('search') ? $('search').value.trim() : '';
-  const r = await fetch('api.php?action=list&q='+encodeURIComponent(q)).then(r=>r.json());
+  const r = await fetch('../api/id-cards.php?action=list&q='+encodeURIComponent(q)).then(r=>r.json());
   const tb = $('rows'); tb.innerHTML='';
   (r.cards||[]).forEach(c=>{
     const tr = document.createElement('tr');
@@ -526,7 +526,7 @@ async function loadRecords(){
     tr.querySelector('[data-a=load]').onclick = ()=>loadCard(c.id);
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete #'+c.id+'?')) return;
-      await fetch('api.php?action=delete&id='+c.id).then(r=>r.json());
+      await fetch('../api/id-cards.php?action=delete&id='+c.id).then(r=>r.json());
       loadRecords();
     };
     tb.appendChild(tr);
@@ -535,7 +535,7 @@ async function loadRecords(){
 }
 function esc(s){ return String(s??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 async function loadCard(id){
-  const r = await fetch('api.php?action=get&id='+id).then(r=>r.json());
+  const r = await fetch('../api/id-cards.php?action=get&id='+id).then(r=>r.json());
   if(!r.card) return;
   const c = r.card; editingId = c.id;
   currentPresetId = c.template_id || 0;
@@ -605,7 +605,7 @@ let currentPresetId = 0, presetLogo = '', presetPhoto = '', editingPresetId = 0;
 async function loadPresetOptions(selId){
   const s = $(selId); if(!s) return;
   try{
-    const r = await fetch('api.php?action=template_list').then(r=>r.json());
+    const r = await fetch('../api/id-cards.php?action=template_list').then(r=>r.json());
     const cur = s.value;
     s.innerHTML = '<option value="0">— No saved template (default design) —</option>';
     (r.templates||[]).forEach(t=>{
@@ -621,7 +621,7 @@ async function applyPreset(id){
   currentPresetId = id || 0; presetLogo = ''; presetPhoto = '';
   if(!id){ const b = Math.max(1, Math.min(7, parseInt(val('template')) || 1)); if(!applyBaseDefault(b)) render(); return; }
   try{
-    const r = await fetch('api.php?action=template_get&id='+id).then(r=>r.json());
+    const r = await fetch('../api/id-cards.php?action=template_get&id='+id).then(r=>r.json());
     const t = r.template; if(!t) return;
     if($('template')) $('template').value = t.base;
     if($('color1')) $('color1').value = t.color1;
@@ -667,14 +667,14 @@ function newPreset(){
 }
 async function loadTemplateList(){
   const tb = $('trows'); if(!tb) return;
-  const r = await fetch('api.php?action=template_list').then(r=>r.json());
+  const r = await fetch('../api/id-cards.php?action=template_list').then(r=>r.json());
   tb.innerHTML = '';
   (r.templates||[]).forEach(t=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${t.id}</td><td><b>${esc(t.name)}</b></td><td>${t.base} — ${esc(TPL_NAMES[t.base-1]||'')}</td>
       <td class="actions"><button class="ghost" data-a="load">Load</button><button class="ghost" data-a="del">Delete</button></td>`;
     tr.querySelector('[data-a=load]').onclick = async ()=>{
-      const g = await fetch('api.php?action=template_get&id='+t.id).then(r=>r.json());
+      const g = await fetch('../api/id-cards.php?action=template_get&id='+t.id).then(r=>r.json());
       if(!g.template) return;
       editingPresetId = g.template.id;
       if($('preset_name')) $('preset_name').value = g.template.name;
@@ -691,7 +691,7 @@ async function loadTemplateList(){
     };
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete template "'+t.name+'"?')) return;
-      await fetch('api.php?action=template_delete&id='+t.id).then(r=>r.json());
+      await fetch('../api/id-cards.php?action=template_delete&id='+t.id).then(r=>r.json());
       if(editingPresetId === t.id) editingPresetId = 0;
       loadTemplateList();
     };
@@ -843,6 +843,9 @@ async function generateSelected(){
       fd.append('color1', val('color1')); fd.append('color2', val('color2'));
       ['dob','hire_date','employment_type','emergency_contact','address','principal'].forEach(k=>fd.append(k,''));
       fd.append('layout_json', JSON.stringify(layout));
+      fd.append('labels_json', JSON.stringify(typeof LABELS !== 'undefined' ? collectLabels() : {}));
+      fd.append('back_json', JSON.stringify(typeof BACK !== 'undefined' ? collectBack() : {}));
+      fd.append('code_json', JSON.stringify(typeof CODE !== 'undefined' ? collectCode() : {}));
       fd.append('labels_json', JSON.stringify(LABELS));
       fd.append('back_json', JSON.stringify(BACK));
       fd.append('code_json', JSON.stringify(CODE));

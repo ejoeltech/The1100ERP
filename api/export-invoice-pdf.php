@@ -1,6 +1,7 @@
 <?php
 require_once '../config.php';
 require_once '../includes/helpers.php';
+require_once '../includes/session-check.php';
 require_once '../vendor/autoload.php';
 require_once '../includes/validate-pdf-env.php';
 
@@ -24,6 +25,12 @@ $invoice = $stmt->fetch();
 
 if (!$invoice) {
     die('Invoice not found');
+}
+
+// Ownership check: sales reps see only own documents
+if (!canViewDocument($invoice)) {
+    http_response_code(403);
+    die('Access denied: you do not have permission to view this document');
 }
 
 // Fetch line items

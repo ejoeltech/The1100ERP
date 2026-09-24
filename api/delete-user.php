@@ -27,12 +27,24 @@ if ($user_id == $_SESSION['user_id']) {
 
 try {
     // Get user details for audit log
-    $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT username, role FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch();
 
     if (!$user) {
         throw new Exception('User not found');
+    }
+
+    // Never delete the last super_admin (would lock out all administration)
+    if ($user['role'] === 'super_admin') {
+        $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin'");
+        if ($stmt->fetchColumn() <= 1) {
+            throw new Exception('Cannot delete the last super admin');
+        }
+        // Only a super_admin may delete another super_admin
+        if (!isSuperAdmin()) {
+            throw new Exception('Only a super admin can delete a super admin');
+        }
     }
 
     // Delete user

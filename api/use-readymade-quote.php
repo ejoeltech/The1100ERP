@@ -1,11 +1,14 @@
 <?php
 session_start();
 require_once '../config.php';
+require_once '../includes/permissions.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
 }
+
+requirePermission('create_document');
 
 $template_id = $_GET['id'] ?? null;
 

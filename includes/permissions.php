@@ -1,19 +1,89 @@
 <?php
 /**
- * Permission System
- * Role-based access control for Eleven100 ERP
+ * Permission System — groups + per-user overrides on top of legacy role matrix.
+ * - super_admin role: bypasses everything.
+ * - Per-user override (deny wins over grant) beats group permissions.
+ * - Group permissions beat the legacy role matrix below.
  */
 
-// Get current user's role (with fallback)
+function getPermissionCatalog()
+{
+    return [
+        'Users & Access' => [
+            'manage_users' => 'Manage users',
+            'create_user' => 'Create user',
+            'edit_user' => 'Edit user',
+            'delete_user' => 'Delete user',
+            'toggle_user_status' => 'Enable/disable user',
+            'manage_access' => 'Manage groups & permissions',
+        ],
+        'Documents' => [
+            'view_all_documents' => 'View all documents',
+            'create_quote' => 'Create quotes',
+            'create_document' => 'Create documents',
+            'edit_quote' => 'Edit quotes',
+            'edit_invoice' => 'Edit invoices',
+            'edit_document' => 'Edit documents',
+            'edit_finalized' => 'Edit finalized documents',
+            'delete_quote' => 'Delete quotes',
+            'delete_invoice' => 'Delete invoices',
+            'delete_receipt' => 'Delete receipts',
+            'delete_document' => 'Delete documents',
+            'archive_document' => 'Archive documents',
+            'convert_to_invoice' => 'Convert quotes to invoices',
+            'generate_receipt' => 'Generate receipts',
+        ],
+        'Communication' => [
+            'send_email' => 'Send emails',
+            'email_document' => 'Email documents',
+        ],
+        'System' => [
+            'manage_settings' => 'Manage settings',
+            'view_audit_log' => 'View audit log',
+            'export_data' => 'Export data',
+        ],
+        'Modules' => [
+            'manage_store' => 'Manage store inventory',
+            'manage_accessories' => 'Manage accessories store',
+            'manage_hr' => 'Manage HR module',
+            'manage_payments' => 'Manage payments',
+        ],
+        'Dashboard & Profile' => [
+            'view_system_dashboard' => 'View system dashboard',
+            'view_team_dashboard' => 'View team dashboard',
+            'view_personal_dashboard' => 'View personal dashboard',
+            'edit_own_profile' => 'Edit own profile',
+            'change_own_password' => 'Change own password',
+        ],
+    ];
+}
+
+function getAllPermissionKeys()
+{
+    $keys = [];
+    foreach (getPermissionCatalog() as $group) {
+        foreach ($group as $key => $label) {
+            $keys[] = $key;
+        }
+    }
+    return $keys;
+}
+
+// Get current user's role (fail-closed default)
 function getUserRole()
 {
-    return $_SESSION['role'] ?? 'admin'; // Default to admin for backward compatibility
+    return $_SESSION['role'] ?? 'viewer';
 }
 
 // Role checkers
+function isSuperAdmin()
+{
+    return getUserRole() === 'super_admin';
+}
+
 function isAdmin()
 {
-    return getUserRole() === 'admin';
+    return in_array(getUserRole(), ['super_admin', 'admin'], true);
 }
 
 function isManager()
@@ -37,6 +107,66 @@ function isViewer()
 }
 
 /**
+ * Per-request cache of the current user's effective permissions.
+ * Call clearUserPermissionCache($userId) after writing overrides/group perms
+ * so same-request re-checks see fresh data.
+ */
+function clearUserPermissionCache($userId = null)
+{
+    // Reset the static cache inside getUserEffectivePermissions via a sentinel call.
+    // Implemented by re-invoking with a cache-bust flag stored in $GLOBALS.
+    if ($userId === null) {
+        $GLOBALS['_perm_cache_bust_all'] = microtime(true);
+    } else {
+        $GLOBALS['_perm_cache_bust_' . (int)$userId] = microtime(true);
+    }
+}
+
+function getUserEffectivePermissions($userId = null)
+{
+    static $cache = [];
+    static $cacheStamp = [];
+    global $pdo;
+
+    if ($userId === null) {
+        $userId = $_SESSION['user_id'] ?? null;
+    }
+    if (!$userId) {
+        return ['group' => [], 'overrides' => []];
+    }
+    $stamp = ($GLOBALS['_perm_cache_bust_' . (int)$userId] ?? null) . '|' . ($GLOBALS['_perm_cache_bust_all'] ?? null);
+    if (isset($cache[$userId]) && ($cacheStamp[$userId] ?? null) === $stamp) {
+        return $cache[$userId];
+    }
+
+    $result = ['group' => [], 'overrides' => []];
+    try {
+        // Group permissions via users.group_id
+        $stmt = $pdo->prepare("
+            SELECT gp.permission_key
+            FROM users u
+            JOIN group_permissions gp ON gp.group_id = u.group_id
+            WHERE u.id = ?
+        ");
+        $stmt->execute([$userId]);
+        $result['group'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Per-user overrides
+        $stmt = $pdo->prepare("SELECT permission_key, granted FROM user_permission_overrides WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        foreach ($stmt->fetchAll() as $row) {
+            $result['overrides'][$row['permission_key']] = (int)$row['granted'];
+        }
+    } catch (Exception $e) {
+        // Tables missing (pre-migration): fall through to legacy matrix
+    }
+
+    $cache[$userId] = $result;
+    $cacheStamp[$userId] = $stamp;
+    return $result;
+}
+
+/**
  * Check if user has permission for an action
  */
 function hasPermission($action, $resource = null, $ownerId = null)
@@ -48,12 +178,53 @@ function hasPermission($action, $resource = null, $ownerId = null)
         return false;
     }
 
-    // Admin can do everything
-    if ($role === 'admin') {
+    // Super admin can do everything
+    if ($role === 'super_admin') {
         return true;
     }
 
-    // Permission matrix
+    // 1. Per-user override: explicit deny beats everything except super_admin.
+    //    An explicit grant still honors ownership scoping (a sales_rep granted
+    //    edit_quote may edit OWN documents only — never everyone's).
+    $effective = getUserEffectivePermissions($userId);
+    if (array_key_exists($action, $effective['overrides'])) {
+        if ($effective['overrides'][$action] !== 1) {
+            return false;
+        }
+        return hasScopedGrant($action, $resource, $ownerId, $role, $userId);
+    }
+
+    // 2. Group permission (or wildcard)
+    if (in_array($action, $effective['group'], true) || in_array('*', $effective['group'], true)) {
+        return hasScopedGrant($action, $resource, $ownerId, $role, $userId);
+    }
+
+    // 3. Legacy role matrix fallback (pre-migration or users without group)
+    return hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId);
+}
+
+/**
+ * A granted permission (group or override) still honors ownership rules:
+ * finalized documents need edit_finalized; sales_rep edits are own-only.
+ */
+function hasScopedGrant($action, $resource, $ownerId, $role, $userId)
+{
+    if (in_array($action, ['edit_document', 'edit_quote', 'edit_invoice'], true)) {
+        if ($resource && isset($resource['status']) && $resource['status'] === 'finalized') {
+            return hasPermission('edit_finalized', $resource, $ownerId);
+        }
+        if ($role === 'sales_rep') {
+            return $ownerId == $userId;
+        }
+    }
+    return true;
+}
+
+/**
+ * Original role matrix, kept as fallback.
+ */
+function hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId)
+{
     switch ($action) {
         // User Management (Admin only)
         case 'manage_users':
@@ -62,6 +233,7 @@ function hasPermission($action, $resource = null, $ownerId = null)
         case 'delete_user':
         case 'toggle_user_status':
         case 'view_audit_log':
+        case 'manage_access':
             return $role === 'admin';
 
         // View All Documents (Admin, Manager, Accountant)
@@ -100,12 +272,20 @@ function hasPermission($action, $resource = null, $ownerId = null)
         case 'archive_document':
         // Settings Management (Admin only)
         case 'manage_settings':
+        case 'export_data':
             return $role === 'admin';
 
         // Convert & Generate (Admin, Manager, Accountant)
         case 'convert_to_invoice':
         case 'generate_receipt':
             return in_array($role, ['admin', 'manager', 'accountant']);
+
+        // Store / Accessories / HR / Payments (Admin, Manager)
+        case 'manage_store':
+        case 'manage_accessories':
+        case 'manage_hr':
+        case 'manage_payments':
+            return in_array($role, ['admin', 'manager']);
 
         // Email Documents (All users)
         case 'send_email':
@@ -149,6 +329,16 @@ function requirePermission($action, $resource = null, $ownerId = null)
             $base_path = '../..';
         }
 
+        // JSON for API calls
+        if ((defined('IS_API') && IS_API)
+            || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+            || (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false)
+        ) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Forbidden: insufficient permissions']);
+            exit;
+        }
+
         echo '<!DOCTYPE html>
 <html>
 <head>
@@ -184,7 +374,7 @@ function canViewDocument($document)
     $userId = $_SESSION['user_id'] ?? null;
 
     // Admin, Manager, Accountant, and Viewer can view all
-    if (in_array($role, ['admin', 'manager', 'accountant', 'viewer'])) {
+    if (in_array($role, ['super_admin', 'admin', 'manager', 'accountant', 'viewer'])) {
         return true;
     }
 
@@ -201,7 +391,7 @@ function getRoleFilter($tableName = 'd')
     $userId = $_SESSION['user_id'] ?? 0;
 
     // Admin, Manager, Accountant, and Viewer see all
-    if (in_array($role, ['admin', 'manager', 'accountant', 'viewer'])) {
+    if (in_array($role, ['super_admin', 'admin', 'manager', 'accountant', 'viewer'])) {
         return ['sql' => '', 'params' => []];
     }
 
@@ -217,6 +407,7 @@ function getRoleFilter($tableName = 'd')
 function getRoleDisplayName($role)
 {
     $roles = [
+        'super_admin' => 'Super Administrator',
         'admin' => 'Administrator',
         'manager' => 'Manager',
         'sales_rep' => 'Sales Representative',
@@ -232,6 +423,7 @@ function getRoleDisplayName($role)
 function getRoleBadge($role)
 {
     $badges = [
+        'super_admin' => '<span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">Super Admin</span>',
         'admin' => '<span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Admin</span>',
         'manager' => '<span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Manager</span>',
         'sales_rep' => '<span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Sales Rep</span>',
@@ -251,7 +443,7 @@ function canEditDocument($document)
 
     // Check if finalized
     if (isset($document['status']) && $document['status'] === 'finalized') {
-        return $role === 'admin';
+        return in_array($role, ['super_admin', 'admin'], true);
     }
 
     // Sales rep can only edit own
@@ -271,6 +463,5 @@ function canDeleteDocument($document)
     $role = getUserRole();
 
     // Only Admin can delete
-    return $role === 'admin';
+    return in_array($role, ['super_admin', 'admin'], true);
 }
-?>

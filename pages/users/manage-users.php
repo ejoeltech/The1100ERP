@@ -13,21 +13,25 @@ if (function_exists('requirePermission')) {
 
 $pageTitle = 'Manage Users - ERP System';
 
-// Fetch all users - backward compatible query
+// Fetch all users with groups
 try {
     $stmt = $pdo->query("
-    SELECT 
-        id,
-        username,
-        full_name,
-        email,
-        phone,
-        role,
-        is_active,
-        last_login,
-        created_at
-    FROM users
-    ORDER BY created_at DESC
+    SELECT
+        u.id,
+        u.username,
+        u.full_name,
+        u.email,
+        u.phone,
+        u.role,
+        u.group_id,
+        u.is_active,
+        u.last_login,
+        u.created_at,
+        g.name AS group_name,
+        (SELECT COUNT(*) FROM user_permission_overrides o WHERE o.user_id = u.id) AS override_count
+    FROM users u
+    LEFT JOIN user_groups g ON g.id = u.group_id
+    ORDER BY u.created_at DESC
 ");
 
     $users = $stmt->fetchAll();
@@ -78,15 +82,23 @@ include '../../includes/header.php';
 <?php endif; ?>
 
 <div class="bg-white rounded-lg shadow-md p-8">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
         <h2 class="text-3xl font-bold text-gray-900">Manage Users</h2>
-        <a href="create-user.php"
-            class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Create New User
-        </a>
+        <div class="flex gap-2">
+            <?php if (hasPermission('manage_access')): ?>
+                <a href="manage-groups.php"
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold flex items-center gap-2">
+                    🛡️ Groups & Permissions
+                </a>
+            <?php endif; ?>
+            <a href="create-user.php"
+                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create New User
+            </a>
+        </div>
     </div>
 
     <?php if (empty($users)): ?>
@@ -103,6 +115,7 @@ include '../../includes/header.php';
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Email</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Phone</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Role</th>
+                        <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Group</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Status</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Last Login</th>
                         <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Actions</th>
@@ -126,6 +139,16 @@ include '../../includes/header.php';
                             <td class="px-4 py-3 text-center">
                                 <?php echo getRoleBadge($user['role']); ?>
                             </td>
+                            <td class="px-4 py-3 text-center text-sm">
+                                <?php if (!empty($user['group_name'])): ?>
+                                    <span class="px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded-full"><?php echo htmlspecialchars($user['group_name']); ?></span>
+                                <?php else: ?>
+                                    <span class="text-gray-400">—</span>
+                                <?php endif; ?>
+                                <?php if (!empty($user['override_count'])): ?>
+                                    <div class="text-xs text-amber-600 font-semibold mt-1">+<?php echo (int)$user['override_count']; ?> override<?php echo $user['override_count'] == 1 ? '' : 's'; ?></div>
+                                <?php endif; ?>
+                            </td>
                             <td class="px-4 py-3 text-center">
                                 <?php if ($user['is_active']): ?>
                                     <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
@@ -141,11 +164,19 @@ include '../../includes/header.php';
                                 <?php echo $user['last_login'] ? date('d/m/Y H:i', strtotime($user['last_login'])) : 'Never'; ?>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <div class="flex items-center justify-center gap-2">
+                                <div class="flex items-center justify-center gap-2 flex-wrap">
                                     <a href="edit-user.php?id=<?php echo $user['id']; ?>"
                                         class="text-primary hover:text-blue-700 font-semibold text-sm">
                                         Edit
                                     </a>
+
+                                    <?php if (hasPermission('manage_access')): ?>
+                                        <span class="text-gray-300">|</span>
+                                        <a href="user-permissions.php?id=<?php echo $user['id']; ?>"
+                                            class="text-indigo-600 hover:text-indigo-700 font-semibold text-sm">
+                                            Permissions
+                                        </a>
+                                    <?php endif; ?>
 
                                     <?php if ($user['id'] != $current_user['id']): // Can't toggle own status ?>
                                         <span class="text-gray-300">|</span>
@@ -175,7 +206,7 @@ include '../../includes/header.php';
             <?php
             $total_users = count($users);
             $active_users = count(array_filter($users, fn($u) => $u['is_active']));
-            $admin_count = count(array_filter($users, fn($u) => $u['role'] === 'admin'));
+            $admin_count = count(array_filter($users, fn($u) => in_array($u['role'], ['super_admin', 'admin'])));
             $manager_count = count(array_filter($users, fn($u) => $u['role'] === 'manager'));
             $salesrep_count = count(array_filter($users, fn($u) => $u['role'] === 'sales_rep'));
             ?>

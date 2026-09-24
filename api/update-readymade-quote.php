@@ -1,11 +1,14 @@
 <?php
 session_start();
 require_once '../config.php';
+require_once '../includes/permissions.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
 }
+
+requirePermission('edit_document');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/readymade-quotes.php');

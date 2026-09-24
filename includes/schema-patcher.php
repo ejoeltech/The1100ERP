@@ -284,6 +284,48 @@ class SchemaPatcher
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         $exec($sql, "Create 'items' table");
 
+        // 1.6 Internal Accessories Store (tools/consumables owned by the business, not for sale)
+        $sql = "CREATE TABLE IF NOT EXISTS `accessories` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) NOT NULL,
+    `code` varchar(100) DEFAULT NULL,
+    `category` varchar(100) DEFAULT 'General',
+    `description` text,
+    `unit` varchar(50) DEFAULT 'pcs',
+    `unit_cost` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `stock_quantity` int(11) NOT NULL DEFAULT 0,
+    `minimum_stock` int(11) NOT NULL DEFAULT 0,
+    `location` varchar(255) DEFAULT NULL,
+    `condition_status` enum('good','fair','faulty') NOT NULL DEFAULT 'good',
+    `status` enum('active','archived') NOT NULL DEFAULT 'active',
+    `created_by` int(11) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_acc_name` (`name`),
+    KEY `idx_acc_category` (`category`),
+    KEY `idx_acc_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        $exec($sql, "Create 'accessories' table");
+
+        $sql = "CREATE TABLE IF NOT EXISTS `accessory_transactions` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `accessory_id` int(11) unsigned NOT NULL,
+    `type` enum('in','out','adjust') NOT NULL,
+    `quantity` int(11) NOT NULL,
+    `balance_after` int(11) NOT NULL DEFAULT 0,
+    `technician` varchar(255) DEFAULT NULL,
+    `purpose` varchar(255) DEFAULT NULL,
+    `notes` text,
+    `created_by` int(11) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_tr_acc` (`accessory_id`),
+    KEY `idx_tr_created` (`created_at`),
+    CONSTRAINT `accessory_transactions_ibfk_1` FOREIGN KEY (`accessory_id`) REFERENCES `accessories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        $exec($sql, "Create 'accessory_transactions' table");
+
         // 2. Soft Deletes
         $addCol('customers', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
         $addCol('products', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
@@ -324,6 +366,98 @@ class SchemaPatcher
 
         // 8. User Fields
         $addCol('users', 'phone', 'VARCHAR(20) DEFAULT NULL');
+
+        // 8b. User Groups & Permissions (standard groups + per-user overrides)
+        try {
+            $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin','admin','manager','sales_rep','accountant','viewer') DEFAULT 'sales_rep'");
+            $add('ok', 'alter', "Extended 'users.role' ENUM with super_admin/accountant/viewer.");
+        } catch (Exception $e) {
+            $msg = $e->getMessage();
+            if (stripos($msg, 'Duplicate') !== false || stripos($msg, 'already') !== false) {
+                $add('info', 'alter', 'users.role ENUM already extended.');
+            } else {
+                $add('error', 'alter', 'Failed to extend users.role: ' . $msg);
+            }
+        }
+        $addCol('users', 'group_id', 'INT(11) UNSIGNED DEFAULT NULL');
+        $exec("CREATE TABLE IF NOT EXISTS `user_groups` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(50) NOT NULL,
+    `description` varchar(255) DEFAULT NULL,
+    `primary_role` varchar(20) NOT NULL DEFAULT 'viewer',
+    `is_system` tinyint(1) NOT NULL DEFAULT 0,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_group_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_groups' table");
+        $exec("CREATE TABLE IF NOT EXISTS `group_permissions` (
+    `group_id` int(11) unsigned NOT NULL,
+    `permission_key` varchar(60) NOT NULL,
+    PRIMARY KEY (`group_id`, `permission_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'group_permissions' table");
+        // Add FK only if missing (avoids duplicate-constraint errors on re-run)
+        try {
+            $stmt = $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'group_permissions' AND CONSTRAINT_NAME = 'group_permissions_ibfk_1'");
+            if (!$stmt->fetch()) {
+                $pdo->exec("ALTER TABLE `group_permissions` ADD CONSTRAINT `group_permissions_ibfk_1` FOREIGN KEY (`group_id`) REFERENCES `user_groups` (`id`) ON DELETE CASCADE");
+                $add('ok', 'alter', 'Added FK group_permissions -> user_groups.');
+            } else {
+                $add('info', 'alter', 'FK group_permissions -> user_groups already exists.');
+            }
+        } catch (Exception $e) {
+            $add('error', 'alter', 'Failed to add group_permissions FK: ' . $e->getMessage());
+        }
+        $exec("CREATE TABLE IF NOT EXISTS `user_permission_overrides` (
+    `user_id` int(10) unsigned NOT NULL,
+    `permission_key` varchar(60) NOT NULL,
+    `granted` tinyint(1) NOT NULL DEFAULT 1,
+    `created_by` int(10) unsigned DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`user_id`, `permission_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_permission_overrides' table");
+        try {
+            $stmt = $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_permission_overrides' AND CONSTRAINT_NAME = 'user_permission_overrides_ibfk_1'");
+            if (!$stmt->fetch()) {
+                $pdo->exec("ALTER TABLE `user_permission_overrides` ADD CONSTRAINT `user_permission_overrides_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE");
+                $add('ok', 'alter', 'Added FK user_permission_overrides -> users.');
+            } else {
+                $add('info', 'alter', 'FK user_permission_overrides -> users already exists.');
+            }
+        } catch (Exception $e) {
+            $add('error', 'alter', 'Failed to add user_permission_overrides FK: ' . $e->getMessage());
+        }
+        // Seed standard groups + permissions (idempotent)
+        try {
+            $pdo->exec("INSERT IGNORE INTO `user_groups` (`name`, `description`, `primary_role`, `is_system`) VALUES
+('super_admin', 'Full system control including access management', 'super_admin', 1),
+('admin', 'Manage users, settings and all documents', 'admin', 1),
+('manager', 'View all documents, manage team workflows', 'manager', 1),
+('accountant', 'Invoices, payments and exports', 'accountant', 1),
+('sales_rep', 'Own quotes and customers only', 'sales_rep', 1),
+('viewer', 'Read-only access', 'viewer', 1)");
+            $adminPerms = "'manage_users','create_user','edit_user','delete_user','toggle_user_status','manage_access','manage_settings','view_audit_log','view_all_documents','create_quote','create_document','edit_quote','edit_invoice','edit_document','edit_finalized','delete_quote','delete_invoice','delete_receipt','delete_document','archive_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_system_dashboard','view_team_dashboard','view_personal_dashboard','manage_store','manage_accessories','manage_hr','manage_payments','export_data'";
+            $managerPerms = "'view_all_documents','create_quote','create_document','edit_quote','edit_invoice','edit_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_team_dashboard','view_personal_dashboard','manage_store','manage_accessories','manage_hr','manage_payments','export_data'";
+            $accountantPerms = "'view_all_documents','create_quote','create_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_personal_dashboard','manage_payments','export_data'";
+            $salesPerms = "'create_quote','create_document','edit_quote','edit_invoice','edit_document','send_email','email_document','edit_own_profile','change_own_password','view_personal_dashboard'";
+            $viewerPerms = "'view_all_documents','edit_own_profile','change_own_password','view_personal_dashboard'";
+            $seeds = ['admin' => $adminPerms, 'manager' => $managerPerms, 'accountant' => $accountantPerms, 'sales_rep' => $salesPerms, 'viewer' => $viewerPerms];
+            foreach ($seeds as $gname => $plist) {
+                // Insert each perm individually (IGNORE keeps idempotent)
+                foreach (explode(',', str_replace(chr(39), '', $plist)) as $perm) {
+                    $perm = trim($perm);
+                    $pdo->exec("INSERT IGNORE INTO `group_permissions` (`group_id`, `permission_key`) SELECT id, '$perm' FROM `user_groups` WHERE name = '$gname'");
+                }
+            }
+            // Link users without group to matching group; ensure at least one super_admin
+            $pdo->exec("UPDATE `users` u JOIN `user_groups` g ON g.name = u.role SET u.group_id = g.id WHERE u.group_id IS NULL");
+            $count = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin'")->fetchColumn();
+            if (!$count) {
+                $pdo->exec("UPDATE `users` SET `role` = 'super_admin', `group_id` = (SELECT id FROM `user_groups` WHERE name = 'super_admin') WHERE `role` = 'admin' ORDER BY `id` ASC LIMIT 1");
+            }
+            $add('ok', 'seed', 'Seeded standard user groups and permissions.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding user groups: ' . $e->getMessage());
+        }
 
         // 9. Template Fields
         $addCol('readymade_quote_templates', 'payment_terms', 'TEXT DEFAULT NULL');

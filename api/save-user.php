@@ -17,6 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$ALLOWED_ROLES = ['super_admin', 'admin', 'manager', 'sales_rep', 'accountant', 'viewer'];
+
 try {
     $username = trim($_POST['username']);
     $password = $_POST['password'];
@@ -25,6 +27,7 @@ try {
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $role = $_POST['role'];
+    $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
     // Validation
@@ -40,8 +43,33 @@ try {
         throw new Exception('Password must be at least 6 characters');
     }
 
-    if (!in_array($role, ['admin', 'manager', 'sales_rep'])) {
+    if (!in_array($role, $ALLOWED_ROLES, true)) {
         throw new Exception('Invalid role selected');
+    }
+
+    // Privilege escalation guard: only a super_admin may create super_admin/admin users
+    if (in_array($role, ['super_admin', 'admin'], true) && !isSuperAdmin()) {
+        throw new Exception('Only a super admin can create admin-level users');
+    }
+
+    // Validate group if supplied
+    if ($group_id) {
+        $stmt = $pdo->prepare("SELECT id, name, primary_role FROM user_groups WHERE id = ?");
+        $stmt->execute([$group_id]);
+        $group = $stmt->fetch();
+        if (!$group) {
+            throw new Exception('Invalid group selected');
+        }
+        // Only super_admin may put users in the super_admin group
+        if ($group['name'] === 'super_admin' && !isSuperAdmin()) {
+            throw new Exception('Only a super admin can assign the super admin group');
+        }
+    } else {
+        // Default group = matching role name
+        $stmt = $pdo->prepare("SELECT id FROM user_groups WHERE name = ?");
+        $stmt->execute([$role]);
+        $row = $stmt->fetch();
+        $group_id = $row ? (int)$row['id'] : null;
     }
 
     // Check if username exists
@@ -56,8 +84,8 @@ try {
 
     // Insert user
     $stmt = $pdo->prepare("
-        INSERT INTO users (username, password, full_name, email, phone, role, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (username, password, full_name, email, phone, role, group_id, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -67,6 +95,7 @@ try {
         $email,
         $phone,
         $role,
+        $group_id,
         $is_active
     ]);
 

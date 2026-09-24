@@ -4,6 +4,14 @@ requirePermission('create_user');
 
 $pageTitle = 'Create User - ERP System';
 
+// Groups for assignment dropdown
+try {
+    $groups = $pdo->query("SELECT id, name, description FROM user_groups ORDER BY name ASC")->fetchAll();
+} catch (Exception $e) {
+    $groups = [];
+}
+$isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
+
 include '../../includes/header.php';
 ?>
 
@@ -62,18 +70,38 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Role <span class="text-red-500">*</span>
-                </label>
-                <select name="role" required
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                    <option value="">-- Select Role --</option>
-                    <option value="admin">Admin (Full Access)</option>
-                    <option value="manager">Manager (View All, Edit Own)</option>
-                    <option value="sales_rep">Sales Rep (View Own Only)</option>
-                </select>
-                <p class="text-xs text-gray-500 mt-1">This determines user permissions</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Role <span class="text-red-500">*</span>
+                    </label>
+                    <select name="role" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="">-- Select Role --</option>
+                        <?php if ($isSuper): ?><option value="super_admin">Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($isSuper): ?><option value="admin">Admin (Manage users & settings)</option><?php endif; ?>
+                        <option value="manager">Manager (View All, Edit Own)</option>
+                        <option value="accountant">Accountant (Invoices & payments)</option>
+                        <option value="sales_rep">Sales Rep (View Own Only)</option>
+                        <option value="viewer">Viewer (Read-only)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Role drives ownership rules; group drives permissions</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Group
+                    </label>
+                    <select name="group_id"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                        <option value="">-- Auto (match role) --</option>
+                        <?php foreach ($groups as $g): ?>
+                            <?php if ($g['name'] === 'super_admin' && !$isSuper) continue; ?>
+                            <option value="<?php echo $g['id']; ?>"><?php echo htmlspecialchars($g['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Leave on auto to use the role's standard group</p>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

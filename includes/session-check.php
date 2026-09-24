@@ -31,8 +31,9 @@ if ($roleColumnExists && file_exists(__DIR__ . '/permissions.php')) {
     // Phase 3A is active
     require_once __DIR__ . '/permissions.php';
 
-    // Set role in session
-    if ($current_user && isset($current_user['role']) && !isset($_SESSION['role'])) {
+    // Always refresh role from DB so demotions/promotions take effect immediately
+    // (a cached session role must never outlive the database record)
+    if ($current_user && isset($current_user['role'])) {
         $_SESSION['role'] = $current_user['role'];
     }
 
