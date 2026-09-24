@@ -1,0 +1,56 @@
+# SECURITY AUDIT — Eleven100 ERP
+
+Branch: `security-hardening`. One commit per work package.
+Rule: a fix is only marked **verified** after test/scan/reproduction. Otherwise **not verified**.
+
+## Needs decision (product calls, not guesses)
+- (WP0-C) Pre-auth restore endpoint `maintenance/setup/api/restore_during_setup.php`: default recommendation is REMOVE from web wizard + document CLI restore (`mysql < backup.sql`). Kept for now pending decision.
+- (WP0-C) `run-schema-update.php`: replace with in-wizard SchemaPatcher run (WP0-D) or keep until decided. Kept for now.
+- (WP0-E) `database/run-leads-migration.php` and `modules/hr/install.php`: CLI-only vs admin-gated. Kept for now, flagged.
+
+## WP0-A: Remove spent and hazardous setup scripts — coverage record
+
+Verified that `includes/SchemaPatcher.php` (`SchemaPatcher::run`) and/or
+`database/install-schema.sql` (fresh installs) create the same objects as each
+deleted "superseded" migration. Checked 2026-09-24, verified by running
+SchemaPatcher against the dev database (`1100erp`).
+
+| Deleted script | Covered by | How verified |
+|---|---|---|
+| `setup/add-column.php` (readymade.payment_terms) | Patcher `$addCol('readymade_quote_templates','payment_terms',…)` | lint + patcher run, `info` (exists) |
+| `setup/add_created_by_column.php` | **Folded into patcher 2026-09-24** (`8a`: addCol + FK w/ existence checks) | patcher run: `info` (cols + FKs exist) |
+| `setup/add_deleted_at_column.php` | Patcher `$addCol(…,'deleted_at',…)` ×6 tables | patcher run |
+| `setup/update_products_table.php` (product_code+unique, category) | **Folded into patcher 2026-09-24** (addCol + backfill `PRD-%04d` + UNIQUE `idx_product_code`) | patcher run: `info` (exists) |
+| `tools/add_signature_column.php` | **Folded into patcher 2026-09-24** (`users.signature_file`) + install-schema.sql:47 | patcher run: `info` (exists) |
+| `tools/apply_schema_v2.php` (HR PII cols) | `modules/hr/update_schema_v2.sql` (canonical source, applied by `modules/hr/install.php`) | grep: cols present in v2 file |
+| `tools/run_store_migration.php` | Patcher `item_categories` + `items` CREATEs | patcher run |
+| `tools/restore_ai_tables.php` | Patcher `ai_usage_logs` + `ai_request_cache` + `ai_recommendations` CREATEs | patcher run |
+| `setup/fix_functions.php` (get_market_data fn) | **Folded into patcher 2026-09-24** (`CREATE FUNCTION IF NOT EXISTS`) + install-schema.sql:564 | verified: dropped fn on dev, patcher recreated it |
+| `setup/populate-solar-template.php` | **Folded into patcher 2026-09-24** (seed `3b`: idempotent category + template + 5 items, totals computed) | verified: patcher seeded missing template on dev |
+| `tools/apply-patch.php` | Live twin `api/system/apply-patch.php` (kept) | filename grep after delete |
+| `tools/check_db_integrity.php` | Reads install-schema.sql (kept) | n/a — diagnostic, superseded by patcher report |
+
+Fresh-install loss check: the only seed a fresh install would have lost is the
+`Solar Installation` / `8kVA Hybrid Solar System` template — now seeded by the
+patcher (which the wizard runs via `run-schema-update.php` at Step 7, and
+admins can re-run via System Update). No other deleted script seeded data.
+
+Hardcoded credentials grep (`admin`/`password` seeds in `database/*.sql`):
+none found in any kept file — the only `admin`/`password` seeds were inside
+`tools/restore_full_schema.php` and `tools/recreate_users_table.php` (both
+deleted in WP0-A). Demo-seed removal comments in phase2/phase3a SQL confirm
+earlier cleanup.
+
+## Findings
+| ID | Severity | Location | Description | Status |
+|---|---|---|---|---|
+| WP0-01 | Critical | `maintenance/setup/factory-reset.php` | No auth; drops all tables, deletes config.php + lock on POST confirm | fixed (deleted WP0-A) |
+| WP0-02 | Critical | `maintenance/setup/tools/clear-users.php` | No auth; wipes users on `?confirm=yes` | fixed (deleted WP0-A) |
+| WP0-03 | Critical | `maintenance/setup/tools/restore_full_schema.php`, `recreate_users_table.php` | No auth; reset admin to published `admin`/`password`; recreate uses stale role ENUM corrupting auth | fixed (deleted WP0-A) |
+| WP0-04 | High | `maintenance/setup/tools/clear-company-data.php` | No auth; blanks company settings | fixed (deleted WP0-A) |
+| WP0-05 | High | `maintenance/setup/*`, `tools/*` (rest) | No gate; schema/data mutation by any visitor | fixed (deleted WP0-A) except entries under WP0-C/D/E |
+| WP0-06 | High | `database/run-leads-migration.php` | Comment claims "admin only", code checks nothing | needs decision (WP0-E) |
+| WP0-07 | High | `modules/hr/install.php` | Config-only gate, swallows errors | needs decision (WP0-E) |
+| WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | needs decision (WP0-C) |
+| WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
+| WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |

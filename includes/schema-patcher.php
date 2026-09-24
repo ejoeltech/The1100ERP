@@ -187,6 +187,31 @@ class SchemaPatcher
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         $exec($sql, "Create 'market_data' table");
 
+        // get_market_data() function (retired ai-features-migration.sql / fix_functions.php).
+        // api/ai/calculate-roi.php calls it; CREATE IF NOT EXISTS keeps re-runs safe.
+        // NOTE: requires the DB user to hold CREATE ROUTINE; failure is logged, not fatal.
+        try {
+            $pdo->exec("CREATE FUNCTION IF NOT EXISTS get_market_data(
+                p_data_type VARCHAR(50) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci,
+                p_data_key VARCHAR(100) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
+            ) RETURNS DECIMAL(15,2)
+            DETERMINISTIC
+            BEGIN
+                DECLARE v_value DECIMAL(15,2);
+                SELECT data_value INTO v_value
+                FROM market_data
+                WHERE data_type = p_data_type COLLATE utf8mb4_unicode_ci
+                AND data_key = p_data_key COLLATE utf8mb4_unicode_ci
+                AND effective_date <= CURDATE()
+                ORDER BY effective_date DESC
+                LIMIT 1;
+                RETURN COALESCE(v_value, 0);
+            END");
+            $add('ok', 'alter', "Ensured function 'get_market_data' exists.");
+        } catch (Exception $e) {
+            $add('error', 'alter', "Failed to ensure function 'get_market_data': " . $e->getMessage());
+        }
+
         // 1h. AI Usage Logs
         $sql = "CREATE TABLE IF NOT EXISTS `ai_usage_logs` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -366,6 +391,48 @@ class SchemaPatcher
 
         // 8. User Fields
         $addCol('users', 'phone', 'VARCHAR(20) DEFAULT NULL');
+        $addCol('users', 'signature_file', 'VARCHAR(255) DEFAULT NULL');
+
+        // 8a. Document ownership columns (retired add_created_by_column.php).
+        // install-schema.sql already creates these on fresh installs.
+        foreach (['quotes', 'invoices', 'receipts'] as $docTable) {
+            $addCol($docTable, 'created_by', 'INT UNSIGNED DEFAULT NULL');
+            try {
+                $fk = $docTable . '_created_by_fk';
+                $stmt = $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$docTable' AND CONSTRAINT_NAME = '$fk'");
+                if (!$stmt->fetch()) {
+                    // Only add when no FK already covers created_by -> users(id)
+                    $stmt2 = $pdo->query("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$docTable' AND COLUMN_NAME = 'created_by' AND REFERENCED_TABLE_NAME = 'users'");
+                    if (!$stmt2->fetch()) {
+                        $pdo->exec("ALTER TABLE `$docTable` ADD CONSTRAINT `$fk` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL");
+                        $add('ok', 'alter', "Added FK $docTable.created_by -> users.");
+                    } else {
+                        $add('info', 'alter', "FK $docTable.created_by -> users already exists.");
+                    }
+                } else {
+                    $add('info', 'alter', "FK $docTable.created_by -> users already exists.");
+                }
+            } catch (Exception $e) {
+                $add('error', 'alter', "Failed to add $docTable.created_by FK: " . $e->getMessage());
+            }
+        }
+
+        // 8b. Product catalog columns (retired update_products_table.php).
+        $addCol('products', 'product_code', 'VARCHAR(50) DEFAULT NULL');
+        $addCol('products', 'category', "VARCHAR(100) DEFAULT 'General'");
+        try {
+            $stmt = $pdo->query("SHOW INDEX FROM products WHERE Key_name = 'idx_product_code'");
+            if (!$stmt->fetch()) {
+                // Backfill codes first so a UNIQUE index cannot fail on NULLs/dupes
+                $pdo->exec("UPDATE products SET product_code = CONCAT('PRD-', LPAD(id, 4, '0')) WHERE product_code IS NULL OR product_code = ''");
+                $pdo->exec("ALTER TABLE products ADD UNIQUE INDEX idx_product_code (product_code)");
+                $add('ok', 'alter', 'Added UNIQUE index products.product_code (codes backfilled).');
+            } else {
+                $add('info', 'alter', 'UNIQUE index products.product_code already exists.');
+            }
+        } catch (Exception $e) {
+            $add('error', 'alter', 'Failed to add products.product_code index: ' . $e->getMessage());
+        }
 
         // 8b. User Groups & Permissions (standard groups + per-user overrides)
         try {
@@ -479,6 +546,49 @@ class SchemaPatcher
             }
         } catch (Exception $e) {
             $add('error', 'seed', 'Error checking categories: ' . $e->getMessage());
+        }
+
+        // 3b. Seed the readymade solar template (retired populate-solar-template.php).
+        // Idempotent: skips when the template name already exists.
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM readymade_quote_categories WHERE category_name = ?");
+            $stmt->execute(['Solar Installation']);
+            $solarCat = $stmt->fetch();
+            if (!$solarCat) {
+                $stmt = $pdo->prepare("INSERT INTO readymade_quote_categories (category_name, description, is_active) VALUES (?, ?, 1)");
+                $stmt->execute(['Solar Installation', 'Solar power system installations']);
+                $solarCatId = (int)$pdo->lastInsertId();
+            } else {
+                $solarCatId = (int)$solarCat['id'];
+            }
+            $stmt = $pdo->prepare("SELECT id FROM readymade_quote_templates WHERE template_name = ?");
+            $stmt->execute(['8kVA Hybrid Solar System']);
+            if (!$stmt->fetch()) {
+                $solarItems = [
+                    ['8 kva Hybrid Inverter', 1, 700000.00],
+                    ['10KWH Lithium Battery', 1, 2100000.00],
+                    ['620W solar panels', 12, 135000.00],
+                    ['Instalation acccessories', 1, 420000.00],
+                    ['Installation', 1, 350000.00],
+                ];
+                $subtotal = 0;
+                foreach ($solarItems as $si) {
+                    $subtotal += $si[1] * $si[2];
+                }
+                $stmt = $pdo->prepare("INSERT INTO readymade_quote_templates (category_id, template_name, description, subtotal, total_vat, grand_total, is_active) VALUES (?, ?, ?, ?, 0, ?, 1)");
+                $stmt->execute([$solarCatId, '8kVA Hybrid Solar System', 'Complete 8kVA Hybrid Solar System installation package', $subtotal, $subtotal]);
+                $solarTplId = (int)$pdo->lastInsertId();
+                $itemStmt = $pdo->prepare("INSERT INTO readymade_quote_template_items (template_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total) VALUES (?, ?, ?, ?, ?, 0, 0, ?)");
+                $n = 1;
+                foreach ($solarItems as $si) {
+                    $itemStmt->execute([$solarTplId, $n++, $si[1], $si[0], $si[2], $si[1] * $si[2]]);
+                }
+                $add('ok', 'seed', "Seeded readymade template '8kVA Hybrid Solar System' (5 items).");
+            } else {
+                $add('info', 'seed', "Readymade template '8kVA Hybrid Solar System' already exists.");
+            }
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding solar template: ' . $e->getMessage());
         }
 
         // 10. Invoice Status Enum (must include 'finalized')
