@@ -806,6 +806,7 @@ include '../includes/header.php';
             </div>
 
             <div class="flex flex-wrap items-center gap-3 mt-4 p-3 bg-white rounded border border-purple-100">
+                <input type="hidden" id="aiTestCsrf" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
                 <button type="button" onclick="testAiConnection()" id="btn-test-ai"
                     class="px-4 py-2 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 font-semibold flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -875,9 +876,12 @@ include '../includes/header.php';
                 btn.disabled = true; btn.classList.add('opacity-75','cursor-not-allowed');
                 status.innerHTML = '<span class="text-gray-600 animate-pulse">Testing '+provider+' ...</span>';
                 meta.textContent = model;
-                fetch('../api/test/test-ai-connection.php', {
+                fetch('../api/ai/test-connection.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': (document.getElementById('aiTestCsrf') || {}).value || ''
+                    },
                     body: JSON.stringify({ api_key: apiKey, provider, model, base_url })
                 })
                 .then(res => res.json())
@@ -921,7 +925,7 @@ include '../includes/header.php';
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 class="font-semibold text-gray-900 mb-2">📋 Setup steps</h4>
             <ol class="text-sm text-gray-700 space-y-1 ml-4 list-decimal">
-                <li>Run once on the server: <code>php database/run-leads-migration.php</code> (creates <code>leads</code> table).</li>
+                <li><code>leads</code> table and settings keys are created automatically by System Update (schema patcher). No manual step needed.</li>
                 <li>Link your capture form: <code><?php echo htmlspecialchars((getSetting('company_website','') ?: 'https://your-erp')); ?>/lead-form.php</code></li>
                 <li>Fill in Telegram + WhatsApp below, then save.</li>
             </ol>

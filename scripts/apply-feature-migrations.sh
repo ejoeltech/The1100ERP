@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 # apply-feature-migrations.sh
 # Idempotent migrator for the ADDITIVE feature migrations only:
-#   - modules/hr/update_schema_v2..v10_payroll.sql  (HR module extensions + Nigeria payroll)
-#   - database/leads-schema.sql                     (leads table + 8 settings seeds)
-#   - database/run-leads-migration.php             (seeds settings rows)
+#   - modules/hr/update_schema_v2/v3/v5/v10*.sql (HR extensions + payroll)
+#   (Leads schema + settings seed moved to the schema patcher / install-schema;
+#   reference SQL kept at docs/reference/leads-schema.sql.)
 #
-# This DOES NOT run the one-off fix files in database/ (clear-users.sql,
-# recreate_users_table.php, restore_*.php, etc.) — those are for existing
-# installs / disaster recovery, not a fresh deploy.
+# This DOES NOT run one-off fix files (those were removed in WP0-A).
 #
 # The BASE schema is installed by the web Setup Wizard
 # (maintenance/setup/install.php -> database/install-schema.sql), which this
@@ -48,16 +46,12 @@ if [ -f "$ROOT/modules/hr/hr_schema.sql" ]; then
   $MYSQL < "$ROOT/modules/hr/hr_schema.sql" || { echo "FAILED hr_schema.sql"; exit 1; }
 fi
 
-# 2) HR incremental migrations v2..v10 (all additive, IF NOT EXISTS)
-echo "  [2/3] HR incremental migrations v2..v10"
+# 2) HR incremental migrations (all additive, IF NOT EXISTS)
+echo "  [2/3] HR incremental migrations"
 for f in "$ROOT"/modules/hr/update_schema_v2.sql \
          "$ROOT"/modules/hr/update_schema_v3_voting.sql \
-         "$ROOT"/modules/hr/update_schema_v4_settings.sql \
          "$ROOT"/modules/hr/update_schema_v5_onboarding.sql \
-         "$ROOT"/modules/hr/update_schema_v6_layout.sql \
-         "$ROOT"/modules/hr/update_schema_v7_visibility.sql \
-         "$ROOT"/modules/hr/update_schema_v8_css.sql \
-         "$ROOT"/modules/hr/update_schema_v9_templates.sql \
+         "$ROOT"/modules/hr/update_schema_v10_idcards.sql \
          "$ROOT"/modules/hr/update_schema_v10_payroll.sql; do
   if [ -f "$f" ]; then
     echo "        - $(basename "$f")"
@@ -65,14 +59,9 @@ for f in "$ROOT"/modules/hr/update_schema_v2.sql \
   fi
 done
 
-# 3) Leads schema (idempotent) — and run the PHP seeder for settings rows
-echo "  [3/3] Leads schema + settings seed"
-if [ -f "$ROOT/database/leads-schema.sql" ]; then
-  $MYSQL < "$ROOT/database/leads-schema.sql" || { echo "FAILED leads-schema.sql"; exit 1; }
-fi
-if [ -f "$ROOT/database/run-leads-migration.php" ]; then
-  echo "        - run-leads-migration.php (seeds 8 settings keys)"
-  php "$ROOT/database/run-leads-migration.php" || { echo "FAILED run-leads-migration.php (is php-cli installed?)"; exit 1; }
-fi
+# 3) Leads schema + settings seed is owned by the schema patcher now
+# (System Update in the app; database/install-schema.sql on fresh installs).
+# Kept here as a no-op note so existing deploy checklists keep working.
+echo "  [3/3] Leads schema + settings seed (via System Update patcher - nothing to do here)"
 
 echo "==> DONE. Feature migrations applied. Next: configure .env/config.php, set Telegram/WhatsApp tokens in Settings -> Leads & Follow-up, and add the cron jobs from DEPLOY.md."

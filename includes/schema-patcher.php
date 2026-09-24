@@ -152,7 +152,46 @@ class SchemaPatcher
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         $exec($sql, "Create 'settings' table");
 
-        // 1f. Bank Accounts
+        // 1f. Leads & Follow-up (retired database/run-leads-migration.php).
+        // INSERT IGNORE (not ON DUPLICATE KEY UPDATE): re-runs must never
+        // wipe configured tokens/secrets.
+        $exec("CREATE TABLE IF NOT EXISTS `leads` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) NOT NULL,
+    `phone` varchar(50) NOT NULL,
+    `email` varchar(255) DEFAULT NULL,
+    `source` enum('web','whatsapp','phone','referral','walk-in','other') NOT NULL DEFAULT 'web',
+    `interest` text DEFAULT NULL,
+    `message` text DEFAULT NULL,
+    `status` enum('new','contacted','qualified','converted','lost') NOT NULL DEFAULT 'new',
+    `assigned_to` varchar(255) DEFAULT NULL,
+    `converted_to` int(10) unsigned DEFAULT NULL,
+    `followup_count` int(10) unsigned NOT NULL DEFAULT 0,
+    `last_followup_at` datetime DEFAULT NULL,
+    `next_followup_at` datetime DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_status` (`status`),
+    KEY `idx_next_followup` (`next_followup_at`),
+    KEY `idx_source` (`source`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'leads' table");
+        try {
+            $pdo->exec("INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
+('lead_followup_enabled', '1'),
+('lead_followup_interval_days', '3'),
+('lead_followup_max_attempts', '3'),
+('lead_digest_enabled', '1'),
+('telegram_bot_token', ''),
+('telegram_chat_id', ''),
+('whatsapp_verify_token', ''),
+('whatsapp_app_secret', '')");
+            $add('ok', 'seed', 'Ensured leads/follow-up settings keys.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding leads settings: ' . $e->getMessage());
+        }
+
+        // 1g. Bank Accounts
         $sql = "CREATE TABLE IF NOT EXISTS `bank_accounts` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `bank_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,

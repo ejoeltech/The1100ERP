@@ -111,9 +111,10 @@ rclone copy wasabi:bluedots-erp/ /tmp/restore/                                  
 
 ## Leads & Follow-up module
 
-- Apply schema + seed settings once: `php database/run-leads-migration.php`
-  (or import `database/leads-schema.sql` in phpMyAdmin). It creates the
-  `leads` table and seeds the Telegram / WhatsApp / follow-up settings keys.
+- Schema + settings seed are applied automatically: fresh installs via
+  `database/install-schema.sql`, upgrades via System Update (schema patcher).
+  (The old `database/run-leads-migration.php` runner was removed in WP0-E;
+  reference SQL kept at `docs/reference/leads-schema.sql`.)
 - Public capture page: `lead-form.php` (link it from your site / share it).
 - Staff UI: Settings nav → **Leads & Follow-up** tab (Telegram + WhatsApp
   tokens, follow-up interval/attempts, daily digest toggle).

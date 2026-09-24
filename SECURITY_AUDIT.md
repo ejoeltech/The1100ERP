@@ -4,9 +4,8 @@ Branch: `security-hardening`. One commit per work package.
 Rule: a fix is only marked **verified** after test/scan/reproduction. Otherwise **not verified**.
 
 ## Needs decision (product calls, not guesses)
-- (WP0-C) Pre-auth restore endpoint `maintenance/setup/api/restore_during_setup.php`: default recommendation is REMOVE from web wizard + document CLI restore (`mysql < backup.sql`). Kept for now pending decision.
-- (WP0-C) `run-schema-update.php`: replace with in-wizard SchemaPatcher run (WP0-D) or keep until decided. Kept for now.
-- (WP0-E) `database/run-leads-migration.php` and `modules/hr/install.php`: CLI-only vs admin-gated. Kept for now, flagged.
+- (WP0-C) Pre-auth restore endpoint `maintenance/setup/api/restore_during_setup.php`: default recommendation is REMOVE from web wizard + document CLI restore (`mysql < backup.sql`). Kept token-gated for now pending decision.
+- (Note, non-security) `modules/hr/update_schema_v10_payroll.sql:34` uses `ADD COLUMN IF NOT EXISTS`, which MariaDB rejects (1064) — the `hr_payroll.hourly_rate_override` column was never created. Pre-existing; flagged for the HR/payroll work (WP9).
 
 ## WP0-A: Remove spent and hazardous setup scripts — coverage record
 
@@ -49,8 +48,8 @@ earlier cleanup.
 | WP0-03 | Critical | `maintenance/setup/tools/restore_full_schema.php`, `recreate_users_table.php` | No auth; reset admin to published `admin`/`password`; recreate uses stale role ENUM corrupting auth | fixed (deleted WP0-A) |
 | WP0-04 | High | `maintenance/setup/tools/clear-company-data.php` | No auth; blanks company settings | fixed (deleted WP0-A) |
 | WP0-05 | High | `maintenance/setup/*`, `tools/*` (rest) | No gate; schema/data mutation by any visitor | fixed (deleted WP0-A) except entries under WP0-C/D/E |
-| WP0-06 | High | `database/run-leads-migration.php` | Comment claims "admin only", code checks nothing | needs decision (WP0-E) |
-| WP0-07 | High | `modules/hr/install.php` | Config-only gate, swallows errors | needs decision (WP0-E) |
+| WP0-06 | High | `database/run-leads-migration.php` | Comment claims "admin only", code checks nothing | fixed (WP0-E: schema + INSERT IGNORE seed folded into patcher + install-schema.sql; runner deleted; refs updated) |
+| WP0-07 | High | `modules/hr/install.php` | Config-only gate, swallows errors | fixed (WP0-E: CLI-only 403 over HTTP, audit-log entry; loud warnings kept) |
 | WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | fixed (WP0-C: abort on non-empty users, install.token + rate limit, storage/installed marker, root index.php no longer redirects to wizard) |
 | WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
 | WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |

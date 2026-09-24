@@ -1,5 +1,11 @@
 <?php
-// HR Module Installer - idempotent, runs base + all incremental updates
+// HR Module Installer - idempotent, runs base + all incremental updates.
+// WP0-E: CLI-only. Anyone opening this over HTTP gets nothing (the schema it
+// applies is sensitive and the runner must never be web-triggered).
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    die('Forbidden: run via CLI as the deploy user: php modules/hr/install.php');
+}
 require_once __DIR__ . '/../../config.php';
 
 echo "Installing HR Module Schema...\n";
@@ -39,3 +45,14 @@ foreach ($files as $sqlFile) {
     echo "  Done $label\n";
 }
 echo "HR Module tables created/updated successfully.\n";
+
+// Audit trail (WP0-E): record who ran the installer and when.
+try {
+    $runUser = get_current_user() . '@' . php_uname('n');
+    $stmt = $pdo->prepare("INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details) VALUES (NULL, 'hr_schema_install', 'system', NULL, 'cli', ?, ?)");
+    $stmt->execute([$runUser, json_encode(['files' => array_map('basename', $files)])]);
+    echo "Audit entry written.\n";
+} catch (Exception $e) {
+    // audit_log may not exist on a bare database; schema files create it.
+    echo "Audit skipped: " . $e->getMessage() . "\n";
+}

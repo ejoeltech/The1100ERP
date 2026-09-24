@@ -1,5 +1,8 @@
--- Bluedots Technologies — Leads & Follow-up module
--- Run in phpMyAdmin, or via the bundled runner: database/run-leads-migration.php
+-- Bluedots Technologies — Leads & Follow-up module (reference copy, WP0-E)
+-- Canonical sources now: database/install-schema.sql (fresh installs) and the
+-- schema patcher "1f. Leads & Follow-up" block (upgrades via System Update).
+-- Kept here for reference only; do not apply directly (its settings seed uses
+-- ON DUPLICATE KEY UPDATE and would overwrite configured tokens).
 -- Plain MySQL/MariaDB. Tables are unprefixed to match the 1100erp-ai schema.
 
 CREATE TABLE IF NOT EXISTS leads (
