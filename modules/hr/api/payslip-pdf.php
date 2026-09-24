@@ -1,0 +1,137 @@
+<?php
+/**
+ * Payslip PDF export for one employee / month / year.
+ * Uses mPDF (already a project dependency). Employee may view own payslip;
+ * admins may view any.
+ */
+require_once '../../../config.php';
+require_once '../../../includes/session-check.php';
+require_once '../../../vendor/autoload.php';
+
+if (empty($_SESSION['user_id'])) {
+    http_response_code(401);
+    die('Unauthorized');
+}
+
+$employeeId = (int) ($_GET['employee_id'] ?? 0);
+$month = (int) ($_GET['month'] ?? date('n'));
+$year = (int) ($_GET['year'] ?? date('Y'));
+
+if (!$employeeId) {
+    http_response_code(400);
+    die('Missing employee_id');
+}
+
+// Permission: own payslip unless admin. Resolve employee_id -> user_id.
+$stmt = $pdo->prepare("SELECT user_id FROM hr_employees WHERE id = ?");
+$stmt->execute([$employeeId]);
+$empUser = $stmt->fetch();
+if (!$empUser) {
+    http_response_code(404);
+    die('Employee not found');
+}
+$isAdmin = (!empty($_SESSION['role']) && strtolower($_SESSION['role']) === 'admin');
+if (!$isAdmin && (int) $empUser['user_id'] !== (int) $_SESSION['user_id']) {
+    http_response_code(403);
+    die('You may only view your own payslip');
+}
+
+// Load payroll + employee.
+$stmt = $pdo->prepare("
+    SELECT p.*, e.employee_code, u.full_name, u.email,
+           d.name AS department, des.title AS designation,
+           e.bank_name, e.account_number, e.account_name
+    FROM hr_payroll p
+    JOIN hr_employees e ON p.employee_id = e.id
+    JOIN users u ON e.user_id = u.id
+    LEFT JOIN hr_departments d ON e.department_id = d.id
+    LEFT JOIN hr_designations des ON e.designation_id = des.id
+    WHERE p.employee_id = ? AND p.month = ? AND p.year = ?
+    LIMIT 1
+");
+$stmt->execute([$employeeId, $month, $year]);
+$pay = $stmt->fetch();
+if (!$pay) {
+    http_response_code(404);
+    die('No payroll record for this period');
+}
+
+$company = defined('COMPANY_NAME') ? COMPANY_NAME : 'Company';
+$currency = getSetting('payroll_currency_symbol', '₦');
+$period = date('F Y', mktime(0, 0, 0, $month, 1, $year));
+
+function row($label, $value, $bold = false)
+{
+    global $currency;
+    $cls = $bold ? ' style="font-weight:bold;"' : '';
+    return "<tr><td{$cls}>{$label}</td><td{$cls} align='right'>{$currency}" . number_format($value, 2) . "</td></tr>";
+}
+
+$html = '
+<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{font-family:DejaVuSans,sans-serif;font-size:12px;color:#111;padding:24px;}
+h1{font-size:20px;color:#1d4ed8;margin:0 0 2px;}
+.sub{color:#666;font-size:11px;margin-bottom:16px;}
+.meta{border-bottom:2px solid #1d4ed8;padding-bottom:10px;margin-bottom:14px;}
+table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+th{background:#1d4ed8;color:#fff;text-align:left;padding:6px 8px;font-size:11px;}
+td{padding:5px 8px;border-bottom:1px solid #e5e7eb;}
+.section-title{background:#eff6ff;color:#1d4ed8;font-weight:bold;padding:6px 8px;margin-top:8px;}
+.net{font-size:15px;background:#ecfdf5;border:1px solid #10b981;padding:8px;border-radius:4px;}
+.foot{margin-top:20px;font-size:9px;color:#888;text-align:center;}
+</style></head><body>';
+
+$html .= "<h1>{$company}</h1><div class='sub'>Payslip — {$period}</div>";
+$html .= "<div class='meta'>
+<table>
+<tr><td><strong>Employee:</strong> " . htmlspecialchars($pay['full_name']) . "</td>
+<td><strong>Code:</strong> " . htmlspecialchars($pay['employee_code']) . "</td></tr>
+<tr><td><strong>Department:</strong> " . htmlspecialchars($pay['department'] ?? '-') . "</td>
+<td><strong>Designation:</strong> " . htmlspecialchars($pay['designation'] ?? '-') . "</td></tr>
+<tr><td><strong>Bank:</strong> " . htmlspecialchars(($pay['bank_name'] ?? '') . ' ' . ($pay['account_number'] ?? '')) . "</td>
+<td><strong>Status:</strong> " . ucfirst($pay['status']) . "</td></tr>
+</table></div>";
+
+$html .= "<div class='section-title'>Earnings</div><table>";
+$html .= row('Basic Salary', $pay['basic_salary']);
+$html .= row('Allowances (Housing/Transport/Other)', $pay['allowances']);
+$html .= row('Overtime', $pay['overtime']);
+$html .= row('Bonus', $pay['bonus']);
+$html .= row('Commission', $pay['commission']);
+$html .= row('Gross Pay', $pay['gross_salary'], true);
+$html .= "</table>";
+
+$html .= "<div class='section-title'>Deductions</div><table>";
+$html .= row('PAYE (Tax)', $pay['paye']);
+$html .= row('NHF (2.5%)', $pay['nhf']);
+$html .= row('Pension (Employee 8%)', $pay['pension_employee']);
+$html .= row('Loan / Advance', $pay['loan_deduction']);
+$html .= row('Other Deductions', $pay['other_deductions']);
+$html .= row('Total Deductions', $pay['total_deductions'], true);
+$html .= "</table>";
+
+$html .= "<div class='net'><strong>NET PAY: {$currency}" . number_format($pay['net_salary'], 2) . "</strong></div>";
+$html .= "<p style='font-size:10px;color:#555;margin-top:8px;'>Employer pension contribution: {$currency}" .
+    number_format($pay['pension_employer'], 2) . " &nbsp;|&nbsp; Total employer cost: {$currency}" .
+    number_format($pay['employer_cost'], 2) . "</p>";
+
+$html .= "<div class='foot'>Generated by 1100ERP HR Module &bull; This is a system-generated payslip &bull; " . date('Y-m-d H:i') . "</div>";
+$html .= "</body></html>";
+
+try {
+    $mpdf = new \Mpdf\Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4',
+        'margin_left' => 15, 'margin_right' => 15,
+        'margin_top' => 15, 'margin_bottom' => 15,
+        'default_font' => 'DejaVuSans'
+    ]);
+    // DejaVuSans is bundled with mPDF; falls back gracefully if not present.
+    $mpdf->WriteHTML($html);
+    $filename = 'Payslip_' . preg_replace('/[^A-Za-z0-9]/', '', $pay['employee_code']) . '_' . $month . '_' . $year . '.pdf';
+    $mpdf->Output($filename, \Mpdf\Output\Destination::DOWNLOAD);
+} catch (\Mpdf\MpdfException $e) {
+    error_log("Payslip PDF error: " . $e->getMessage());
+    http_response_code(500);
+    die('Error generating payslip: ' . $e->getMessage());
+}

@@ -75,6 +75,10 @@ include '../includes/header.php';
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Quote Appendices
             </button>
+            <button onclick="switchTab('leads')" id="tab-leads"
+                class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
+                Leads & Follow-up
+            </button>
             <button onclick="switchTab('maintenance')" id="tab-maintenance"
                 class="tab-button px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">
                 Maintenance
@@ -906,6 +910,100 @@ include '../includes/header.php';
             btn.classList.toggle('text-primary');
         }
     </script>
+</div>
+
+<!-- Leads & Follow-up Tab -->
+<div id="content-leads" class="tab-content hidden">
+    <h3 class="text-xl font-bold text-gray-900 mb-6">Leads & Follow-up</h3>
+    <p class="text-gray-600 mb-6">Capture enquiries from your website + WhatsApp, auto-nudge overdue leads, and get a daily Telegram digest. Zero recurring cost.</p>
+
+    <div class="space-y-6 max-w-2xl">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-900 mb-2">📋 Setup steps</h4>
+            <ol class="text-sm text-gray-700 space-y-1 ml-4 list-decimal">
+                <li>Run once on the server: <code>php database/run-leads-migration.php</code> (creates <code>leads</code> table).</li>
+                <li>Link your capture form: <code><?php echo htmlspecialchars((getSetting('company_website','') ?: 'https://your-erp')); ?>/lead-form.php</code></li>
+                <li>Fill in Telegram + WhatsApp below, then save.</li>
+            </ol>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h4 class="font-semibold text-gray-900 mb-4">📱 Telegram Alerts & Daily Digest</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bot Token</label>
+                    <input type="password" name="telegram_bot_token"
+                        value="<?php echo htmlspecialchars(getSetting('telegram_bot_token', '')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="123456:ABC-DEF…">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Chat ID</label>
+                    <input type="text" name="telegram_chat_id"
+                        value="<?php echo htmlspecialchars(getSetting('telegram_chat_id', '')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="123456789">
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Get a token from @BotFather, then message the bot and fetch your chat id. Alerts: new lead, follow-up due, daily digest.</p>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h4 class="font-semibold text-gray-900 mb-4">🔁 Follow-up Engine</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="lead_followup_enabled" value="1" <?php echo getSetting('lead_followup_enabled', '1') ? 'checked' : ''; ?>
+                        class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                    <span class="text-sm font-semibold text-gray-700">Enable follow-up nudges</span>
+                </label>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Interval (days)</label>
+                    <input type="number" name="lead_followup_interval_days" min="1" max="30"
+                        value="<?php echo htmlspecialchars(getSetting('lead_followup_interval_days', '3')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Max attempts</label>
+                    <input type="number" name="lead_followup_max_attempts" min="1" max="10"
+                        value="<?php echo htmlspecialchars(getSetting('lead_followup_max_attempts', '3')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                </div>
+            </div>
+            <label class="flex items-center gap-2 mt-4">
+                <input type="checkbox" name="lead_digest_enabled" value="1" <?php echo getSetting('lead_digest_enabled', '1') ? 'checked' : ''; ?>
+                    class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
+                <span class="text-sm font-semibold text-gray-700">Send daily operations digest</span>
+            </label>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h4 class="font-semibold text-gray-900 mb-4">💬 WhatsApp Cloud API (inbound capture)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Verify Token</label>
+                    <input type="text" name="whatsapp_verify_token"
+                        value="<?php echo htmlspecialchars(getSetting('whatsapp_verify_token', '')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="any secret string">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">App Secret</label>
+                    <input type="password" name="whatsapp_app_secret"
+                        value="<?php echo htmlspecialchars(getSetting('whatsapp_app_secret', '')); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                        placeholder="App secret from Meta">
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">In Meta App → WhatsApp → Configuration, set Callback URL to <code><?php echo htmlspecialchars((getSetting('company_website','') ?: 'https://your-erp')); ?>/api/leads/whatsapp-webhook.php</code> and Verify Token to match above. Capture-only (no auto-reply).</p>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <a href="../pages/leads/manage-leads.php"
+                class="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold text-sm">
+                Open Leads Dashboard →
+            </a>
+        </div>
+    </div>
 </div>
 
 <!-- Maintenance Tab -->
