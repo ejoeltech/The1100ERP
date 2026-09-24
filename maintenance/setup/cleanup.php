@@ -5,14 +5,28 @@
 // Permanent equivalent after deletion: pages/system-update.php + api/system/*.
 
 require_once dirname(__DIR__, 2) . '/includes/session-check.php';
+require_once dirname(__DIR__, 2) . '/includes/security.php';
 
-requirePermission('manage_settings');
+// Rigor parity with api/system/remove-installer.php (WP0-D):
+// admin role + POST + CSRF + current password re-entry.
+if (!isAdmin()) {
+    http_response_code(403);
+    die('Access denied: Administrator privileges required.');
+}
 
 $setupDir = __DIR__;
 $maintenanceDir = dirname(__DIR__);
 
-// Safety: never delete unless path is maintenance/setup
-if (basename($setupDir) !== 'setup' || basename($maintenanceDir) !== 'maintenance') {
+// Safety: realpath containment — never delete unless the target really is
+// <project-root>/maintenance and this file really is <root>/maintenance/setup.
+$rootReal = realpath(dirname(__DIR__, 2));
+$maintReal = realpath($maintenanceDir);
+$setupReal = realpath($setupDir);
+if ($rootReal === false || $maintReal === false || $setupReal === false
+    || dirname($maintReal) !== $rootReal || basename($maintReal) !== 'maintenance'
+    || dirname($setupReal) !== $maintReal || basename($setupReal) !== 'setup'
+    || basename(__FILE__) !== 'cleanup.php'
+) {
     die('Safety stop: unexpected installer path.');
 }
 
@@ -40,7 +54,37 @@ function delPath($path, &$log) {
 }
 
 if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        http_response_code(405);
+        die('Method not allowed.');
+    }
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('Invalid CSRF token.');
+    }
+    // Current password re-entry (same bar as remove-installer.php).
+    $password = $_POST['password'] ?? '';
+    if ($password === '') {
+        die('Current password required.');
+    }
+    $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+    if (!$user || !password_verify($password, $user['password'])) {
+        http_response_code(403);
+        die('Password verification failed.');
+    }
+
     $log = [];
+    // Phase 1: delete everything under maintenance/ except this running file.
+    // Also removes the spent install token and attempt log; the installed
+    // marker lives in storage/ (outside maintenance/) and is kept.
+    foreach (['install.token', '.install-attempts'] as $spent) {
+        $p = $setupDir . '/' . $spent;
+        if (file_exists($p)) {
+            delPath($p, $log);
+        }
+    }
     // Phase 1: delete everything under maintenance/ except this running file
     $items = array_diff(scandir($maintenanceDir), ['.', '..']);
     foreach ($items as $item) {
@@ -55,6 +99,19 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
     }
     $failures = array_values(array_filter($log, fn($r) => !$r['ok']));
     $self = $setupDir . '/cleanup.php';
+
+    // In-request verification: after Phase 1, setup/ must hold ONLY this file
+    // and maintenance/ must hold ONLY setup/. Anything else is reported loudly.
+    // (Final existence of maintenance/ itself can only be confirmed after the
+    // shutdown self-delete — use deploy/verify-deployment.sh on the live site.)
+    $leftoverSetup = array_values(array_diff(scandir($setupDir), ['.', '..', 'cleanup.php']));
+    $leftoverMaint = array_values(array_diff(scandir($maintenanceDir), ['.', '..', 'setup']));
+    foreach (array_merge(
+        array_map(fn($f) => $setupDir . '/' . $f, $leftoverSetup),
+        array_map(fn($f) => $maintenanceDir . '/' . $f, $leftoverMaint)
+    ) as $leftover) {
+        $failures[] = ['ok' => false, 'path' => $leftover, 'msg' => 'still present after cleanup'];
+    }
 
     // JSON mode for wizard Step 7 (fetch API)
     if (($_POST['format'] ?? '') === 'json') {
@@ -155,6 +212,12 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
         </div>
         <form method="POST">
             <input type="hidden" name="confirm" value="YES">
+            <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
+            <div style="text-align:left;margin-bottom:12px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Current admin password (re-entry required)</label>
+                <input type="password" name="password" required autocomplete="current-password"
+                    style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;">
+            </div>
             <button type="submit" class="w-full px-6 py-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700">
                 YES, DELETE maintenance/
             </button>

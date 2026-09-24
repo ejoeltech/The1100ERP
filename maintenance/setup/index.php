@@ -343,17 +343,23 @@ $requirements = checkRequirements();
 
                 <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                     <strong style="color: #0369a1;">Step 1 — Final check:</strong>
-                    <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Synchronizes all database tables with the codebase. Opens the full report in a new tab.</p>
-                    <a href="./run-schema-update.php" target="_blank" class="btn btn-primary"
-                        style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center; text-decoration: none;"
-                        onclick="document.getElementById('step7Delete').style.display='block';">
+                    <p style="margin: 5px 0 15px 0; font-size: 0.9em;">Synchronizes all database tables with the codebase. The report appears below.</p>
+                    <button type="button" id="step7CheckBtn" class="btn btn-primary"
+                        style="background: #0369a1; border-color: #0369a1; width: 100%; display: block; text-align: center;"
+                        onclick="runStep7Check()">
                         Run Database Final Check
-                    </a>
+                    </button>
+                    <div id="step7Report" style="margin-top: 12px; max-height: 300px; overflow-y: auto; font-size: 0.85em;"></div>
                 </div>
 
                 <div id="step7Delete" style="background: #fff5f5; border: 1px solid #feb2b2; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                     <strong style="color: #c53030; display: block; margin-bottom: 8px;">Step 2 — Delete installer:</strong>
-                    <p style="margin: 5px 0 15px 0; font-size: 0.9em; color: #742a2a;">Removes the entire <code>maintenance/</code> folder. After this, use <strong>System Update</strong> inside the app.</p>
+                    <p style="margin: 5px 0 15px 0; font-size: 0.9em; color: #742a2a;">Removes the entire <code>maintenance/</code> folder. After this, use <strong>System Update</strong> inside the app. Requires your current admin password.</p>
+                    <div style="margin-bottom: 10px;">
+                        <label style="display:block;font-weight:bold;margin-bottom:4px;font-size:0.9em;">Current admin password</label>
+                        <input type="password" id="step7Password" autocomplete="current-password"
+                            style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;">
+                    </div>
                     <button type="button" id="step7CleanupBtn" class="btn btn-secondary"
                         style="width: 100%; display: block; background: #c53030; border-color: #c53030; color: white;"
                         onclick="runStep7Cleanup()">
@@ -382,13 +388,54 @@ $requirements = checkRequirements();
 
     <script src="assets/wizard.js"></script>
     <script>
+        // Step 7: final schema check via the gated install.php action
+        // (replaces the deleted run-schema-update.php).
+        async function runStep7Check() {
+            const report = document.getElementById('step7Report');
+            const btn = document.getElementById('step7CheckBtn');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            report.innerHTML = '<p>Running schema check...</p>';
+            try {
+                const formData = new FormData();
+                formData.append('action', 'final_check');
+                const response = await fetch('install.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success && result.entries) {
+                    let html = '<ul style="list-style:none;padding:0;">';
+                    result.entries.forEach(e => {
+                        const color = e.status === 'ok' ? 'green' : (e.status === 'error' ? 'red' : 'blue');
+                        html += '<li style="color:' + color + ';">'
+                            + (e.status === 'ok' ? '✓' : (e.status === 'error' ? '✗' : 'ℹ'))
+                            + ' ' + e.message.replace(/</g, '&lt;') + '</li>';
+                    });
+                    report.innerHTML = html + '</ul>';
+                } else {
+                    report.innerHTML = '<p style="color:red;">Check failed: '
+                        + (result.message || 'unknown error').replace(/</g, '&lt;') + '</p>';
+                }
+            } catch (e) {
+                report.innerHTML = '<p style="color:red;">Error: ' + e.message.replace(/</g, '&lt;') + '</p>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Run Database Final Check';
+                document.getElementById('step7Delete').style.display = 'block';
+            }
+        }
+
         // Step 7: one-click installer delete (works: installer auto-logs in the new admin)
         async function runStep7Cleanup() {
             const status = document.getElementById('cleanupStatus');
             const btn = document.getElementById('step7CleanupBtn');
+            const password = document.getElementById('step7Password').value;
             if (!window.wizard || !window.wizard.installDone) {
                 status.className = 'alert alert-error';
                 status.textContent = 'Complete the installation first (Step 6), then clean up.';
+                return;
+            }
+            if (!password) {
+                status.className = 'alert alert-error';
+                status.textContent = 'Enter your current admin password to confirm deletion.';
                 return;
             }
             if (!confirm('Permanently delete the entire maintenance/ folder?')) return;
@@ -397,9 +444,16 @@ $requirements = checkRequirements();
             status.className = 'alert alert-info';
             status.textContent = 'Deleting installer...';
             try {
+                // Mint a CSRF token for this session, then post the delete.
+                const csrfForm = new FormData();
+                csrfForm.append('action', 'csrf_token');
+                const csrfResp = await fetch('install.php', { method: 'POST', body: csrfForm });
+                const csrfData = await csrfResp.json();
                 const formData = new FormData();
                 formData.append('confirm', 'YES');
                 formData.append('format', 'json');
+                formData.append('password', password);
+                if (csrfData.csrf_token) formData.append('csrf_token', csrfData.csrf_token);
                 const response = await fetch('cleanup.php', { method: 'POST', body: formData });
                 const text = await response.text();
                 let result;

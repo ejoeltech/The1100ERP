@@ -10,6 +10,27 @@ session_start();
 // Block once configured, locked, or marked installed. Delete maintenance/setup/ after install.
 require_once __DIR__ . '/install-guard.php';
 if (install_is_installed()) {
+    // Narrow Step-7 exceptions: the final schema check and a CSRF token for
+    // the cleanup form, both for logged-in admins only. (config.php exists
+    // this late, so the normal session bootstrap works.)
+    // Everything else stays refused.
+    if (in_array(($_POST['action'] ?? ''), ['final_check', 'csrf_token'], true)) {
+        require_once dirname(__DIR__, 2) . '/config.php';
+        require_once dirname(__DIR__, 2) . '/includes/session-check.php';
+        if (!isAdmin()) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Access denied: Administrator privileges required.']);
+            exit;
+        }
+        if (($_POST['action'] ?? '') === 'csrf_token') {
+            require_once dirname(__DIR__, 2) . '/includes/security.php';
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'csrf_token' => generateCSRFToken()]);
+            exit;
+        }
+        runFinalCheck();
+    }
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Already installed. Delete maintenance/setup/ to reinstall.']);
     exit;
@@ -53,6 +74,17 @@ try {
 
         case 'finalize':
             finalizeInstallation();
+            break;
+
+        case 'final_check':
+            // Step-7 schema check (also reachable pre-finalize behind the token).
+            runFinalCheck();
+            break;
+
+        case 'csrf_token':
+            require_once dirname(__DIR__, 2) . '/includes/security.php';
+            $response['success'] = true;
+            $response['csrf_token'] = generateCSRFToken();
             break;
 
         default:
@@ -348,9 +380,40 @@ function initializeSettings()
     }
 }
 
-function finalizeInstallation()
+/**
+ * Step-7 final schema check: runs the shared SchemaPatcher and returns its
+ * report as JSON. Replaces the deleted run-schema-update.php.
+ */
+function runFinalCheck()
 {
-    global $response;
+    global $response, $pdo;
+
+    try {
+        require_once dirname(__DIR__, 2) . '/includes/schema-patcher.php';
+        // $pdo comes from config.php on the installed path (imported as global);
+        // otherwise fall back to posted credentials for the pre-finalize token path.
+        if (!isset($pdo)) {
+            $dsn = 'mysql:host=' . ($_POST['db_host'] ?? '') . ';charset=utf8mb4';
+            $pdo = new PDO($dsn, $_POST['db_user'] ?? '', $_POST['db_password'] ?? '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            if (!empty($_POST['db_name'])) {
+                $pdo->exec('USE `' . str_replace('`', '', $_POST['db_name']) . '`');
+            }
+        }
+        $entries = SchemaPatcher::run($pdo, dirname(__DIR__, 2));
+        $response['success'] = true;
+        $response['message'] = 'Final check complete';
+        $response['entries'] = $entries;
+    } catch (Exception $e) {
+        $response['success'] = false;
+        $response['message'] = 'Final check failed: ' . $e->getMessage();
+    }
+
+    echo json_encode($response);
+    exit;
+}
+
+function finalizeInstallation()
+{    global $response;
 
     $dbHost = $_POST['db_host'] ?? '';
     $dbName = $_POST['db_name'] ?? '';
