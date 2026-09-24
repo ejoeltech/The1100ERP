@@ -1,7 +1,7 @@
 <?php
 // Run the Leads module schema + seed settings.
 // Usage (CLI or browser, admin only):  php database/run-leads-migration.php
-// Mirrors the repo's other migration runners (e.g. add_signature_column.php).
+// Applies database/leads-schema.sql (CREATE TABLE IF NOT EXISTS + settings seed).
 require_once dirname(__DIR__) . '/config.php';
 
 try {
