@@ -57,3 +57,4 @@ earlier cleanup.
 | WP0-12 | Medium | wizard restore endpoint | Pre-auth backup restore; kept pending decision with token gate | needs decision (WP0-C: token-gated for now; default recommendation remains removal) |
 | WP0-13 | High | `maintenance/setup/run-schema-update.php` | No gate; linked from Step 7 | fixed (WP0-D: replaced by token/admin-gated `final_check` action in install.php; file deleted) |
 | WP0-14 | Medium | `maintenance/setup/cleanup.php` | Needed only fresh session + manage_settings | fixed (WP0-D: admin + POST + CSRF + password re-entry, realpath guard, token cleanup, leftover verification) |
+| WP0-15 | High | `modules/hr/api/generate-document.php` | Login-only; any role can generate docs for any employee_id (IDOR) | open → WP3 (needs hr-scoped permission + ownership check) |

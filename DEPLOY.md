@@ -44,24 +44,35 @@ php -r "echo base64_encode(random_bytes(32));"   # put in .env as ENCRYPTION_KEY
 
 ## 4. Create the database & base schema (web wizard — preferred)
 1. Point your web root at the repo (e.g. `DocumentRoot /var/www/1100erp-ai`).
-2. Open `https://your-host/maintenance/setup/` in a browser.
-3. The wizard tests the DB connection, imports `database/install-schema.sql`
+2. **First, lock down the installer** (mandatory, WP0-C): create the
+   one-time install token and IP-allow `/maintenance/setup/` — see
+   `deploy/INSTALL_RUNBOOK.md` steps 1–2. The wizard refuses every request
+   without the token.
+3. Open `https://your-host/maintenance/setup/?token=PASTE_TOKEN_HERE`.
+4. The wizard tests the DB connection, imports `database/install-schema.sql`
    (full base schema), creates the admin user, and initializes settings.
+5. Finish with wizard Step 7 (final check, then delete installer) and
+   `deploy/INSTALL_RUNBOOK.md` steps 3–6 (verify, remove allow-list,
+   rotate passwords).
 
 Alternative (CLI): `mysql -u <user> -p <db> < database/install-schema.sql`
 (only on a fresh/empty DB — it DROPS and recreates tables).
 
 ## 5. Apply feature migrations (HR payroll + leads)
-Run the idempotent migrator (skips all one-off fix files):
+Run the idempotent migrator:
 ```bash
 DB_HOST=localhost DB_NAME=1100erp DB_USER=root DB_PASS= \
   ./scripts/apply-feature-migrations.sh
 ```
-This installs: HR base schema, HR v2–v10 (incl. Nigeria payroll columns,
-`hr_payroll_items`, `hr_loans`), and the leads table + 8 settings seeds.
-Safe to re-run (all `IF NOT EXISTS` / `INSERT IGNORE`).
+This installs: HR base schema, HR updates (incl. Nigeria payroll columns,
+`hr_payroll_items`, `hr_loans`). Leads table + settings seeds are applied by
+the schema patcher (System Update) and `database/install-schema.sql` — the
+old `database/run-leads-migration.php` runner was removed.
+Safe to re-run (all `IF NOT EXISTS` / guarded skips).
 
 ## 6. Smoke test (do this before go-live)
+- Run `deploy/verify-deployment.sh https://your-host` — installer paths must
+  be gone (404), sensitive files denied (403), login up (200).
 - Log in as admin. Confirm **HR → Employees** lists/adds staff and
   **HR → Payroll** opens.
 - Generate payroll for one test employee (set `basic_salary` etc. first):
