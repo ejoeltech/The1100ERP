@@ -1,0 +1,3 @@
+# storage/ holds server-side install markers and other non-web files.
+# Nothing in here must ever be served. (Apache; Nginx needs an explicit deny - see deploy/.)
+Require all denied

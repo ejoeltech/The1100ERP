@@ -51,6 +51,8 @@ earlier cleanup.
 | WP0-05 | High | `maintenance/setup/*`, `tools/*` (rest) | No gate; schema/data mutation by any visitor | fixed (deleted WP0-A) except entries under WP0-C/D/E |
 | WP0-06 | High | `database/run-leads-migration.php` | Comment claims "admin only", code checks nothing | needs decision (WP0-E) |
 | WP0-07 | High | `modules/hr/install.php` | Config-only gate, swallows errors | needs decision (WP0-E) |
-| WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | needs decision (WP0-C) |
+| WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | fixed (WP0-C: abort on non-empty users, install.token + rate limit, storage/installed marker, root index.php no longer redirects to wizard) |
 | WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
 | WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |
+| WP0-11 | Medium | root `index.php` | Auto-redirected visitors to `maintenance/setup/` when config missing | fixed (WP0-C: static 503, no link) |
+| WP0-12 | Medium | wizard restore endpoint | Pre-auth backup restore; kept pending decision with token gate | needs decision (WP0-C: token-gated for now; default recommendation remains removal) |

@@ -7,12 +7,15 @@
 // CRITICAL: Start session FIRST before any output
 session_start();
 
-// Block once configured OR locked. Delete maintenance/setup/ after install.
-if (file_exists(dirname(__DIR__, 2) . '/config.php') || file_exists(__DIR__ . '/lock')) {
+// Block once configured, locked, or marked installed. Delete maintenance/setup/ after install.
+require_once __DIR__ . '/install-guard.php';
+if (install_is_installed()) {
     header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Already installed. Delete maintenance/setup/ to reinstall.']);
     exit;
 }
+// Every install action needs the one-time install token (WP0-C).
+install_require_token_ajax();
 
 // Suppress any output except JSON
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
@@ -231,8 +234,13 @@ function createAdminUser()
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
 
-        // Clear existing users (for reinstallation)
-        $pdo->exec("DELETE FROM users");
+        // NEVER wipe existing accounts: abort when any user already exists.
+        // (A fresh schema import leaves users empty; anything else means this
+        //  installer is running against a live database.)
+        $existing = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        if ($existing > 0) {
+            throw new Exception('Users table already has accounts. Aborting to protect existing users.');
+        }
 
         // Hash password (using PASSWORD_ARGON2ID)
         $hashedPassword = password_hash($adminPassword, PASSWORD_ARGON2ID);
@@ -368,6 +376,28 @@ function finalizeInstallation()
         // Create lock file
         $lockFile = __DIR__ . '/lock';
         file_put_contents($lockFile, date('Y-m-d H:i:s'));
+
+        // Installed marker OUTSIDE maintenance/ (survives cleanup.php).
+        // Wizard entries refuse to run while any of config.php, lock, or this
+        // marker exists.
+        $storageDir = dirname(__DIR__, 2) . '/storage';
+        if (!is_dir($storageDir)) {
+            @mkdir($storageDir, 0755, true);
+        }
+        @file_put_contents($storageDir . '/installed', date('Y-m-d H:i:s'));
+        try {
+            $dsnMark = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
+            $pdoMark = new PDO($dsnMark, $dbUser, $dbPassword, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+            $stmt = $pdoMark->prepare("INSERT INTO settings (setting_key, setting_value) VALUES ('installed_at', ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+            $stmt->execute([date('Y-m-d H:i:s')]);
+        } catch (Exception $e) {
+            // Non-fatal: file marker above is the primary signal.
+        }
+
+        // One-time install token is spent: it must never survive finalize.
+        @unlink(__DIR__ . '/install.token');
+        @unlink(__DIR__ . '/.install-attempts');
+        unset($_SESSION['install_token_ok']);
 
         @chmod($configFile, 0644);
 

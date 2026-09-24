@@ -1,23 +1,12 @@
 <?php
-// Check if installation is required
-if (!file_exists('config.php') && !file_exists('maintenance/setup/lock')) {
-    if (is_dir('maintenance/setup')) {
-        header('Location: maintenance/setup/index.php');
-        exit;
-    }
+// Normal bootstrap. This file must NEVER send visitors to the installer:
+// on a missing config it shows a static message with no link (WP0-C).
+if (!file_exists('config.php')) {
+    http_response_code(503);
     die('
-        <h1>Installer Not Present</h1>
-        <p>No configuration found and the installer was removed after setup (expected).</p>
-        <p>To reinstall, re-upload the <code>maintenance/setup/</code> folder from your deployment package, then refresh this page.</p>
-    ');
-}
-
-// Check if system is installed but config is missing (corrupted)
-if (!file_exists('config.php') && file_exists('maintenance/setup/lock')) {
-    die('
-        <h1>Configuration Error</h1>
-        <p>The config.php file is missing. Please restore it from backup or reinstall.</p>
-        <p>To reinstall, delete: <code>maintenance/setup/lock</code> and refresh this page.</p>
+        <h1>Application Not Installed</h1>
+        <p>No configuration was found on this server. Installation is performed
+        by the server administrator following the deployment runbook.</p>
     ');
 }
 

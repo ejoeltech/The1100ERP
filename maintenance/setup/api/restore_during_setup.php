@@ -2,12 +2,16 @@
 /**
  * Restore Endpoint for Setup Wizard
  * Allows restoring a backup (SQL or ZIP) using provided DB credentials.
- * Does NOT require session login, but requires valid DB credentials in POST.
+ * Requires the one-time install token (WP0-C). Pending decision: remove from
+ * the web wizard entirely and document CLI restore instead.
  */
 
 header('Content-Type: application/json');
 
 session_start();
+
+require_once __DIR__ . '/../install-guard.php';
+install_require_token_ajax();
 
 // Helper function to send error
 function sendError($message)
@@ -18,11 +22,6 @@ function sendError($message)
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendError('Invalid request method');
-}
-
-// Block once configured OR locked. Delete maintenance/setup/ after install.
-if (file_exists(dirname(__DIR__, 3) . '/config.php') || file_exists(__DIR__ . '/../lock')) {
-    sendError('Already installed. Delete maintenance/setup/ to reinstall.');
 }
 
 // 1. Validate Input

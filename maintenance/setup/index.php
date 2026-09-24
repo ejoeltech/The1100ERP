@@ -8,23 +8,8 @@ session_start();
 
 // Refuse on configured systems: the wizard must never run where a config exists.
 // (Allows safe reset flow: reset deletes config.php, wizard runs, cleanup deletes setup/.)
-if (file_exists(dirname(__DIR__, 2) . '/config.php')) {
-    die('
-        <h1>Already Installed</h1>
-        <p>1100-ERP is already installed on this server.</p>
-        <p><a href="../../login.php">Go to Login</a></p>
-    ');
-}
-
-// Check if already installed
-if (file_exists(__DIR__ . '/lock')) {
-    die('
-        <h1>Already Installed</h1>
-        <p>1100-ERP is already installed on this server.</p>
-        <p>To reinstall, delete the file: <code>setup/lock</code></p>
-        <p><a href="../../login.php">Go to Login</a></p>
-    ');
-}
+require_once __DIR__ . '/install-guard.php';
+install_require_token_ui();
 
 // Check PHP requirements
 $requirements = checkRequirements();
