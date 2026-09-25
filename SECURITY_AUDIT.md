@@ -7,6 +7,22 @@ Rule: a fix is only marked **verified** after test/scan/reproduction. Otherwise 
 - (WP0-C) Pre-auth restore endpoint `maintenance/setup/api/restore_during_setup.php`: default recommendation is REMOVE from web wizard + document CLI restore (`mysql < backup.sql`). Kept token-gated for now pending decision.
 - (Note, non-security) `modules/hr/update_schema_v10_payroll.sql:34` uses `ADD COLUMN IF NOT EXISTS`, which MariaDB rejects (1064) — the `hr_payroll.hourly_rate_override` column was never created. Pre-existing; flagged for the HR/payroll work (WP9).
 
+## WP0 verification: fresh-install E2E (2026-09-25, throwaway instance)
+
+Staged `C:\xampp\htdocs\1100-throwaway` (working-tree copy, no config.php)
+with empty DB `1100throwaway` and drove the whole lifecycle over HTTP:
+- Wizard UI without/wrong token → 403; with token → 200.
+- All 6 actions (`test_connection`, `create_database`, `import_schema`,
+  `create_admin`, `init_settings`, `finalize`) returned success; artifacts
+  verified: `config.php`, `setup/lock`, `storage/installed`,
+  `settings.installed_at`, admin user, 24 tables, install.token spent.
+- Login as new admin → dashboard 200. Wizard UI/API refuse post-install
+  ("Already Installed"). `final_check` as admin: 73 entries, 0 errors
+  (also promoted first admin to super_admin per the always-one-super-admin
+  rule); viewer gets 403.
+- Cleanup (CSRF + password re-entry): 9 items deleted, `maintenance/`
+  gone (404s), `storage/installed` kept, app login/dashboard unaffected.
+
 ## WP0-A: Remove spent and hazardous setup scripts — coverage record
 
 Verified that `includes/SchemaPatcher.php` (`SchemaPatcher::run`) and/or
