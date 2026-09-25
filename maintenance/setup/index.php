@@ -9,7 +9,7 @@ session_start();
 // Refuse on configured systems: the wizard must never run where a config exists.
 // (Allows safe reset flow: reset deletes config.php, wizard runs, cleanup deletes setup/.)
 require_once __DIR__ . '/install-guard.php';
-install_require_token_ui();
+install_require_claim_ui();
 
 // Check PHP requirements
 $requirements = checkRequirements();

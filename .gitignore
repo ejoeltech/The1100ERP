@@ -19,10 +19,10 @@ Thumbs.db
 # Config files (should be created locally)
 config.php
 
-# Install marker (created by setup wizard finalize; never commit)
+# Install claim file (created on the server to unlock the wizard; never commit)
+maintenance/setup/ALLOW_INSTALL
+# Install marker + lock (created by setup wizard finalize; never commit)
 storage/installed
-maintenance/setup/install.token
-maintenance/setup/.install-attempts
 maintenance/setup/lock
 
 *.zip

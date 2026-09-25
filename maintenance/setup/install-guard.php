@@ -1,16 +1,21 @@
 <?php
 /**
- * Install-window guard for the setup wizard.
+ * Install-window guard for the setup wizard (WP0-C, usability revision).
  *
- * Rules:
- * - The wizard refuses everything once ANY installed signal exists:
- *   config.php, setup/lock, or storage/installed (WP0-C third marker).
- * - Otherwise every wizard request (UI, AJAX, restore) must present the
- *   one-time install token that only someone with server access can read:
- *   maintenance/setup/install.token (created at deploy time, see
- *   deploy/INSTALL_RUNBOOK.md). Compared with hash_equals. A verified
- *   session is remembered via $_SESSION['install_token_ok'].
- * - Token guesses are rate-limited per IP and met with delays.
+ * Model: proof-of-WRITE instead of a shared secret. To install, someone able
+ * to write files on the server creates an empty file:
+ *
+ *     maintenance/setup/ALLOW_INSTALL
+ *
+ * (cPanel File Manager → + File, or FTP upload, or `touch` / New-Item.)
+ * The wizard — UI, AJAX and restore — refuses every request while that file
+ * is absent, and finalizeInstallation() deletes it. A remote stranger who
+ * can only browse the site cannot create it, so they cannot start an
+ * install; anyone who CAN write server files already owns the host, and no
+ * token scheme adds anything on top of that.
+ *
+ * Independent second layer (unchanged): the wizard also refuses once ANY
+ * installed signal exists — config.php, setup/lock, or storage/installed.
  */
 
 function install_root_dir()
@@ -33,99 +38,42 @@ function install_is_installed()
     return false;
 }
 
-function install_token_file()
+function install_claim_file()
 {
-    return __DIR__ . '/install.token';
+    return __DIR__ . '/ALLOW_INSTALL';
 }
 
-function install_expected_token()
+function install_claim_present()
 {
-    $file = install_token_file();
-    if (!is_readable($file)) {
-        return null;
-    }
-    $token = trim((string)@file_get_contents($file));
-    return $token !== '' ? $token : null;
+    return file_exists(install_claim_file());
 }
 
-function install_provided_token()
+function install_spend_claim()
 {
-    if (isset($_POST['install_token']) && $_POST['install_token'] !== '') {
-        return (string)$_POST['install_token'];
-    }
-    if (isset($_GET['token']) && $_GET['token'] !== '') {
-        return (string)$_GET['token'];
-    }
-    if (isset($_SERVER['HTTP_X_INSTALL_TOKEN']) && $_SERVER['HTTP_X_INSTALL_TOKEN'] !== '') {
-        return (string)$_SERVER['HTTP_X_INSTALL_TOKEN'];
-    }
-    return null;
+    @unlink(install_claim_file());
+    // Belt and braces: remove legacy token artefacts if ever created.
+    @unlink(__DIR__ . '/install.token');
+    @unlink(__DIR__ . '/.install-attempts');
 }
 
-function install_ratelimit_file()
+function install_locked_ui()
 {
-    return __DIR__ . '/.install-attempts';
+    http_response_code(403);
+    die('
+        <h1>Installation Locked</h1>
+        <p>To run this installer, create an <strong>empty file</strong> named
+        <code>ALLOW_INSTALL</code> inside the <code>maintenance/setup/</code>
+        folder, then reload this page.</p>
+        <p>cPanel: File Manager → open <code>maintenance/setup/</code> →
+        <strong>+ File</strong> → name it <code>ALLOW_INSTALL</code>.
+        FTP: upload an empty file with that name. Terminal:
+        <code>touch maintenance/setup/ALLOW_INSTALL</code>.</p>
+        <p>The installer deletes the file when setup finishes. Full procedure:
+        <code>deploy/INSTALL_RUNBOOK.md</code>.</p>
+    ');
 }
 
-function install_too_many_attempts($ip)
-{
-    $file = install_ratelimit_file();
-    $data = [];
-    if (is_readable($file)) {
-        $decoded = json_decode((string)@file_get_contents($file), true);
-        if (is_array($decoded)) {
-            $data = $decoded;
-        }
-    }
-    $now = time();
-    $window = 600;
-    $max = 10;
-    foreach ($data as $k => $times) {
-        $data[$k] = array_values(array_filter((array)$times, fn($t) => ($now - (int)$t) < $window));
-        if (empty($data[$k])) {
-            unset($data[$k]);
-        }
-    }
-    $count = count($data[$ip] ?? []);
-    return [$count >= $max, $data];
-}
-
-function install_record_attempt($ip, $data)
-{
-    $data[$ip][] = time();
-    @file_put_contents(install_ratelimit_file(), json_encode($data), LOCK_EX);
-}
-
-/**
- * Verify the install token. Returns true and remembers it in the session.
- * Emits a generic failure (with delay) otherwise.
- */
-function install_verify_token()
-{
-    if (!empty($_SESSION['install_token_ok'])) {
-        return true;
-    }
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'cli';
-    [$blocked, $data] = install_too_many_attempts($ip);
-    if ($blocked) {
-        http_response_code(429);
-        return false;
-    }
-    $expected = install_expected_token();
-    $provided = install_provided_token();
-    if ($expected === null || $provided === null || !hash_equals($expected, $provided)) {
-        install_record_attempt($ip, $data);
-        sleep(2);
-        return false;
-    }
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_regenerate_id(true);
-    }
-    $_SESSION['install_token_ok'] = true;
-    return true;
-}
-
-function install_deny_json($message = 'Install token required or invalid.')
+function install_deny_json($message)
 {
     http_response_code(403);
     header('Content-Type: application/json');
@@ -133,38 +81,23 @@ function install_deny_json($message = 'Install token required or invalid.')
     exit;
 }
 
-function install_deny_ui()
-{
-    http_response_code(403);
-    die('
-        <h1>Installation Locked</h1>
-        <p>This installer needs a one-time token that only someone with server
-        access can create. On the server, inside the project folder, run:</p>
-        <p><code>openssl rand -hex 32 &gt; maintenance/setup/install.token</code></p>
-        <p>Then reload this page as <code>index.php?token=PASTE_TOKEN_HERE</code>.
-        Full procedure: <code>deploy/INSTALL_RUNBOOK.md</code>.</p>
-    ');
-}
-
 /**
  * Gate for wizard AJAX endpoints (install.php, restore_during_setup.php).
- * Dies JSON when installed or when the token is missing/invalid.
  */
-function install_require_token_ajax()
+function install_require_claim_ajax()
 {
     if (install_is_installed()) {
         install_deny_json('Already installed. Delete maintenance/setup/ to reinstall.');
     }
-    if (!install_verify_token()) {
-        [$blocked] = install_too_many_attempts($_SERVER['REMOTE_ADDR'] ?? 'cli');
-        install_deny_json($blocked ? 'Too many attempts. Try again later.' : 'Install token required or invalid.');
+    if (!install_claim_present()) {
+        install_deny_json('Installation locked: create maintenance/setup/ALLOW_INSTALL on the server first.');
     }
 }
 
 /**
- * Gate for the wizard UI page. Dies HTML when installed or token is absent.
+ * Gate for the wizard UI page.
  */
-function install_require_token_ui()
+function install_require_claim_ui()
 {
     if (install_is_installed()) {
         die('
@@ -172,7 +105,7 @@ function install_require_token_ui()
             <p>1100-ERP is already installed on this server.</p>
         ');
     }
-    if (!install_verify_token()) {
-        install_deny_ui();
+    if (!install_claim_present()) {
+        install_locked_ui();
     }
 }

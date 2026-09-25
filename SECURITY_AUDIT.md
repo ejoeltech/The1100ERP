@@ -66,7 +66,7 @@ earlier cleanup.
 | WP0-05 | High | `maintenance/setup/*`, `tools/*` (rest) | No gate; schema/data mutation by any visitor | fixed (deleted WP0-A) except entries under WP0-C/D/E |
 | WP0-06 | High | `database/run-leads-migration.php` | Comment claims "admin only", code checks nothing | fixed (WP0-E: schema + INSERT IGNORE seed folded into patcher + install-schema.sql; runner deleted; refs updated) |
 | WP0-07 | High | `modules/hr/install.php` | Config-only gate, swallows errors | fixed (WP0-E: CLI-only 403 over HTTP, audit-log entry; loud warnings kept) |
-| WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | fixed (WP0-C: abort on non-empty users, install.token + rate limit, storage/installed marker, root index.php no longer redirects to wizard) |
+| WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | fixed (WP0-C rev2: proof-of-write claim file `ALLOW_INSTALL` instead of token — equal strength, usable via file manager/FTP; create_admin aborts on non-empty users; storage/installed marker; root index.php no longer redirects to wizard) |
 | WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
 | WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |
 | WP0-11 | Medium | root `index.php` | Auto-redirected visitors to `maintenance/setup/` when config missing | fixed (WP0-C: static 503, no link) |

@@ -44,11 +44,11 @@ php -r "echo base64_encode(random_bytes(32));"   # put in .env as ENCRYPTION_KEY
 
 ## 4. Create the database & base schema (web wizard — preferred)
 1. Point your web root at the repo (e.g. `DocumentRoot /var/www/1100erp-ai`).
-2. **First, lock down the installer** (mandatory, WP0-C): create the
-   one-time install token and IP-allow `/maintenance/setup/` — see
-   `deploy/INSTALL_RUNBOOK.md` steps 1–2. The wizard refuses every request
-   without the token.
-3. Open `https://your-host/maintenance/setup/?token=PASTE_TOKEN_HERE`.
+2. **First, unlock the installer** (mandatory, WP0-C): create an empty file
+   `maintenance/setup/ALLOW_INSTALL` via file manager, FTP or terminal —
+   see `deploy/INSTALL_RUNBOOK.md` steps 1–2b. The wizard refuses every
+   request without it.
+3. Open `https://your-host/maintenance/setup/` in a browser.
 4. The wizard tests the DB connection, imports `database/install-schema.sql`
    (full base schema), creates the admin user, and initializes settings.
 5. Finish with wizard Step 7 (final check, then delete installer) and

@@ -35,8 +35,8 @@ if (install_is_installed()) {
     echo json_encode(['success' => false, 'message' => 'Already installed. Delete maintenance/setup/ to reinstall.']);
     exit;
 }
-// Every install action needs the one-time install token (WP0-C).
-install_require_token_ajax();
+// Every install action needs the server-side claim file (WP0-C).
+install_require_claim_ajax();
 
 // Suppress any output except JSON
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
@@ -457,9 +457,8 @@ function finalizeInstallation()
             // Non-fatal: file marker above is the primary signal.
         }
 
-        // One-time install token is spent: it must never survive finalize.
-        @unlink(__DIR__ . '/install.token');
-        @unlink(__DIR__ . '/.install-attempts');
+        // The install claim is spent: it must never survive finalize.
+        install_spend_claim();
         unset($_SESSION['install_token_ok']);
 
         @chmod($configFile, 0644);

@@ -11,42 +11,41 @@ allow-list and the verification below are mandatory, not optional.
 - Deploy the code **without** `config.php` (it is gitignored and generated
   by the wizard). Never deploy `.git/`, `docs/`, or `*.sql` backups.
 
-## 1. Lock down the installer (BEFORE opening it)
+## 1. Unlock the installer (BEFORE opening it)
+
+The wizard runs only while an empty claim file exists — proof that someone
+able to write files on the server approved this install. No SSH needed, no
+secret to handle; any file manager, FTP client or terminal works:
+
+- cPanel: File Manager → open `maintenance/setup/` → **+ File** → name it
+  `ALLOW_INSTALL` (contents don't matter, empty is fine).
+- FTP: upload an empty file named `ALLOW_INSTALL` into `maintenance/setup/`.
+- Terminal: `touch maintenance/setup/ALLOW_INSTALL`
+  (PowerShell: `New-Item maintenance/setup/ALLOW_INSTALL`).
 
 ```sh
 cd /path/to/1100erp
-
-# 1a. One-time install token (only readable by the deployer).
-#     The wizard refuses every request without it.
-openssl rand -hex 32 > maintenance/setup/install.token
-chmod 600 maintenance/setup/install.token
-
-# 1b. IP allow-list for /maintenance/setup/ while installing.
-#     Apache (.htaccess inside maintenance/setup/):
-cat > maintenance/setup/.htaccess <<'EOF'
-Require ip 203.0.113.7
-EOF
-#     Nginx (server block):
-#     location ^~ /maintenance/setup/ { allow 203.0.113.7; deny all; }
+touch maintenance/setup/ALLOW_INSTALL
 ```
 
-PowerShell equivalent for the token on Windows/XAMPP:
+The installer deletes this file when setup finishes (Step 6 finalize), so a
+second run is impossible without server access again.
 
-```powershell
--join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Max 256) }) |
-  Set-Content maintenance/setup/install.token -NoNewline
-```
+## 2. IP allow-list (recommended, optional)
 
-## 2. Run the wizard
+While installing, restrict `/maintenance/setup/` to your IP (defense in
+depth; the claim file above is the real gate):
 
-1. Open `https://your-host/maintenance/setup/?token=PASTE_TOKEN_HERE`
-   (or send header `X-Install-Token`). Wrong tokens are rate-limited.
+## 2b. Run the wizard
+
+1. Open `https://your-host/maintenance/setup/` in a browser (no token or
+   code needed — the claim file from step 1 is the authorization).
 2. Steps 1–6 as normal: requirements, DB, admin account, company, install.
    `create_admin` aborts if the users table is not empty — it never deletes.
 3. Step 7: **Run Database Final Check** (runs SchemaPatcher behind the
    installer gate), then **Delete Installer Now** (needs the current admin
    password + CSRF; same bar as System Update → Delete Installer).
-4. The token file is destroyed at finalize; the `storage/installed` marker
+4. The claim file is destroyed at finalize; the `storage/installed` marker
    and `settings.installed_at` row survive cleanup permanently.
 
 ## 3. Verify, then open up
