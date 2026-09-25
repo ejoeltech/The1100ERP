@@ -138,8 +138,11 @@ function install_deny_ui()
     http_response_code(403);
     die('
         <h1>Installation Locked</h1>
-        <p>This installer requires a one-time install token that only the server administrator can read.</p>
-        <p>See <code>deploy/INSTALL_RUNBOOK.md</code> for the install procedure.</p>
+        <p>This installer needs a one-time token that only someone with server
+        access can create. On the server, inside the project folder, run:</p>
+        <p><code>openssl rand -hex 32 &gt; maintenance/setup/install.token</code></p>
+        <p>Then reload this page as <code>index.php?token=PASTE_TOKEN_HERE</code>.
+        Full procedure: <code>deploy/INSTALL_RUNBOOK.md</code>.</p>
     ');
 }
 
