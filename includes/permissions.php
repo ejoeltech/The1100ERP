@@ -1,4 +1,6 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 /**
  * Permission System — groups + per-user overrides on top of legacy role matrix.
  * - super_admin role: bypasses everything.
@@ -287,10 +289,10 @@ function hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId)
         case 'manage_payments':
             return in_array($role, ['admin', 'manager']);
 
-        // Email Documents (All users)
+        // Email Documents (all roles except read-only viewer)
         case 'send_email':
         case 'email_document':
-            return true;
+            return $role !== 'viewer';
 
         // Profile Management (Own profile only)
         case 'edit_own_profile':

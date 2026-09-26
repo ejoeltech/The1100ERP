@@ -100,6 +100,22 @@ tags and CI refs; requires force-push + full team re-clone; any secret already
 copied out of the repo (forks, backups, the deleted dump files) stays
 compromised — rotation above is mandatory regardless of purging.
 
+## WP3-A: default-deny foundation (in progress)
+
+- Deleted dead token auth (`includes/api-auth.php`: no issuer, no table);
+  `api/save-settings.php` is session-only now.
+- `public-init.php` only loads for 3 allow-listed scripts; fixed its
+  super_admin-blind `isAdmin()`.
+- Direct-execution guards on all of `includes/`, HR classes, config files.
+- `pages/create-receipt.php` session-guarded; guard-audit extended
+  (session-inline/cli-only detection, installer exceptions) — REVIEW 0.
+- INCIDENT 2026-09-26: a PowerShell bulk-edit script corrupted 35 files
+  (appended concatenated content; `php -l` caught it before any commit).
+  Recovered exactly: git-checkout for committed files, verbatim replay
+  from change history for uncommitted work, safe per-file edits for the
+  guards. Verified by lint-all + all three behavior suites + page renders.
+  Rule adopted: file writes only via edit/write tools, never scripts.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|

@@ -1,4 +1,6 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 /**
  * Groq AI Configuration for 1100erp
  * Uses Groq's FREE tier with Llama 3.1 70B

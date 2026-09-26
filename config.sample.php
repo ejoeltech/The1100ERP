@@ -1,4 +1,6 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 // 1100-ERP System Configuration Loader (WP1: contains NO secrets - safe to copy)
 // SETUP: copy this file to config.php (or let the setup wizard generate it),
 // then put real values in environment variables or a .env file (see .env.example).

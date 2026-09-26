@@ -1,4 +1,6 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 /**
  * One-time invites, hardened onboarding codes, and DB-backed throttling (WP2).
  * Invite tokens and onboarding codes are random, stored hashed, expiring,

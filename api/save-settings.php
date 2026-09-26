@@ -1,18 +1,9 @@
 <?php
 include '../includes/session-check.php';
-require_once '../includes/api-auth.php';
 
-// Only admins can save settings
-if (isset($_SESSION['user_id'])) {
-    requirePermission('manage_settings');
-} else {
-    requireApiAuth();
-    if (!isAdmin()) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: Admin access required']);
-        exit;
-    }
-}
+// Only privileged session users can save settings (WP3: token-auth branch
+// removed with dead includes/api-auth.php — no issuer, no api_tokens table).
+requirePermission('manage_settings');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
