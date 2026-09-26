@@ -30,12 +30,14 @@ function cleanJson($s) {
 
 function saveUpload($key) {
     if (empty($_FILES[$key]) || $_FILES[$key]['error'] !== UPLOAD_ERR_OK) return null;
-    $dir = __DIR__ . '/../assets/uploads/idcards';
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
-    $ext = strtolower(pathinfo($_FILES[$key]['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp'])) $ext = 'png';
-    if ($_FILES[$key]['size'] > 3 * 1024 * 1024) return null;
-    if (@getimagesize($_FILES[$key]['tmp_name']) === false) return null;
+    // WP7: content-validated (MIME + getimagesize) via central helper.
+    require_once __DIR__ . '/../../../includes/security.php';
+    try {
+        $ext = validateImageUpload($_FILES[$key]);
+    } catch (Exception $e) {
+        return null;
+    }
+    $dir = ensureUploadDir(__DIR__ . '/../assets/uploads/idcards');
     $name = $key . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
     if (!move_uploaded_file($_FILES[$key]['tmp_name'], $dir . '/' . $name)) return null;
     return 'modules/hr/assets/uploads/idcards/' . $name;

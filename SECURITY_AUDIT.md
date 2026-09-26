@@ -188,6 +188,23 @@ compromised — rotation above is mandatory regardless of purging.
   `users` skipped, no rogue user, legitimate table imports; guard-audit
   REVIEW 0; throttle/session rows cleaned.
 
+## WP7: upload hardening (verified 2026-09-26)
+
+- Central `validateImageUpload()` + `ensureUploadDir()` in
+  `includes/security.php`: finfo-MIME + getimagesize content checks (never
+  client extension), canonical extension from MIME, 3 MB cap,
+  `is_uploaded_file()`, 0755 dirs, auto-written `.htaccess` (`php_flag
+  engine off` + deny php/phtml/phar) so uploads can never execute.
+- Wired into HR `signup-form.php` + `employee-form.php` (were ext-only,
+  0777, unchecked moves), `id-cards.php saveUpload()` (+MIME on top of its
+  size/getimagesize checks), `upload-logo.php` dir guard.
+- `save-signature.php` (base64 path): 3 MB decoded cap +
+  `getimagesizefromstring()` + guarded dir. `selective-import.php`: .json
+  ext + 5 MB cap.
+- Verified: CLI matrix ALL-PASS (real PNG ok; `shell.jpg` PHP and GIF
+  polyglot rejected; oversize rejected; guard file content); `php -l` ×7;
+  guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -244,3 +261,6 @@ compromised — rotation above is mandatory regardless of purging.
 | WP6-02 | High | selective import wrote any existing table/column from file | Crafted file → users/settings overwrite | fixed (WP6: blocklist + column check) |
 | WP6-03 | High | AI-generated SQL guard allowed UNION/subquery/info_schema SELECTs | Prompt-injection data exfiltration | fixed (WP6: keyword blocklist) |
 | WP6-04 | Low | `SHOW TABLES LIKE ?` placeholder (MariaDB 1064) | Import endpoint always 500'd | fixed (WP6: information_schema) |
+| WP7-01 | High | HR photo/signature uploads ext-only, 0777, unchecked moves (incl. pre-auth self-service) | Polyglot webshell upload | fixed (WP7: content validation + guarded dirs) |
+| WP7-02 | Medium | signature base64 + import JSON with no size/content checks | DoS / malformed writes | fixed (WP7: caps + image check) |
+| WP7-03 | Medium | all upload dirs web-accessible, no `.htaccess`, no dirs in repo | Executable uploads on misconfig | fixed (WP7: auto-written no-exec guard) |

@@ -12,6 +12,15 @@ try {
         throw new Exception("No valid file uploaded.");
     }
 
+    // WP7: bound the import file (ext + size) before parsing.
+    $importExt = strtolower(pathinfo($_FILES['file']['name'] ?? '', PATHINFO_EXTENSION));
+    if ($importExt !== 'json') {
+        throw new Exception("Only .json migration files are allowed.");
+    }
+    if (($_FILES['file']['size'] ?? 0) > 5 * 1024 * 1024) {
+        throw new Exception("Migration file too large (max 5 MB).");
+    }
+
     $json = file_get_contents($_FILES['file']['tmp_name']);
     $importData = json_decode($json, true);
 

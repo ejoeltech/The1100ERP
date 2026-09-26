@@ -40,15 +40,21 @@ try {
         if ($data === false) {
             throw new Exception('Base64 decode failed');
         }
+
+        // WP7: cap decoded size and verify real image content.
+        if (strlen($data) > UPLOAD_IMAGE_MAX_BYTES) {
+            throw new Exception('Image too large (max 3 MB).');
+        }
+        if (@getimagesizefromstring($data) === false) {
+            throw new Exception('File is not a valid image.');
+        }
     } else {
         throw new Exception('Did not match data URI with image data');
     }
 
-    // Create uploads directory if it doesn't exist
-    $uploadDir = '../uploads/signatures/';
-    if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
+    // Create uploads directory if it doesn't exist (WP7: guarded, no PHP exec)
+    require_once '../includes/security.php';
+    $uploadDir = ensureUploadDir('../uploads/signatures/');
 
     // Generate filename: signature_USERID_RANDOM.png
     $userId = $_SESSION['user_id'];

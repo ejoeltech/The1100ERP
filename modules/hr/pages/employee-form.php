@@ -20,30 +20,34 @@ $success = '';
 // Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Handle File Uploads
-        $uploadDir = dirname(__DIR__, 3) . '/modules/hr/assets/uploads/employees/';
+        // Handle File Uploads (WP7: content-validated, random names, guarded dir)
+        require_once dirname(__DIR__, 3) . '/includes/security.php';
+        $uploadDir = ensureUploadDir(dirname(__DIR__, 3) . '/modules/hr/assets/uploads/employees/');
         $dbUploadDir = '../assets/uploads/employees/'; // Correct relative path from HR pages
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
 
         $passport_path = isset($_POST['existing_passport']) ? $_POST['existing_passport'] : null;
         if (isset($_FILES['passport']) && $_FILES['passport']['error'] == 0) {
-            $ext = strtolower(pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+            try {
+                $ext = validateImageUpload($_FILES['passport']);
                 $filename = 'passport_' . bin2hex(random_bytes(16)) . '.' . $ext;
-                move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
-                $passport_path = $dbUploadDir . $filename;
+                if (move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename)) {
+                    $passport_path = $dbUploadDir . $filename;
+                }
+            } catch (Exception $e) {
+                $error = $e->getMessage();
             }
         }
 
         $signature_path = isset($_POST['existing_signature']) ? $_POST['existing_signature'] : null;
         if (isset($_FILES['signature']) && $_FILES['signature']['error'] == 0) {
-            $ext = strtolower(pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+            try {
+                $ext = validateImageUpload($_FILES['signature']);
                 $filename = 'sig_' . bin2hex(random_bytes(16)) . '.' . $ext;
-                move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
-                $signature_path = $dbUploadDir . $filename;
+                if (move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename)) {
+                    $signature_path = $dbUploadDir . $filename;
+                }
+            } catch (Exception $e) {
+                $error = $e->getMessage();
             }
         }
 

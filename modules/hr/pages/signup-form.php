@@ -38,29 +38,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die('Invalid security token. Please go back and try again.');
     }
     // Handle File Uploads (Passport & Signature)
-    $uploadDir = '../assets/uploads/onboarding/';
-    if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
-    }
+    // WP7: content-validated images (MIME + getimagesize), random names,
+    // guarded dir. Failures leave the previous path untouched.
+    require_once __DIR__ . '/../../../includes/security.php';
+    $uploadDir = ensureUploadDir(__DIR__ . '/../assets/uploads/onboarding/');
 
     // Logic similar to employee-form.php but simplified
     $passport_path = $entry['passport_path'] ?? null;
     if (isset($_FILES['passport']) && $_FILES['passport']['error'] == 0) {
-        $ext = strtolower(pathinfo($_FILES['passport']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+        try {
+            $ext = validateImageUpload($_FILES['passport']);
             $filename = 'pass_' . bin2hex(random_bytes(16)) . '.' . $ext;
-            move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename);
-            $passport_path = 'modules/hr/assets/uploads/onboarding/' . $filename; 
+            if (move_uploaded_file($_FILES['passport']['tmp_name'], $uploadDir . $filename)) {
+                $passport_path = 'modules/hr/assets/uploads/onboarding/' . $filename;
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
         }
     }
 
     $signature_path = $entry['signature_path'] ?? null;
     if (isset($_FILES['signature']) && $_FILES['signature']['error'] == 0) {
-        $ext = strtolower(pathinfo($_FILES['signature']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+        try {
+            $ext = validateImageUpload($_FILES['signature']);
             $filename = 'sig_' . bin2hex(random_bytes(16)) . '.' . $ext;
-            move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename);
-            $signature_path = 'modules/hr/assets/uploads/onboarding/' . $filename;
+            if (move_uploaded_file($_FILES['signature']['tmp_name'], $uploadDir . $filename)) {
+                $signature_path = 'modules/hr/assets/uploads/onboarding/' . $filename;
+            }
+        } catch (Exception $e) {
+            $error = $e->getMessage();
         }
     }
 

@@ -51,6 +51,59 @@ function requireCsrf()
 }
 
 // ============================================
+// Upload Validation (WP7)
+// ============================================
+
+define('UPLOAD_IMAGE_MAX_BYTES', 3 * 1024 * 1024);
+
+/**
+ * Ensure an upload directory exists with safe permissions and a guard
+ * .htaccess so uploaded files can never execute as PHP — even if a
+ * check is ever bypassed. Directories are created at runtime (gitignored),
+ * so the guard is written here rather than committed per-directory.
+ */
+function ensureUploadDir($dir)
+{
+    $dir = rtrim($dir, '/\\') . DIRECTORY_SEPARATOR;
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    $ht = $dir . '.htaccess';
+    if (!file_exists($ht)) {
+        @file_put_contents($ht, "# WP7: uploads must never execute as PHP.\nphp_flag engine off\nRemoveHandler .php .phtml .phar\nRemoveType .php .phtml .phar\n<FilesMatch \"\\.(php|phtml|phar|phps|php\\d+)$\">\n    Order allow,deny\n    Deny from all\n</FilesMatch>\n");
+    }
+    return $dir;
+}
+
+/**
+ * Validate an image upload by CONTENT (finfo MIME + getimagesize), not by
+ * client filename. Returns the canonical extension. Throws on any failure.
+ */
+function validateImageUpload($file, $maxBytes = UPLOAD_IMAGE_MAX_BYTES)
+{
+    if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new Exception('File upload failed.');
+    }
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0 || $size > $maxBytes) {
+        throw new Exception('Invalid file size (images up to 3 MB).');
+    }
+    if (!is_uploaded_file($file['tmp_name'] ?? '')) {
+        throw new Exception('Invalid upload.');
+    }
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($file['tmp_name']);
+    $map = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+    if (!isset($map[$mime])) {
+        throw new Exception('Only JPG, PNG, GIF or WebP images are allowed.');
+    }
+    if (@getimagesize($file['tmp_name']) === false) {
+        throw new Exception('File is not a valid image.');
+    }
+    return $map[$mime];
+}
+
+// ============================================
 // Rate Limiting (Login Attempts)
 // ============================================
 

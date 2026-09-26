@@ -45,11 +45,9 @@ try {
         throw new Exception('Invalid file type. Only JPG, PNG, and GIF allowed.');
     }
 
-    // Create uploads directory if it doesn't exist
-    $upload_dir = __DIR__ . '/../uploads/logo/';
-    if (!file_exists($upload_dir)) {
-        mkdir($upload_dir, 0755, true);
-    }
+    // Create uploads directory if it doesn't exist (WP7: guarded, no PHP exec)
+    require_once __DIR__ . '/../includes/security.php';
+    $upload_dir = ensureUploadDir(__DIR__ . '/../uploads/logo/');
 
     // Generate unique filename and sanitize extension
     $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
