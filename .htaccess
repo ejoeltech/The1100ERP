@@ -14,10 +14,18 @@ Options -Indexes
     Deny from all
 </FilesMatch>
 
-# Security Headers (fallback - PHP also sets these)
+# Security Headers (fallback - PHP also sets these; kept consistent with setSecurityHeaders())
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Frame-Options "DENY"
     Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
+    # HSTS is honored by browsers only over HTTPS; harmless on local HTTP dev.
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
 </IfModule>
+
+# Block common secret/config remnants anywhere in the tree
+<FilesMatch "(^config\.bak$|\.bak$|\.orig$|~$)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

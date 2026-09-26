@@ -134,10 +134,9 @@ function logout()
         );
     }
     session_destroy();
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
+    // WP10: relative target — no Host-header influence on the redirect.
     $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    header('Location: ' . $protocol . '://' . $host . $base . '/login.php');
+    header('Location: ' . $base . '/login.php');
     exit;
 }
 

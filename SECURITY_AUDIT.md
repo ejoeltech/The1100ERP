@@ -234,6 +234,17 @@ compromised — rotation above is mandatory regardless of purging.
   columns present; PAYE known-answer 300k→21,000; class loads under
   E_ALL warning-free; guard-audit REVIEW 0.
 
+## WP10: headers & CSP (verified 2026-09-26)
+
+- CSP gains `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`,
+  `frame-ancestors 'self'`, `upgrade-insecure-requests` (unsafe-inline/eval
+  stay: Tailwind CDN requirement, documented). `.htaccess` fallback aligned
+  to DENY + conditional HSTS + backup-file deny (`.bak/.orig/~`).
+- `logout()` redirects relatively (no Host-header influence).
+  `getEmailTemplate()` verified allow-listed already — no change.
+- Verified: `php -l` ×2; live headers show full CSP + DENY; logout 302 to
+  relative login; login renders 200; guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -296,3 +307,4 @@ compromised — rotation above is mandatory regardless of purging.
 | WP8-01 | Low | PDO/exception text echoed to users across 16 endpoints | SQL/table/path disclosure | fixed (WP8: error_log + generic) |
 | WP9-01 | High | v10 `ADD COLUMN IF NOT EXISTS` 1064'd on MariaDB — 18 payroll columns never created on fresh installs | Payroll generate fatals; override/exempt flags dead | fixed (WP9: valid ALTERs + patcher parity + seeds) |
 | WP9-02 | Low | `;` inside COMMENT strings vs `;`-splitting runner | 2 more 1064s on CLI installs | fixed (WP9: reworded) |
+| WP10-01 | Low | CSP missing object/base/form/frame lockdown; htaccess SAMEORIGIN vs DENY; logout absolute Host-based redirect | Plugin/frame/form-action abuse; header duplication | fixed (WP10) |
