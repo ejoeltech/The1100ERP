@@ -4,7 +4,9 @@ Branch: `security-hardening`. One commit per work package.
 Rule: a fix is only marked **verified** after test/scan/reproduction. Otherwise **not verified**.
 
 ## Needs decision (product calls, not guesses)
-- (WP0-C) Pre-auth restore endpoint `maintenance/setup/api/restore_during_setup.php`: default recommendation is REMOVE from web wizard + document CLI restore (`mysql < backup.sql`). Kept token-gated for now pending decision.
+- (WP0-C/WP14) Pre-auth restore endpoint: REMOVED from web wizard (WP14:
+  deleted `maintenance/setup/api/restore_during_setup.php` + wizard restore
+  UI). Restore via CLI only (`mysql < backup.sql`, see runbook).
 - (Note, non-security) `modules/hr/update_schema_v10_payroll.sql:34` uses `ADD COLUMN IF NOT EXISTS`, which MariaDB rejects (1064) — the `hr_payroll.hourly_rate_override` column was never created. Pre-existing; flagged for the HR/payroll work (WP9).
 
 ## WP0 verification: fresh-install E2E (2026-09-25, throwaway instance)
@@ -299,7 +301,7 @@ compromised — rotation above is mandatory regardless of purging.
 | WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
 | WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |
 | WP0-11 | Medium | root `index.php` | Auto-redirected visitors to `maintenance/setup/` when config missing | fixed (WP0-C: static 503, no link) |
-| WP0-12 | Medium | wizard restore endpoint | Pre-auth backup restore; kept pending decision with token gate | needs decision (WP0-C: token-gated for now; default recommendation remains removal) |
+| WP0-12 | Medium | wizard restore endpoint | Pre-auth backup restore; decision pending | fixed (WP14: endpoint + wizard UI deleted; CLI restore documented) |
 | WP0-13 | High | `maintenance/setup/run-schema-update.php` | No gate; linked from Step 7 | fixed (WP0-D: replaced by token/admin-gated `final_check` action in install.php; file deleted) |
 | WP0-14 | Medium | `maintenance/setup/cleanup.php` | Needed only fresh session + manage_settings | fixed (WP0-D: admin + POST + CSRF + password re-entry, realpath guard, token cleanup, leftover verification) |
 | WP0-15 | High | `modules/hr/api/generate-document.php` | Login-only; any role can generate docs for any employee_id (IDOR) | open → WP3 (needs hr-scoped permission + ownership check) |

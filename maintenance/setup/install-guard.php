@@ -82,7 +82,7 @@ function install_deny_json($message)
 }
 
 /**
- * Gate for wizard AJAX endpoints (install.php, restore_during_setup.php).
+ * Gate for wizard AJAX endpoints (install.php).
  */
 function install_require_claim_ajax()
 {

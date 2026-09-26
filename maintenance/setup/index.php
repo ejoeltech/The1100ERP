@@ -139,15 +139,12 @@ $requirements = checkRequirements();
                         <div class="flex gap-4" style="display: flex; gap: 15px;">
                             <label class="flex items-center"
                                 style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                <input type="radio" name="install_mode" value="fresh" checked
-                                    onchange="toggleInstallMode()">
+                                <input type="radio" name="install_mode" value="fresh" checked>
                                 <span>Fresh Installation</span>
                             </label>
-                            <label class="flex items-center"
-                                style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                <input type="radio" name="install_mode" value="restore" onchange="toggleInstallMode()">
-                                <span>Restore from Backup</span>
-                            </label>
+                            <!-- WP14: web restore removed (pre-auth backup restore is
+                                 too dangerous behind a claim file); restore via CLI:
+                                 mysql -u USER -p DB < backup.sql (see INSTALL_RUNBOOK). -->
                         </div>
                     </div>
 
@@ -184,54 +181,12 @@ $requirements = checkRequirements();
                         </div>
                     </div>
 
-                    <!-- Restore Options -->
-                    <div id="restoreOptions"
-                        style="display: none; border-top: 1px solid #eee; padding-top: 15px; margin-top: 5px;">
-                        <div class="form-group">
-                            <label for="backup_file">Upload Backup File (.sql or .zip)</label>
-                            <input type="file" id="backup_file" name="backup_file" accept=".sql,.zip">
-                            <small style="color: #6b7280; display: block; margin-top: 4px;">
-                                Creates database and restores data automatically.
-                            </small>
-                        </div>
-                    </div>
-
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <button type="button" id="testDbConnection" class="btn btn-primary">
                             Test Connection
                         </button>
-                        <button type="button" id="restoreBtn" class="btn btn-success"
-                            style="display: none; background: #10B981; border: none; color: white;"
-                            onclick="performSetupRestore()">
-                            Restore & Install
-                        </button>
                     </div>
-
-                    <div id="restoreStatus" class="alert" style="display: none; margin-top: 15px;"></div>
                 </form>
-
-                <script>
-                    function toggleInstallMode() {
-                        const mode = document.querySelector('input[name="install_mode"]:checked').value;
-                        const freshOpts = document.getElementById('freshInstallOptions');
-                        const restoreOpts = document.getElementById('restoreOptions');
-                        const testBtn = document.getElementById('testDbConnection');
-                        const restoreBtn = document.getElementById('restoreBtn');
-
-                        if (mode === 'restore') {
-                            freshOpts.style.display = 'none';
-                            restoreOpts.style.display = 'block';
-                            testBtn.style.display = 'none'; // Hide test, show restore action
-                            restoreBtn.style.display = 'inline-block';
-                            // We still need to test connection implicitly before restore
-                        } else {
-                            freshOpts.style.display = 'block';
-                            restoreOpts.style.display = 'none';
-                            testBtn.style.display = 'inline-block';
-                            restoreBtn.style.display = 'none';
-                        }
-                    }
-                </script>
             </div>
 
             <!-- Step 4: Admin Account -->
