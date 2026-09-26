@@ -274,6 +274,17 @@ compromised — rotation above is mandatory regardless of purging.
 - Verified per-URL over HTTP: cron/vendor/git/composer → 403, login → 200;
   guard-audit REVIEW 0.
 
+## WP13: final verification & checklist (2026-09-26)
+
+- Full-tree `php -l`: 228 files, 0 errors. `guard-audit --strict`: REVIEW 0.
+  Gitleaks tree scan: no leaks (history-only items + rotation list unchanged,
+  purge still awaiting approval). WP3 CSRF-aware regression re-run: 10/10
+  (MFA fixtures enrolled for the run, then reset; temp ENCRYPTION_KEY
+  removed from `.env` after).
+- New `SECURITY_CHECKLIST.md`: operator runbook (install, secrets incl.
+  mandatory ENCRYPTION_KEY, accounts, access control, server denies,
+  backups, ongoing scans) with open decisions referenced.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
