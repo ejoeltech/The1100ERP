@@ -38,6 +38,16 @@ if (empty($dbName) || empty($dbUser)) {
     sendError('Database credentials missing');
 }
 
+// WP6: db_name interpolates into CREATE DATABASE (cannot be bound);
+// db_host into the PDO DSN. Strict allow-list on both.
+if (!preg_match('/^[A-Za-z0-9_$]{1,64}$/', $dbName)) {
+    sendError('Invalid database name');
+}
+if (!($dbHost === 'localhost' || filter_var($dbHost, FILTER_VALIDATE_IP)
+    || preg_match('/^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9\-.]{0,251}[A-Za-z0-9])?$/', $dbHost))) {
+    sendError('Invalid database host');
+}
+
 // 2. Test Connection
 try {
     $dsn = "mysql:host=$dbHost;charset=utf8mb4";

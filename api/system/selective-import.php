@@ -31,8 +31,18 @@ try {
     foreach ($importData['data'] as $table => $rows) {
         if (empty($rows)) continue;
 
-        // Check if table exists
-        $stmt = $pdo->prepare("SHOW TABLES LIKE ?");
+        // WP6: identifiers cannot be bound — strict pattern + sensitive-table
+        // blocklist (a crafted file must not write users/secrets/sessions).
+        $table = (string)$table;
+        $sensitive = ['users', 'user_invites', 'mfa_recovery_codes', 'user_sessions', 'auth_throttle', 'settings'];
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table) || in_array(strtolower($table), $sensitive, true)) {
+            $skippedTables[] = $table;
+            continue;
+        }
+
+        // Check if table exists (WP6: SHOW ... LIKE takes no placeholders
+        // on MariaDB — use information_schema with a bound value).
+        $stmt = $pdo->prepare("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
         $stmt->execute([$table]);
         if (!$stmt->fetch()) {
             $skippedTables[] = $table;
@@ -41,6 +51,17 @@ try {
 
         // Get columns from the first row
         $columns = array_keys($rows[0]);
+
+        // WP6: columns must be real columns of this table (pattern + existence).
+        $realCols = [];
+        foreach ($pdo->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_ASSOC) as $c) {
+            $realCols[] = $c['Field'];
+        }
+        foreach ($columns as $col) {
+            if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', (string)$col) || !in_array($col, $realCols, true)) {
+                throw new Exception("Invalid column '$col' for table '$table'.");
+            }
+        }
         $colString = implode('`, `', $columns);
         $placeholderString = implode(', ', array_fill(0, count($columns), '?'));
         

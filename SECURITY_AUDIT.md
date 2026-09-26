@@ -168,6 +168,26 @@ compromised — rotation above is mandatory regardless of purging.
 - Verified: `php -l` on all 19 files; login/signup render 200; grep shows
   0 raw `$entry/$e/$c` echoes in top HR files (was ~30).
 
+## WP6: SQL hardening (verified 2026-09-26)
+
+- Strict `validatedDbName()`/`validatedDbHost()` on every installer read
+  (`install.php` ×7 + `USE`); same allow-list in `restore_during_setup.php`.
+  Closes identifier injection in `CREATE DATABASE`/`USE` (backtick-strip was
+  insufficient) and DSN smuggling.
+- `selective-import.php`: table pattern + sensitive-table blocklist
+  (users/invites/MFA/sessions/throttle/settings), column existence check
+  against `SHOW COLUMNS`. Also fixed latent MariaDB bug (`SHOW TABLES
+  LIKE ?` takes no placeholders — endpoint 500'd on every import).
+- `api/ai/chat.php`: AI-SQL guard now blocks UNION/INTO/LOAD/
+  INFORMATION_SCHEMA/system schemas/SLEEP/BENCHMARK/comments in addition
+  to must-start-SELECT/no-semicolon; DB errors logged, generic to user.
+- `SchemaPatcher::$addCol` refuses non-identifier table/column (defense in
+  depth; callers are literals). `INTERVAL $windowSecs` verified int-safe
+  (WP4 `max(60,(int))`, MFA helper hardcoded).
+- Verified: `php -l` ×5; patcher 0 errors; HTTP import of crafted file —
+  `users` skipped, no rogue user, legitimate table imports; guard-audit
+  REVIEW 0; throttle/session rows cleaned.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -220,3 +240,7 @@ compromised — rotation above is mandatory regardless of purging.
 | WP5-02 | Medium | message banners + status/category echoes raw across HR/core pages | Reflected/stored XSS via exception text, DB strings | fixed (WP5) |
 | WP5-03 | Medium | AI job-ad HTML rendered raw | Prompt-injection XSS | fixed (WP5: text rendering) |
 | WP5-04 | Low | footer constants, page title, settings JS string, customer option raw | Stored XSS if settings compromised; JS breakout | fixed (WP5) |
+| WP6-01 | High | `$_POST['db_name']` interpolated into CREATE/USE (backtick-strip only) | Identifier injection pre-auth in setup | fixed (WP6: strict allow-list) |
+| WP6-02 | High | selective import wrote any existing table/column from file | Crafted file → users/settings overwrite | fixed (WP6: blocklist + column check) |
+| WP6-03 | High | AI-generated SQL guard allowed UNION/subquery/info_schema SELECTs | Prompt-injection data exfiltration | fixed (WP6: keyword blocklist) |
+| WP6-04 | Low | `SHOW TABLES LIKE ?` placeholder (MariaDB 1064) | Import endpoint always 500'd | fixed (WP6: information_schema) |

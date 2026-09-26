@@ -35,6 +35,12 @@ class SchemaPatcher
         };
 
         $addCol = function ($table, $column, $definition) use ($pdo, $add) {
+            // WP6: identifiers interpolate into DDL — allow-list even though
+            // all current callers are hardcoded literals.
+            if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table) || !preg_match('/^[A-Za-z0-9_]{1,64}$/', $column)) {
+                $add('error', 'columns', "Refused unsafe identifier $table.$column.");
+                return;
+            }
             try {
                 $stmt = $pdo->query("SHOW COLUMNS FROM $table LIKE '$column'");
                 if ($stmt->fetch()) {

@@ -82,9 +82,18 @@ try {
 
     // 4. Execute SQL if present (Safe Mode)
     if ($responsePayload['type'] === 'sql' && !empty($responsePayload['sql'])) {
-        // Security Check
+        // Security Check (WP6): single read-only SELECT, no stacking, no
+        // UNION exfiltration, no schema introspection, no file/load tricks.
         $sql = strtoupper(trim($responsePayload['sql']));
-        if (strpos($sql, 'SELECT') !== 0 || strpos($sql, ';') !== false) {
+        $blocked = ['UNION', 'INTO', 'LOAD_FILE', 'LOAD DATA', 'INFORMATION_SCHEMA', 'MYSQL.', 'PERFORMANCE_SCHEMA', 'SLEEP(', 'BENCHMARK(', '--', '/*'];
+        $isBlocked = false;
+        foreach ($blocked as $b) {
+            if (strpos($sql, $b) !== false) {
+                $isBlocked = true;
+                break;
+            }
+        }
+        if (strpos($sql, 'SELECT') !== 0 || strpos($sql, ';') !== false || $isBlocked) {
             $responsePayload['type'] = 'text';
             $responsePayload['content'] = "I cannot execute this query for security reasons.";
             unset($responsePayload['sql']);
@@ -96,8 +105,9 @@ try {
                 $responsePayload['data'] = $data;
                 $responsePayload['data_count'] = count($data);
             } catch (Exception $e) {
+                error_log('AI chat SQL error: ' . $e->getMessage());
                 $responsePayload['type'] = 'text';
-                $responsePayload['content'] = "Error executing query: " . $e->getMessage();
+                $responsePayload['content'] = "Error executing query.";
             }
         }
     }

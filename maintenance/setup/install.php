@@ -104,12 +104,34 @@ exit;
 // FUNCTIONS
 // ============================================
 
+// WP6: strict validators for DB identifiers. db_name interpolates into
+// CREATE DATABASE / USE (cannot be bound), and db_host into the PDO DSN,
+// so both are allow-list validated on every read below.
+function validatedDbName($raw)
+{
+    $name = trim((string)$raw);
+    if (!preg_match('/^[A-Za-z0-9_$]{1,64}$/', $name)) {
+        throw new Exception('Invalid database name (letters, digits, _ and $ only, max 64 chars).');
+    }
+    return $name;
+}
+
+function validatedDbHost($raw)
+{
+    $host = trim((string)$raw);
+    if ($host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)
+        || preg_match('/^(?=.{1,253}$)[A-Za-z0-9]([A-Za-z0-9\-.]{0,251}[A-Za-z0-9])?$/', $host)) {
+        return $host;
+    }
+    throw new Exception('Invalid database host.');
+}
+
 function testDatabaseConnection()
 {
     global $response;
 
-    $host = $_POST['db_host'] ?? '';
-    $dbname = $_POST['db_name'] ?? '';
+    $host = validatedDbHost($_POST['db_host'] ?? '');
+    $dbname = validatedDbName($_POST['db_name'] ?? '');
     $user = $_POST['db_user'] ?? '';
     $password = $_POST['db_password'] ?? '';
 
@@ -145,8 +167,8 @@ function createDatabase()
 {
     global $response;
 
-    $host = $_POST['db_host'] ?? '';
-    $dbname = $_POST['db_name'] ?? '';
+    $host = validatedDbHost($_POST['db_host'] ?? '');
+    $dbname = validatedDbName($_POST['db_name'] ?? '');
     $user = $_POST['db_user'] ?? '';
     $password = $_POST['db_password'] ?? '';
 
@@ -170,8 +192,8 @@ function importSchema()
 {
     global $response;
 
-    $dbname = $_POST['db_name'] ?? '';
-    $host = $_POST['db_host'] ?? '';
+    $dbname = validatedDbName($_POST['db_name'] ?? '');
+    $host = validatedDbHost($_POST['db_host'] ?? '');
     $user = $_POST['db_user'] ?? '';
     $password = $_POST['db_password'] ?? '';
 
@@ -248,8 +270,8 @@ function createAdminUser()
 {
     global $response;
 
-    $dbname = $_POST['db_name'] ?? '';
-    $host = $_POST['db_host'] ?? '';
+    $dbname = validatedDbName($_POST['db_name'] ?? '');
+    $host = validatedDbHost($_POST['db_host'] ?? '');
     $user = $_POST['db_user'] ?? '';
     $password = $_POST['db_password'] ?? '';
 
@@ -307,8 +329,8 @@ function initializeSettings()
 {
     global $response;
 
-    $dbname = $_POST['db_name'] ?? '';
-    $host = $_POST['db_host'] ?? '';
+    $dbname = validatedDbName($_POST['db_name'] ?? '');
+    $host = validatedDbHost($_POST['db_host'] ?? '');
     $user = $_POST['db_user'] ?? '';
     $password = $_POST['db_password'] ?? '';
 
@@ -401,10 +423,10 @@ function runFinalCheck()
         // $pdo comes from config.php on the installed path (imported as global);
         // otherwise fall back to posted credentials for the pre-finalize token path.
         if (!isset($pdo)) {
-            $dsn = 'mysql:host=' . ($_POST['db_host'] ?? '') . ';charset=utf8mb4';
+            $dsn = 'mysql:host=' . validatedDbHost($_POST['db_host'] ?? '') . ';charset=utf8mb4';
             $pdo = new PDO($dsn, $_POST['db_user'] ?? '', $_POST['db_password'] ?? '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
             if (!empty($_POST['db_name'])) {
-                $pdo->exec('USE `' . str_replace('`', '', $_POST['db_name']) . '`');
+                $pdo->exec('USE `' . validatedDbName($_POST['db_name']) . '`');
             }
         }
         $entries = SchemaPatcher::run($pdo, dirname(__DIR__, 2));
@@ -424,8 +446,8 @@ function finalizeInstallation()
 {
     global $response;
 
-    $dbHost = $_POST['db_host'] ?? '';
-    $dbName = $_POST['db_name'] ?? '';
+    $dbHost = validatedDbHost($_POST['db_host'] ?? '');
+    $dbName = validatedDbName($_POST['db_name'] ?? '');
     $dbUser = $_POST['db_user'] ?? '';
     $dbPassword = $_POST['db_password'] ?? '';
     $dbPrefix = $_POST['db_prefix'] ?? 'erp_';
