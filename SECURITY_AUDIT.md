@@ -84,23 +84,26 @@ Gitleaks 8.30.1 (winget, scanner DB default ruleset):
 - Admin passwords on dev/staging/prod (unknown sharing): reset at go-live
 - Per-session CSRF/session secrets: random per session, nothing to rotate
 
-### History purge (PREPARED, NOT RUN — awaiting approval)
+### History purge (RUN 2026-09-26 — approved)
 ```sh
-# Fresh mirror clone; never run inside a working copy:
-git clone --mirror https://github.com/ejoeltech/1100erp-ai.git 1100erp-ai-mirror.git
-cd 1100erp-ai-mirror.git
-# Preview exposure first:
-git log --all --oneline -- config.php
-# Single rewrite pass (combining paths avoids a second rewrite):
-git filter-repo --path config.php --path maintenance/bluedots_1100erp.sql --path tests/security_test.php --invert-paths
-# Verify, then force-push branches+tags and re-clone everywhere:
-gitleaks detect --log-opts=--all
-git log --all --oneline -- config.php   # must print nothing
+# Ran against a local mirror (network clone kept disconnecting; local refs
+# verified byte-identical to origin first). filter-repo needed --force on the
+# local mirror + a second pass for the residual root install-schema.sql seed:
+git clone --mirror . 1100erp-ai-mirror.git
+git filter-repo --force --path config.php --path maintenance/bluedots_1100erp.sql --path tests/security_test.php --invert-paths
+git filter-repo --force --path install-schema.sql --invert-paths
+# Verified: git log --all -- <each path> prints nothing;
+# gitleaks detect --log-opts=--all reports no leaks found (was 3 + 1 residual).
+# Force-pushed explicit refs only (main, security-hardening,
+# feature/hr-nigeria-payroll, fix/ai-auth-header-and-pdf-export) + tags;
+# local-only feature/archive-system-complete NOT published. Working copy
+# re-synced via fetch + reset --hard; uncommitted feature work restored
+# from backup (UTF-16 patch round-trip corrupted ₦/— in 3 files; repaired
+# by hand, verified by lint + node --check).
 ```
-Caveats: rewrites every commit hash; invalidates all clones, forks, milestone
-tags and CI refs; requires force-push + full team re-clone; any secret already
-copied out of the repo (forks, backups, the deleted dump files) stays
-compromised — rotation above is mandatory regardless of purging.
+Caveats stand: every hash rewritten; all clones/forks must re-clone;
+anything copied out stays compromised — rotation below is mandatory
+regardless of purging.
 
 ## WP3-A: default-deny foundation (in progress)
 
