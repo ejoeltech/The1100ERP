@@ -135,5 +135,5 @@ try {
 } catch (\Mpdf\MpdfException $e) {
     error_log("Payslip PDF error: " . $e->getMessage());
     http_response_code(500);
-    die('Error generating payslip: ' . $e->getMessage());
+    die('Error generating payslip. Check server logs.');
 }

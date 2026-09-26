@@ -56,7 +56,8 @@ try {
     // Create DB if not exists
     $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 } catch (PDOException $e) {
-    sendError("Database connection failed: " . $e->getMessage());
+    error_log('Setup restore DB error: ' . $e->getMessage());
+    sendError("Database connection failed. Check credentials and server logs.");
 }
 
 // 3. Process File
@@ -186,6 +187,7 @@ define('CURRENCY_SYMBOL', '₦'); // Default
     echo json_encode(['success' => true, 'message' => 'System restored successfully']);
 
 } catch (Exception $e) {
-    sendError($e->getMessage());
+    error_log('Setup restore error: ' . $e->getMessage());
+    sendError('Restore failed. Check server logs.');
 }
 ?>

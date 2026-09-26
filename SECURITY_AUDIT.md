@@ -205,6 +205,18 @@ compromised — rotation above is mandatory regardless of purging.
   polyglot rejected; oversize rejected; guard file content); `php -l` ×7;
   guard-audit REVIEW 0.
 
+## WP8: error disclosure (verified 2026-09-26)
+
+- 16 leak sites now log detail server-side (`error_log`) and return generic
+  text: restore.php (+mysql stderr no longer echoed), system
+  restore/optimize/factory-reset/apply-patch/analyze-logs, store
+  items/categories, void/delete receipt, bulk-download-pdf, payslip-pdf,
+  AI PDF export, setup restore (both catches).
+- Out of scope (noted, not changed): `includes/simple-mailer.php` echoes
+  live in uncommitted feature work — owner to fix on merge.
+- Verified: `php -l` ×14; HTTP error-path probe returns generic text with
+  no SQLSTATE/syntax leakage; guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -264,3 +276,4 @@ compromised — rotation above is mandatory regardless of purging.
 | WP7-01 | High | HR photo/signature uploads ext-only, 0777, unchecked moves (incl. pre-auth self-service) | Polyglot webshell upload | fixed (WP7: content validation + guarded dirs) |
 | WP7-02 | Medium | signature base64 + import JSON with no size/content checks | DoS / malformed writes | fixed (WP7: caps + image check) |
 | WP7-03 | Medium | all upload dirs web-accessible, no `.htaccess`, no dirs in repo | Executable uploads on misconfig | fixed (WP7: auto-written no-exec guard) |
+| WP8-01 | Low | PDO/exception text echoed to users across 16 endpoints | SQL/table/path disclosure | fixed (WP8: error_log + generic) |

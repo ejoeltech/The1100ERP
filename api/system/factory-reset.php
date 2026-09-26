@@ -71,5 +71,6 @@ try {
 
     echo json_encode(['success' => true, 'message' => 'System reset. maintenance/setup/ kept: reinstall via the wizard, then delete it.']);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Reset failed: ' . $e->getMessage()]);
+    error_log('Factory reset error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Reset failed. Check server logs.']);
 }

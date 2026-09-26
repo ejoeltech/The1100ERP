@@ -135,6 +135,7 @@ try {
     echo json_encode(['success' => true, 'message' => 'System restored successfully']);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('System restore error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Restore failed. Check server logs.']);
 }
 ?>

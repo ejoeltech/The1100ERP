@@ -72,6 +72,7 @@ try {
     }
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Apply patch error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Patch failed. Check server logs.']);
 }
 ?>

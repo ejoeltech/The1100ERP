@@ -207,6 +207,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Bulk download error: " . $e->getMessage());
-    die('Error: ' . $e->getMessage());
+    die('Bulk download failed. Check server logs.');
 }
 ?>

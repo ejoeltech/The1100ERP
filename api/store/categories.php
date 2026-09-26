@@ -62,5 +62,6 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Store categories error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Request failed. Check server logs.']);
 }

@@ -96,6 +96,7 @@ try {
 } catch (Exception $e) {
     if ($pdo->inTransaction())
         $pdo->rollBack();
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Delete receipt error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Request failed. Check server logs.']);
 }
 ?>

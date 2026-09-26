@@ -75,6 +75,6 @@ try {
 } catch (Exception $e) {
     error_log("PDF Export Error: " . $e->getMessage());
     http_response_code(500);
-    die('Error generating PDF: ' . $e->getMessage());
+    die('Error generating PDF. Check server logs.');
 }
 ?>

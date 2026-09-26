@@ -107,7 +107,9 @@ try {
     }
 
     if ($returnVar !== 0) {
-        throw new Exception('Restore failed: ' . implode("\n", $output));
+        // WP8: mysql client output can leak paths/credentials — log it, generic to user.
+        error_log('Restore command failed: ' . implode("\n", $output));
+        throw new Exception('Restore failed. Check server logs.');
     }
 
     // Log the action
@@ -118,6 +120,7 @@ try {
     echo json_encode(['success' => true, 'message' => 'System restored successfully']);
 
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    error_log('Restore error: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Restore failed. Check server logs.']);
 }
 ?>
