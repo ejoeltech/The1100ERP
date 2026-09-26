@@ -245,6 +245,23 @@ compromised — rotation above is mandatory regardless of purging.
 - Verified: `php -l` ×2; live headers show full CSP + DENY; logout 302 to
   relative login; login renders 200; guard-audit REVIEW 0.
 
+## WP11: destructive-endpoint hardening (verified 2026-09-26)
+
+- Central `inspectZipArchive()` (traversal/absolute/drive rejection +
+  forbidden basenames) + `removeDirRecursive()` (temp-confined) in
+  `includes/security.php`.
+- `restore.php` + `api/system/restore.php`: 128 MB cap, inspected zips,
+  `escapeshellarg()` on the SQL path, real temp cleanup. Fixed root
+  `restore.php` writing uploads to `htdocs/uploads` (`/../../uploads`)
+  instead of the app dir; per-entry containment + guarded target.
+  API twin also gets the WP8-generic failure it missed.
+- `apply-patch.php`: 25 MB cap, inspected zips, archives can never
+  overwrite `.env`/`config.php`/`config.sample.php`/`.htaccess`;
+  `update_script.php` RCE-by-design documented as contained-then-deleted.
+- Verified: CLI matrix ALL-PASS (good/traversal/secrets/delete/guard);
+  HTTP traversal patch rejected generic with nothing written; `php -l`
+  ×4; guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -308,3 +325,6 @@ compromised — rotation above is mandatory regardless of purging.
 | WP9-01 | High | v10 `ADD COLUMN IF NOT EXISTS` 1064'd on MariaDB — 18 payroll columns never created on fresh installs | Payroll generate fatals; override/exempt flags dead | fixed (WP9: valid ALTERs + patcher parity + seeds) |
 | WP9-02 | Low | `;` inside COMMENT strings vs `;`-splitting runner | 2 more 1064s on CLI installs | fixed (WP9: reworded) |
 | WP10-01 | Low | CSP missing object/base/form/frame lockdown; htaccess SAMEORIGIN vs DENY; logout absolute Host-based redirect | Plugin/frame/form-action abuse; header duplication | fixed (WP10) |
+| WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
+| WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
+| WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |

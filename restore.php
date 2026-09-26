@@ -23,6 +23,11 @@ try {
         throw new Exception('Invalid file type. Only .sql and .zip files are allowed.');
     }
 
+    // WP11: bound restore payloads (DB dumps are large but not unbounded).
+    if (($file['size'] ?? 0) > 128 * 1024 * 1024) {
+        throw new Exception('Restore file too large (max 128 MB).');
+    }
+
     // Command configuration
     $mysqlCommand = 'mysql';
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -36,14 +41,17 @@ try {
     $tempDir = null;
 
     if ($ext === 'zip') {
-        // Handle ZIP extraction
-        $zip = new ZipArchive;
-        $tempDir = sys_get_temp_dir() . '/restore_' . uniqid();
-        mkdir($tempDir);
+        // Handle ZIP extraction (WP11: entries inspected pre-extract —
+        // traversal archives are rejected before touching disk).
+        $tempDir = sys_get_temp_dir() . '/restore_' . bin2hex(random_bytes(8));
+        mkdir($tempDir, 0700, true);
 
-        if ($zip->open($file['tmp_name']) === TRUE) {
+        $zip = inspectZipArchive($file['tmp_name']);
+        try {
             $zip->extractTo($tempDir);
+        } finally {
             $zip->close();
+        }
 
             // Look for database.sql or any .sql file
             $sqlFiles = glob($tempDir . '/*.sql');
@@ -56,28 +64,32 @@ try {
             // Logic: Move contents of extracted 'uploads' folder to system uploads
             $extractedUploads = $tempDir . '/uploads';
             if (is_dir($extractedUploads)) {
-                $targetUploads = realpath(__DIR__ . '/../../uploads');
-                // Simple recursive copy/overwrite
+                // WP11: this file lives at the app root, so uploads is a
+                // sibling (the old /../../uploads escaped to htdocs/).
+                // Containment is re-checked per entry; guarded dir included.
+                require_once __DIR__ . '/includes/security.php';
+                $targetUploads = ensureUploadDir(__DIR__ . '/uploads');
+                $targetReal = realpath($targetUploads);
                 $iterator = new RecursiveIteratorIterator(
                     new RecursiveDirectoryIterator($extractedUploads, RecursiveDirectoryIterator::SKIP_DOTS),
                     RecursiveIteratorIterator::SELF_FIRST
                 );
 
                 foreach ($iterator as $item) {
-                    $subPath = $iterator->getSubPathName();
-                    $destination = $targetUploads . '/' . $subPath;
+                    $subPath = str_replace('\\', '/', $iterator->getSubPathName());
+                    if ($subPath === '' || strpos($subPath, '..') !== false) {
+                        continue;
+                    }
+                    $destination = $targetReal . '/' . $subPath;
                     if ($item->isDir()) {
                         if (!is_dir($destination)) {
-                            mkdir($destination);
+                            mkdir($destination, 0755, true);
                         }
                     } else {
-                        copy($item, $destination);
+                        copy($item->getPathname(), $destination);
                     }
                 }
             }
-        } else {
-            throw new Exception('Failed to open ZIP file.');
-        }
     } else {
         // Direct SQL file
         $sqlFileToRestore = $file['tmp_name'];
@@ -91,7 +103,7 @@ try {
         escapeshellarg(DB_USER),
         escapeshellarg(DB_PASS),
         escapeshellarg(DB_NAME),
-        '"' . $sqlFileToRestore . '"' // Double quotes for Windows paths
+        escapeshellarg($sqlFileToRestore) // WP11: escaped, not hand-quoted
     );
 
     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
@@ -100,10 +112,11 @@ try {
 
     exec($command . ' 2>&1', $output, $returnVar);
 
-    // Cleanup temp
+    // Cleanup temp (WP11: temp dirs are actually removed now)
     if ($tempDir) {
-        // Recursive delete temp dir
-        // (Implementation omitted for brevity, usually system handles temp cleanup eventually)
+        if (function_exists('removeDirRecursive')) {
+            removeDirRecursive($tempDir);
+        }
     }
 
     if ($returnVar !== 0) {

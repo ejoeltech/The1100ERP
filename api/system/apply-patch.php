@@ -37,17 +37,26 @@ try {
         throw new Exception('Invalid file type. Only .zip files are allowed.');
     }
 
-    $zip = new ZipArchive;
-    if ($zip->open($file['tmp_name']) === TRUE) {
+    // WP11: bound patch size.
+    if (($file['size'] ?? 0) > 25 * 1024 * 1024) {
+        throw new Exception('Patch file too large (max 25 MB).');
+    }
 
-        // Root path
-        $rootPath = realpath(__DIR__ . '/../../');
+    // Root path
+    $rootPath = realpath(__DIR__ . '/../../');
 
-        // Extract
+    // WP11: inspect entries BEFORE extraction — traversal rejected, and a
+    // patch archive may never overwrite secrets/config or drop .htaccess.
+    $zip = inspectZipArchive($file['tmp_name'], ['.env', 'config.php', 'config.sample.php', '.htaccess']);
+    try {
         $zip->extractTo($rootPath);
+    } finally {
         $zip->close();
+    }
 
-        // Check for post-update script
+        // Check for post-update script (WP11: RCE-by-design stays, but the
+        // script can only arrive inside an inspected archive — no traversal,
+        // no secrets overwrite — and it is deleted immediately after running).
         $updateScript = $rootPath . '/update_script.php';
         $scriptOutput = '';
 
@@ -67,9 +76,6 @@ try {
         $stmt->execute([$_SESSION['user_id'], $details]);
 
         echo json_encode(['success' => true, 'message' => 'Patch applied successfully. ' . strip_tags($scriptOutput)]);
-    } else {
-        throw new Exception('Failed to open ZIP file');
-    }
 
 } catch (Exception $e) {
     error_log('Apply patch error: ' . $e->getMessage());

@@ -104,6 +104,72 @@ function validateImageUpload($file, $maxBytes = UPLOAD_IMAGE_MAX_BYTES)
 }
 
 // ============================================
+// Archive Safety (WP11)
+// ============================================
+
+/**
+ * Open a ZIP for inspection BEFORE extraction. Rejects traversal entries
+ * (../, absolute paths, drive letters) and optionally forbidden basenames
+ * (e.g. secrets that a patch archive must never overwrite). Returns the
+ * open ZipArchive — the caller must close() it. Throws on any problem.
+ */
+function inspectZipArchive($tmpPath, $forbidden = [])
+{
+    $zip = new ZipArchive;
+    if ($zip->open($tmpPath) !== true) {
+        throw new Exception('Cannot open ZIP archive.');
+    }
+    try {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if ($name === false || $name === '') {
+                throw new Exception('Unreadable ZIP entry.');
+            }
+            $n = str_replace('\\', '/', $name);
+            if ($n[0] === '/' || preg_match('/^[A-Za-z]:/', $n) || strpos($n, '..') !== false) {
+                throw new Exception('ZIP entry escapes target directory.');
+            }
+            if ($forbidden && in_array(strtolower(basename($n)), $forbidden, true)) {
+                throw new Exception('Forbidden file in archive: ' . basename($n));
+            }
+        }
+    } catch (Exception $e) {
+        $zip->close();
+        throw $e;
+    }
+    return $zip;
+}
+
+/**
+ * Recursively delete a directory tree (restore temp dirs). Only operates
+ * inside the system temp dir as a guard against path mistakes.
+ */
+function removeDirRecursive($dir)
+{
+    // Normalize separators first (Windows mixes / and \).
+    $dir = rtrim(str_replace('/', DIRECTORY_SEPARATOR, $dir), DIRECTORY_SEPARATOR);
+    $tmp = rtrim(sys_get_temp_dir(), '/\\');
+    if ($dir === '' || $dir === $tmp || strpos($dir, $tmp . DIRECTORY_SEPARATOR) !== 0) {
+        return;
+    }
+    if (!is_dir($dir)) {
+        return;
+    }
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($items as $item) {
+        if ($item->isDir()) {
+            @rmdir($item->getPathname());
+        } else {
+            @unlink($item->getPathname());
+        }
+    }
+    @rmdir($dir);
+}
+
+// ============================================
 // Rate Limiting (Login Attempts)
 // ============================================
 
