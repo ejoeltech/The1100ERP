@@ -64,8 +64,8 @@ Gitleaks 8.30.1 (winget, scanner DB default ruleset):
 - Working tree: **no leaks found** (16 MB scanned).
 - Full history (`--all`, 49 commits): **3 leaks, all history-only**:
   - `maintenance/bluedots_1100erp.sql:940` @40ce4c8 — third-party editor
-    API key in a deleted dump. File gone from tree; key must be revoked
-    at the provider.
+    API key in a deleted dump. File gone from tree; key REVOKED at provider
+    2026-09-26 (owner-confirmed).
   - `tests/security_test.php:45` @7f73e30 — test-only encryption key.
     File deleted in WP0-A.
   - `install-schema.sql` settings seed @0740a4b — provider API key seed.
@@ -79,7 +79,7 @@ Gitleaks 8.30.1 (winget, scanner DB default ruleset):
 - WhatsApp verify token + app secret: `settings` table
 - AI provider keys (`groq_api_key`, `ai_api_key`, `ai_custom_api_key`,
   per-provider): `settings` table + `GROQ_API_KEY` env if set + history seed
-- Third-party editor key (deleted dump) and test encryption key: revoke/replace
+- Third-party editor key (deleted dump): REVOKED 2026-09-26. Test encryption key: replace if reused anywhere.
 - `api_tokens` table rows, if any were issued
 - Admin passwords on dev/staging/prod (unknown sharing): reset at go-live
 - Per-session CSRF/session secrets: random per session, nothing to rotate
@@ -326,7 +326,7 @@ regardless of purging.
 | WP3-06 | Medium | proposals table missing on fresh installs; no ownership, no creator attribution | Broken feature + cross-user edits | fixed (WP3-D: CREATE in patcher + schema, created_by + ownership gates) |
 | WP3-01 | High | HR pages/APIs open to any login (viewer/sales_rep could open employees, payroll, recruitment, voting, ID cards, run payroll, pull staff PII feed) | Missing object-level gates | fixed (WP3-B: hr_view/hr_manage/leave_manage/payroll_view/payroll_run/recruitment_manage enforced on 11 pages + 4 APIs; self-service leave/attendance/payslip stay ownership-scoped; verified 36/36 page + 7/7 API matrix) |
 | WP1-01 | High | `config.php` committed history | Old DB credentials assumed compromised | rotation list above; purge commands prepared, awaiting approval |
-| WP1-02 | High | historical secret seeds (editor key, test key, provider key) | In git history only; tree clean per gitleaks | revoke at providers + rotate; purge awaiting approval |
+| WP1-02 | High | historical secret seeds (editor key, test key, provider key) | In git history only; tree clean per gitleaks | editor key revoked 2026-09-26; provider key + test key rotate; purge RUN |
 | WP1-03 | Medium | secret values rendered into settings HTML (`smtp_password`, `ai_api_key`, `groq_api_key` hidden, `telegram_bot_token`, `whatsapp_app_secret`) | Any admin session/XSS read them; blank saves wiped them | fixed (WP1: fields render blank + saved indicators; save path skips empty secrets; verified keep + rotate) |
 | WP1-04 | Medium | `config.php` disclosed PDO errors (host/db/user); permissive root/empty defaults | Info disclosure + weak-default encouragement | fixed (WP1: env-first loader, fail-fast 503, no error details; verified both paths) |
 | WP1-05 | Medium | installer `generateConfig()` embedded secrets in defines | Every installed config.php carried creds in code | fixed (WP1: wizard writes `.env`, copies secret-free loader) |
