@@ -25,6 +25,12 @@ if (!$quote) {
     exit;
 }
 
+// WP3 IDOR: sales reps may only open their own documents.
+if (function_exists('canViewDocument') && !canViewDocument($quote)) {
+    http_response_code(403);
+    die('Access Denied: you do not have permission to view this document.');
+}
+
 // Fetch line items
 $stmt = $pdo->prepare("
     SELECT * FROM quote_line_items 
@@ -133,6 +139,19 @@ include '../includes/header.php';
             </a>
         </div>
     </div>
+
+    <?php if (function_exists('hasPermission') && hasPermission('email_document')): ?>
+        <!-- Email Button -->
+        <a href="email-document.php?id=<?php echo $quote['id']; ?>&type=quote"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                </path>
+            </svg>
+            Email PDF
+        </a>
+    <?php endif; ?>
 
     <!-- Duplicate Button -->
     <a href="../api/duplicate-quote.php?id=<?php echo $quote['id']; ?>"

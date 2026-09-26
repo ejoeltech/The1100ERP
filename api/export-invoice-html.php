@@ -20,6 +20,12 @@ if (!$invoice) {
     die('Invoice not found');
 }
 
+// WP3 IDOR: ownership check (same rule as the PDF export + detail page).
+if (function_exists('canViewDocument') && !canViewDocument($invoice)) {
+    http_response_code(403);
+    die('Access denied: you do not have permission to view this document');
+}
+
 // Fetch line items
 $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
 $stmt->execute([$invoice_id]);

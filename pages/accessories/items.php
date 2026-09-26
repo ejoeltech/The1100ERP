@@ -1,6 +1,7 @@
 <?php
 require_once '../../config.php';
 include '../../includes/session-check.php';
+requirePermission('manage_accessories');
 
 $pageTitle = 'Accessories Store - Internal Use';
 include '../../includes/header.php';

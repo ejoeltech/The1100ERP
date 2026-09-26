@@ -22,6 +22,12 @@ if (!$receipt) {
     die('Receipt not found');
 }
 
+// WP3 IDOR: ownership check (same rule as the PDF export + detail page).
+if (function_exists('canViewDocument') && !canViewDocument($receipt)) {
+    http_response_code(403);
+    die('Access denied: you do not have permission to view this document');
+}
+
 // Map invoice fields to receipt fields if needed for template compatibility
 $receipt['grand_total'] = $receipt['invoice_grand_total']; // Receipts don't have grand_total, use invoice's
 

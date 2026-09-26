@@ -20,10 +20,9 @@ try {
     $quote_date = $_POST['quote_date'];
     $delivery_period = trim($_POST['delivery_period'] ?? '10 Days');
     $payment_terms = trim($_POST['payment_terms']);
-    $subtotal = parseFormNumber($_POST['subtotal']);
-    $total_vat = parseFormNumber($_POST['total_vat']);
-    $grand_total = parseFormNumber($_POST['grand_total']);
-    $status = $_POST['status']; // 'draft' or 'finalized'
+    // WP3-D: money figures are recomputed server-side; the posted totals are ignored.
+    // Status is allow-listed (draft/finalized only).
+    $status = sanitizeDocumentStatus($_POST['status'] ?? 'draft');
     $line_items = $_POST['line_items'];
 
     // Validate required fields
@@ -31,10 +30,12 @@ try {
         throw new Exception('Required fields are missing');
     }
 
-    // Validate line items exist
-    if (empty($line_items) || !is_array($line_items)) {
-        throw new Exception('No line items provided');
-    }
+    // Server-side recalculation (throws on empty/invalid items)
+    $calc = recalcDocumentTotals($line_items);
+    $line_items = $calc['items'];
+    $subtotal = $calc['subtotal'];
+    $total_vat = $calc['vat'];
+    $grand_total = $calc['grand'];
 
     // Save customer if new (INSERT IGNORE will skip if already exists)
     $customer_id = null;
@@ -91,36 +92,21 @@ try {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    $item_number = 1;
     foreach ($line_items as $item) {
-        $quantity = parseFormNumber($item['quantity']);
-        $description = trim($item['description']);
-        $unit_price = parseFormNumber($item['unit_price']);
-        $vat_applicable = isset($item['vat_applicable']) ? 1 : 0;
-        $vat_amount = parseFormNumber($item['vat_amount']);
-        $line_total = parseFormNumber($item['line_total']);
-        $item_id = !empty($item['item_id']) ? intval($item['item_id']) : null;
-        $item_name = !empty($item['item_name']) ? trim($item['item_name']) : null;
-
-        // Validate line item
-        if (empty($description) || $quantity <= 0 || $unit_price < 0) {
-            throw new Exception("Invalid line item data");
-        }
-
+        // All money figures come from recalcDocumentTotals() above; the
+        // client-sent vat_amount/line_total are never used.
         $stmt->execute([
             $quote_id,
-            $item_number,
-            $quantity,
-            $description,
-            $unit_price,
-            $vat_applicable,
-            $vat_amount,
-            $line_total,
-            $item_id,
-            $item_name
+            $item['item_number'],
+            $item['quantity'],
+            $item['description'],
+            $item['unit_price'],
+            $item['vat_applicable'],
+            $item['vat_amount'],
+            $item['line_total'],
+            $item['item_id'],
+            $item['item_name']
         ]);
-
-        $item_number++;
     }
 
     // Commit transaction

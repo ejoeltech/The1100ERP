@@ -1,6 +1,8 @@
 <?php
 include '../includes/session-check.php';
-requirePermission('manage_quotes');
+// WP3: was manage_quotes (not a real permission: denied everyone).
+// Duplicating a template is document creation.
+requirePermission('create_document');
 
 if (!isset($_GET['id'])) {
     header('Location: ../pages/readymade-quotes.php?error=Template not specified');

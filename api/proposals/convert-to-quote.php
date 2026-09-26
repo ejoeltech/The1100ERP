@@ -31,6 +31,12 @@ try {
         throw new Exception("Proposal not found");
     }
 
+    // WP3: converting needs create rights + ownership of the source proposal.
+    requirePermission('create_quote');
+    if (getUserRole() === 'sales_rep' && (int)($proposal['created_by'] ?? 0) !== (int)$_SESSION['user_id']) {
+        throw new Exception('You do not have permission to use this proposal', 403);
+    }
+
     require_once '../../includes/helpers.php';
 
     $pdo->beginTransaction();
@@ -53,8 +59,8 @@ try {
     $customerName = isset($proposal['customer_name']) ? $proposal['customer_name'] : 'Guest Customer'; // Handle missing key
 
     $stmt = $pdo->prepare("INSERT INTO quotes 
-        (quote_number, quote_title, customer_name, salesperson, quote_date, status, payment_terms, delivery_period, total_vat, grand_total, subtotal) 
-        VALUES (?, ?, ?, ?, CURDATE(), 'draft', ?, ?, 0, 0, 0)");
+        (quote_number, quote_title, customer_name, salesperson, quote_date, status, payment_terms, delivery_period, total_vat, grand_total, subtotal, created_by) 
+        VALUES (?, ?, ?, ?, CURDATE(), 'draft', ?, ?, 0, 0, 0, ?)");
 
     $stmt->execute([
         $quoteNumber,
@@ -62,7 +68,8 @@ try {
         $customerName,
         $salesperson,
         '100% upfront', // Payment Terms
-        'Immediate'     // Delivery Period
+        'Immediate',     // Delivery Period
+        $_SESSION['user_id']
     ]);
     $quoteId = $pdo->lastInsertId();
 

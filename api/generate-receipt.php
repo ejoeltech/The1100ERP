@@ -29,6 +29,12 @@ try {
         throw new Exception('Invoice not found or not finalized');
     }
 
+    // WP3: generating receipts needs generate_receipt + visibility of the invoice.
+    requirePermission('generate_receipt');
+    if (function_exists('canViewDocument') && !canViewDocument($invoice)) {
+        throw new Exception('You do not have permission to use this invoice');
+    }
+
     // Check if receipt already exists (this logic might be flawed if multiple receipts allowed? 
     // Usually multiple receipts ARE allowed for partial payments. The original code checked if ANY receipt exists?
     // "Check if receipt already exists" - implying single receipt?

@@ -42,6 +42,12 @@ try {
         die('Receipt not found');
     }
 
+    // WP3 IDOR: ownership check (same rule as the PDF export + detail page).
+    if (function_exists('canViewDocument') && !canViewDocument($receipt)) {
+        http_response_code(403);
+        die('Access denied: you do not have permission to view this document');
+    }
+
     // Parent invoice for template
     $parent_invoice = null;
     if ($receipt['invoice_id']) {

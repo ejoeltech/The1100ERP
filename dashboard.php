@@ -10,6 +10,10 @@ $userId = $_SESSION['user_id'];
 // Get role filter for queries
 $roleFilter = function_exists('getRoleFilter') ? getRoleFilter('d') : '';
 
+// WP3: sales-rep ownership scope for aggregate + recent queries below
+// (matches list scoping; interpolated value is a cast int, never input).
+$recentOwner = ($role === 'sales_rep') ? 'AND created_by = ' . (int)$userId : '';
+
 // Get stats for current month
 $currentMonth = date('Y-m');
 
@@ -68,7 +72,7 @@ $stmt = $pdo->query("
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
         SUM(CASE WHEN status IN ('finalized', 'approved') THEN 1 ELSE 0 END) as finalized
     FROM quotes
-    WHERE deleted_at IS NULL
+    WHERE deleted_at IS NULL $recentOwner
 ");
 $quote_counts = $stmt->fetch();
 $draft_count += $quote_counts['draft'];
@@ -80,13 +84,15 @@ $stmt = $pdo->query("
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
         SUM(CASE WHEN status IN ('sent', 'paid', 'partially_paid') THEN 1 ELSE 0 END) as finalized
     FROM invoices
-    WHERE deleted_at IS NULL
+    WHERE deleted_at IS NULL $recentOwner
 ");
 $invoice_counts = $stmt->fetch();
 $draft_count += $invoice_counts['draft'];
 $finalized_count += $invoice_counts['finalized'];
 
 // Recent documents (last 10) - Union of all three tables
+// WP3: sales reps see only their own rows here (matches list scoping).
+$recentOwner = (function_exists('getUserRole') && getUserRole() === 'sales_rep') ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
 $stmt = $pdo->query("
     (SELECT 
         id,
@@ -97,7 +103,7 @@ $stmt = $pdo->query("
         status,
         created_at
     FROM quotes
-    WHERE deleted_at IS NULL
+    WHERE deleted_at IS NULL $recentOwner
     ORDER BY created_at DESC
     LIMIT 10)
     UNION ALL
@@ -110,7 +116,7 @@ $stmt = $pdo->query("
         status,
         created_at
     FROM invoices
-    WHERE deleted_at IS NULL
+    WHERE deleted_at IS NULL $recentOwner
     ORDER BY created_at DESC
     LIMIT 10)
     UNION ALL
@@ -124,7 +130,7 @@ $stmt = $pdo->query("
         created_at
     FROM receipts
     WHERE deleted_at IS NULL
-    AND status != 'void'
+    AND status != 'void' $recentOwner
     ORDER BY created_at DESC
     LIMIT 10)
     ORDER BY created_at DESC
@@ -132,8 +138,8 @@ $stmt = $pdo->query("
 ");
 $recent_documents = $stmt->fetchAll();
 
-// Phase 8: Admin-only stats
-if (function_exists('isAdmin') && isAdmin()) {
+// Phase 8: System stats (WP3: view_system_dashboard instead of coarse isAdmin)
+if (function_exists('hasPermission') && hasPermission('view_system_dashboard')) {
     // User activity is not tracked in the current schema
     // Setting empty array for now
     $top_users = [];
@@ -277,8 +283,8 @@ include 'includes/header.php';
     </div>
 </div>
 
-<!-- Phase 8: Admin-only widgets -->
-<?php if (isAdmin() && isset($top_users)): ?>
+<!-- Phase 8: System widgets (WP3: view_system_dashboard instead of coarse isAdmin) -->
+<?php if (function_exists('hasPermission') && hasPermission('view_system_dashboard') && isset($top_users)): ?>
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-4">🏆 Top Performers (This Month)</h3>
         <div class="space-y-3">

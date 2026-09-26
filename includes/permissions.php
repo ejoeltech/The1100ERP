@@ -39,6 +39,22 @@ function getPermissionCatalog()
             'send_email' => 'Send emails',
             'email_document' => 'Email documents',
         ],
+        'Payments' => [
+            'view_payments' => 'View payments',
+            'create_payment' => 'Record payments',
+        ],
+        'Customers' => [
+            'manage_customers' => 'Manage customers',
+        ],
+        'Products' => [
+            'manage_products' => 'Manage products',
+        ],
+        'Leads' => [
+            'manage_leads' => 'Manage leads',
+        ],
+        'Reports' => [
+            'view_reports' => 'View archives and reports',
+        ],
         'System' => [
             'manage_settings' => 'Manage settings',
             'view_audit_log' => 'View audit log',
@@ -314,6 +330,22 @@ function hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId)
         case 'send_email':
         case 'email_document':
             return $role !== 'viewer';
+
+        // Payments: view/record (Admin, Manager, Accountant; Sales Rep records own)
+        case 'view_payments':
+            return in_array($role, ['admin', 'manager', 'accountant']);
+        case 'create_payment':
+            return in_array($role, ['admin', 'manager', 'accountant', 'sales_rep']);
+
+        // Customers (all except read-only viewer)
+        case 'manage_customers':
+            return in_array($role, ['admin', 'manager', 'accountant', 'sales_rep']);
+
+        // Products, Leads, Reports (Admin, Manager)
+        case 'manage_products':
+        case 'manage_leads':
+        case 'view_reports':
+            return in_array($role, ['admin', 'manager']);
 
         // Profile Management (Own profile only)
         case 'edit_own_profile':

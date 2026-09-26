@@ -24,6 +24,9 @@ try {
         throw new Exception('Invalid parameters');
     }
 
+    // WP3: archiving needs archive_document; sales reps only touch own rows.
+    requirePermission('archive_document');
+
     $table = '';
     switch ($type) {
         case 'quote':
@@ -38,15 +41,21 @@ try {
     }
 
     // Use deleted_at column for soft delete (archive/restore)
+    $params = [$id];
+    $ownerScope = '';
+    if (getUserRole() === 'sales_rep') {
+        $ownerScope = 'AND created_by = ?';
+        $params[] = $_SESSION['user_id'];
+    }
     if ($action === 'archive') {
         // Archive: set deleted_at to current timestamp
-        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NOW() WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NOW() WHERE id = ? $ownerScope");
     } else {
         // Unarchive (restore): set deleted_at to NULL
-        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NULL WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE $table SET deleted_at = NULL WHERE id = ? $ownerScope");
     }
 
-    $stmt->execute([$id]);
+    $stmt->execute($params);
 
     echo json_encode(['success' => true, 'message' => "Item successfully {$action}d"]);
 

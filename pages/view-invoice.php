@@ -18,6 +18,12 @@ if (!$invoice) {
     exit;
 }
 
+// WP3 IDOR: sales reps may only open their own documents.
+if (function_exists('canViewDocument') && !canViewDocument($invoice)) {
+    http_response_code(403);
+    die('Access Denied: you do not have permission to view this document.');
+}
+
 $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
@@ -84,6 +90,12 @@ include '../includes/header.php';
         class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
         📄 Export PDF
     </a>
+    <?php if (function_exists('hasPermission') && hasPermission('email_document')): ?>
+        <a href="email-document.php?id=<?php echo $invoice_id; ?>&type=invoice"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+            ✉️ Email PDF
+        </a>
+    <?php endif; ?>
     <a href="edit-invoice.php?id=<?php echo $invoice_id; ?>"
         class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold">
         ✏️ Edit Invoice

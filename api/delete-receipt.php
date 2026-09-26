@@ -10,12 +10,9 @@ require_once '../includes/session-check.php';
 
 header('Content-Type: application/json');
 
-// 1. Check Admin Permissions
-if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
-    exit;
-}
+// 1. Check delete permission (WP3: was raw role==='admin', which locked
+// out super_admin and group grants).
+requirePermission('delete_receipt');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

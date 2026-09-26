@@ -154,3 +154,60 @@ function parseFormNumber($input)
     $clean = preg_replace('/[^\d.-]/', '', (string)$input);
     return (float) $clean;
 }
+
+/**
+ * Server-side recalculation for quote/invoice line items (WP3-D).
+ * Client-submitted vat_amount/line_total/subtotal/vat/grand_total are NEVER
+ * trusted: every figure is recomputed from quantity × unit_price + VAT.
+ * Returns ['items' => normalized rows, 'subtotal' => f, 'vat' => f, 'grand' => f].
+ * Throws on empty/invalid items. VAT rate comes from settings (VAT_RATE).
+ */
+function recalcDocumentTotals($items)
+{
+    $rate = (defined('VAT_RATE') ? (float)VAT_RATE : 7.5) / 100.0;
+    $out = [];
+    $subtotal = 0.0;
+    $totalVat = 0.0;
+    $n = 1;
+    if (!is_array($items) || empty($items)) {
+        throw new Exception('No line items provided');
+    }
+    foreach ($items as $item) {
+        if (!is_array($item)) {
+            throw new Exception('Invalid line item data');
+        }
+        $quantity = parseFormNumber($item['quantity'] ?? 0);
+        $description = trim($item['description'] ?? '');
+        $unit_price = parseFormNumber($item['unit_price'] ?? 0);
+        if ($description === '' || $quantity <= 0 || $unit_price < 0) {
+            throw new Exception('Invalid line item data');
+        }
+        $base = round($quantity * $unit_price, 2);
+        $vat = !empty($item['vat_applicable']) ? round($base * $rate, 2) : 0.0;
+        $lineTotal = round($base + $vat, 2);
+        $out[] = [
+            'item_number' => $n++,
+            'quantity' => $quantity,
+            'description' => $description,
+            'unit_price' => $unit_price,
+            'vat_applicable' => !empty($item['vat_applicable']) ? 1 : 0,
+            'vat_amount' => $vat,
+            'line_total' => $lineTotal,
+            'item_id' => !empty($item['item_id']) ? intval($item['item_id']) : null,
+            'product_id' => !empty($item['product_id']) ? intval($item['product_id']) : null,
+            'item_name' => isset($item['item_name']) && $item['item_name'] !== '' ? trim($item['item_name']) : null,
+        ];
+        $subtotal = round($subtotal + $base, 2);
+        $totalVat = round($totalVat + $vat, 2);
+    }
+    return ['items' => $out, 'subtotal' => $subtotal, 'vat' => $totalVat, 'grand' => round($subtotal + $totalVat, 2)];
+}
+
+/**
+ * Allow-list for client-settable document status (WP3-D mass assignment).
+ */
+function sanitizeDocumentStatus($status)
+{
+    $status = strtolower(trim((string)$status));
+    return in_array($status, ['draft', 'finalized'], true) ? $status : 'draft';
+}

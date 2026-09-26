@@ -657,6 +657,22 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('whatsapp_verify_token', ''),
     ('whatsapp_app_secret', '');
 
+-- Proposals (AI draft documents; table + ownership column, WP3-C).
+-- Fresh installs get the full shape; upgrades via schema patcher.
+CREATE TABLE IF NOT EXISTS `proposals` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
+  `customer_name` varchar(255) DEFAULT NULL,
+  `system_specs` text DEFAULT NULL,
+  `content` longtext DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'draft',
+  `converted_quote_id` int(10) unsigned DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- One-time invite tokens + auth throttle buckets (WP2)
 CREATE TABLE IF NOT EXISTS `user_invites` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

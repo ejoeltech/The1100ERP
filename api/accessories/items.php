@@ -8,6 +8,12 @@ header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
+// WP3: accessories writes need manage_accessories. Reads (list/categories/
+// transactions) stay open for logged-in users; the manage page itself is gated.
+if (!in_array($action, ['list', 'categories', 'transactions', ''], true)) {
+    requirePermission('manage_accessories');
+}
+
 try {
     switch ($action) {
         case 'list':

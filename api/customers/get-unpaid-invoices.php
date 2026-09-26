@@ -5,6 +5,9 @@
 include '../../config.php';
 include '../../includes/session-check.php';
 
+// WP3: helper for the record-payment flow; same gate + sales_rep own-scope.
+requirePermission('create_payment');
+
 $customer_id = $_GET['customer_id'] ?? null;
 
 if (!$customer_id) {
@@ -19,19 +22,21 @@ try {
     $stmt->execute([$customer_id]);
     $credit_balance = $stmt->fetchColumn() ?: 0;
 
-    // Get unpaid or partial invoices
+    // Get unpaid or partial invoices (sales reps see own only)
+    $ownerScope = getUserRole() === 'sales_rep' ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
     $stmt = $pdo->prepare("
-        SELECT 
-            id, 
-            invoice_number, 
-            invoice_date, 
-            grand_total, 
-            amount_paid, 
-            balance_due 
-        FROM invoices 
-        WHERE customer_id = ? 
-        AND status != 'paid' 
+        SELECT
+            id,
+            invoice_number,
+            invoice_date,
+            grand_total,
+            amount_paid,
+            balance_due
+        FROM invoices
+        WHERE customer_id = ?
+        AND status != 'paid'
         AND deleted_at IS NULL
+        $ownerScope
         ORDER BY invoice_date ASC
     ");
     $stmt->execute([$customer_id]);

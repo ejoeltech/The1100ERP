@@ -28,6 +28,12 @@ try {
         throw new Exception('Only draft invoices can be finalized');
     }
 
+    // WP3: finalizing locks the document; needs edit rights + ownership.
+    requirePermission('edit_invoice');
+    if (function_exists('canEditDocument') && !canEditDocument($invoice)) {
+        throw new Exception('You do not have permission to finalize this invoice');
+    }
+
     // Update status to finalized
     $stmt = $pdo->prepare("UPDATE invoices SET status = 'finalized', updated_at = NOW() WHERE id = ?");
     $stmt->execute([$invoice_id]);

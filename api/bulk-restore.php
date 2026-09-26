@@ -43,21 +43,33 @@ try {
         throw new Exception('Invalid item IDs');
     }
 
+    // WP3: restoring is a delete-class action (same privilege + ownership rules).
+    $deletePerms = ['quote' => 'delete_quote', 'invoice' => 'delete_invoice', 'receipt' => 'delete_receipt'];
+    requirePermission($deletePerms[$document_type]);
+
     $pdo->beginTransaction();
 
     // Restore: clear deleted_at timestamp
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
+    $params = $ids;
+    $ownerScope = '';
+    if (getUserRole() === 'sales_rep') {
+        $ownerScope = 'AND created_by = ?';
+        $params[] = $_SESSION['user_id'];
+    }
+
     // Whitelisted table name used directly
     $stmt = $pdo->prepare("
-        UPDATE $table 
+        UPDATE $table
         SET deleted_at = NULL,
             updated_at = NOW()
-        WHERE id IN ($placeholders) 
+        WHERE id IN ($placeholders)
         AND deleted_at IS NOT NULL
+        $ownerScope
     ");
 
-    $stmt->execute($ids);
+    $stmt->execute($params);
 
     $restored_count = $stmt->rowCount();
 

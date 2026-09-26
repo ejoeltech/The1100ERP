@@ -44,6 +44,10 @@ try {
         throw new Exception('Invalid item IDs');
     }
 
+    // WP3: per-type delete permission + sales_rep ownership scoping.
+    $deletePerms = ['quote' => 'delete_quote', 'invoice' => 'delete_invoice', 'receipt' => 'delete_receipt'];
+    requirePermission($deletePerms[$document_type]);
+
     // Begin transaction
     $pdo->beginTransaction();
 
@@ -51,14 +55,22 @@ try {
     // We cannot use prepared statements for the table name, but we validated it above via whitelist.
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
+    $params = $ids;
+    $ownerScope = '';
+    if (getUserRole() === 'sales_rep') {
+        $ownerScope = 'AND created_by = ?';
+        $params[] = $_SESSION['user_id'];
+    }
+
     $stmt = $pdo->prepare("
-        UPDATE $table 
-        SET deleted_at = NOW() 
-        WHERE id IN ($placeholders) 
+        UPDATE $table
+        SET deleted_at = NOW()
+        WHERE id IN ($placeholders)
         AND deleted_at IS NULL
+        $ownerScope
     ");
 
-    $stmt->execute($ids);
+    $stmt->execute($params);
 
     $deleted_count = $stmt->rowCount();
 

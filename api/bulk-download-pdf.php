@@ -86,6 +86,10 @@ try {
                 if (!$document)
                     continue;
 
+                // WP3 IDOR: skip documents the caller may not view.
+                if (function_exists('canViewDocument') && !canViewDocument($document))
+                    continue;
+
                 // Map invoice grand_total
                 $document['grand_total'] = $document['invoice_grand_total'];
 
@@ -115,6 +119,10 @@ try {
                 $document = $stmt->fetch();
 
                 if (!$document)
+                    continue;
+
+                // WP3 IDOR: skip documents the caller may not view.
+                if (function_exists('canViewDocument') && !canViewDocument($document))
                     continue;
 
                 // Fetch line items

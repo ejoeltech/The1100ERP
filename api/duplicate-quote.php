@@ -22,6 +22,12 @@ try {
         throw new Exception('Quote not found');
     }
 
+    // WP3: duplicating needs create rights + visibility of the source quote.
+    requirePermission('create_quote');
+    if (function_exists('canViewDocument') && !canViewDocument($original)) {
+        throw new Exception('You do not have permission to use this quote');
+    }
+
     // Fetch line items
     $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");
     $stmt->execute([$quote_id]);

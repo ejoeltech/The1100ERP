@@ -7,6 +7,12 @@ header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
+// WP3: inventory writes need manage_store. Reads (list) stay open for all
+// logged-in users (quote picker, lookups).
+if (!in_array($action, ['list', ''], true)) {
+    requirePermission('manage_store');
+}
+
 try {
     switch ($action) {
         case 'list':
@@ -54,7 +60,8 @@ try {
             $cost_price = floatval($data['cost_price'] ?? 0);
             $stock_quantity = intval($data['stock_quantity'] ?? 0);
             $minimum_stock = intval($data['minimum_stock'] ?? 0);
-            $status = $data['status'] ?? 'active';
+            // WP3-D: status allow-list (active/archived only).
+            $status = in_array($data['status'] ?? '', ['active', 'archived'], true) ? $data['status'] : 'active';
 
             if (empty($name)) throw new Exception('Item name is required');
 

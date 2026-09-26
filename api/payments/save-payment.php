@@ -16,6 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $pdo->beginTransaction();
 
+    // WP3: recording payments needs create_payment; sales reps may only
+    // touch their own invoices (checked per allocation below + auto-alloc).
+    requirePermission('create_payment');
+    $isSalesRep = getUserRole() === 'sales_rep';
+
     // 1. Get Input Data
     $data = json_decode(file_get_contents('php://input'), true);
 
@@ -84,12 +89,17 @@ try {
         $total_allocated += $alloc_amount;
 
         // Fetch invoice to get current state
-        $stmt = $pdo->prepare("SELECT invoice_number, grand_total, amount_paid FROM invoices WHERE id = ? FOR UPDATE");
+        $stmt = $pdo->prepare("SELECT invoice_number, grand_total, amount_paid, created_by FROM invoices WHERE id = ? FOR UPDATE");
         $stmt->execute([$invoice_id]);
         $invoice = $stmt->fetch();
 
         if (!$invoice)
             continue;
+
+        // WP3 IDOR: sales reps allocate only to own invoices.
+        if ($isSalesRep && (int)$invoice['created_by'] !== (int)$_SESSION['user_id']) {
+            throw new Exception('You do not have permission to allocate to invoice #' . $invoice_id);
+        }
 
         // Create Receipt
         // If it's a credit usage, we mark it as 'Credit Applied'
@@ -130,7 +140,9 @@ try {
         if ($remaining_balance > 0) {
             // Fetch any remaining unpaid invoices for this customer, ordered by oldest first
             // We exclude invoices that might have just been fully paid in step 3 (though logic handles it)
-            $stmt = $pdo->prepare("SELECT id, invoice_number, grand_total, amount_paid, balance_due FROM invoices WHERE customer_id = ? AND status != 'paid' ORDER BY invoice_date ASC, id ASC");
+            // WP3: sales reps auto-allocate across own invoices only.
+            $ownerScope = $isSalesRep ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
+            $stmt = $pdo->prepare("SELECT id, invoice_number, grand_total, amount_paid, balance_due FROM invoices WHERE customer_id = ? AND status != 'paid' $ownerScope ORDER BY invoice_date ASC, id ASC");
             $stmt->execute([$customer_id]);
             $unpaid_invoices = $stmt->fetchAll();
 

@@ -219,6 +219,57 @@ class SchemaPatcher
             $add('error', 'seed', 'Failed seeding HR permissions: ' . $e->getMessage());
         }
 
+        // 1f3. Payment UI permission seeds (WP3-C; mirrors wp3-hr-permissions.sql).
+        // Same no-clobber rule: only fill groups holding none of these keys.
+        try {
+            $paySeeds = [
+                'admin' => ['view_payments', 'create_payment'],
+                'manager' => ['view_payments', 'create_payment'],
+                'accountant' => ['view_payments', 'create_payment'],
+                'sales_rep' => ['create_payment'],
+            ];
+            $payKeys = "'view_payments','create_payment'";
+            foreach ($paySeeds as $gname => $perms) {
+                $has = $pdo->query("SELECT COUNT(*) FROM group_permissions gp JOIN user_groups g ON g.id = gp.group_id WHERE g.name = '$gname' AND gp.permission_key IN ($payKeys)")->fetchColumn();
+                if ((int)$has > 0) {
+                    $add('info', 'seed', "Group '$gname' already customised; payment permissions untouched.");
+                    continue;
+                }
+                foreach ($perms as $perm) {
+                    $insPerm->execute([$perm, $gname]);
+                }
+            }
+            $add('ok', 'seed', 'Ensured payment group permissions.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding payment permissions: ' . $e->getMessage());
+        }
+
+        // 1f4. Resurrected dead permissions (WP3-C): manage_customers,
+        // manage_products, manage_leads, view_reports are required across the
+        // app but were never defined or seeded (denied everyone but super_admin).
+        try {
+            $deadSeeds = [
+                'admin' => ['manage_customers', 'manage_products', 'manage_leads', 'view_reports'],
+                'manager' => ['manage_customers', 'manage_products', 'manage_leads', 'view_reports'],
+                'accountant' => ['manage_customers', 'view_reports'],
+                'sales_rep' => ['manage_customers'],
+            ];
+            $deadKeys = "'manage_customers','manage_products','manage_leads','view_reports'";
+            foreach ($deadSeeds as $gname => $perms) {
+                $has = $pdo->query("SELECT COUNT(*) FROM group_permissions gp JOIN user_groups g ON g.id = gp.group_id WHERE g.name = '$gname' AND gp.permission_key IN ($deadKeys)")->fetchColumn();
+                if ((int)$has > 0) {
+                    $add('info', 'seed', "Group '$gname' already customised; module permissions untouched.");
+                    continue;
+                }
+                foreach ($perms as $perm) {
+                    $insPerm->execute([$perm, $gname]);
+                }
+            }
+            $add('ok', 'seed', 'Ensured module group permissions.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding module permissions: ' . $e->getMessage());
+        }
+
         // 1g. Bank Accounts
         $sql = "CREATE TABLE IF NOT EXISTS `bank_accounts` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -438,6 +489,20 @@ class SchemaPatcher
 
         // 5. Product Fields
         $addCol('products', 'created_by', 'INT(11) DEFAULT NULL');
+        $exec("CREATE TABLE IF NOT EXISTS `proposals` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `title` varchar(255) NOT NULL,
+    `customer_name` varchar(255) DEFAULT NULL,
+    `system_specs` text DEFAULT NULL,
+    `content` longtext DEFAULT NULL,
+    `status` varchar(50) DEFAULT 'draft',
+    `converted_quote_id` int(10) unsigned DEFAULT NULL,
+    `created_by` int(11) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'proposals' table");
+        $addCol('proposals', 'created_by', 'INT(11) DEFAULT NULL');
 
         // 6. Quote Fields
         $addCol('quotes', 'delivery_period', 'VARCHAR(255) DEFAULT NULL');

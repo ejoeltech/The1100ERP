@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config.php';
+require_once '../includes/helpers.php';
 
 // Check authentication
 if (!isset($_SESSION['user_id'])) {
@@ -55,17 +56,32 @@ try {
         throw new Exception('Cannot edit invoice - receipts have been generated for this invoice');
     }
 
-    // Phase 4: Check if finalized - only admins can edit
-    $is_finalized = $invoice['status'] === 'finalized';
-    if ($is_finalized) {
-        if (!function_exists('hasPermission') || !hasPermission('edit_finalized')) {
-            throw new Exception('Only administrators can edit finalized invoices');
-        }
+    // WP3 IDOR: canonical edit gate (finalized = admin only, drafts = own
+    // for sales reps). Mirrors pages/edit-invoice.php.
+    require_once '../includes/permissions.php';
+    if (!canEditDocument($invoice)) {
+        throw new Exception('You do not have permission to edit this invoice');
     }
 
     // Validate required fields
     if (empty($quote_title) || empty($customer_name)) {
         throw new Exception('Required fields missing');
+    }
+
+    // WP3-D: money figures are recomputed server-side. amount_paid is
+    // payment-derived and NEVER client-settable: keep the stored value and
+    // recompute balance + paid state from the recalculated grand total.
+    $calc = recalcDocumentTotals($_POST['line_items'] ?? []);
+    $line_items = $calc['items'];
+    $subtotal = $calc['subtotal'];
+    $total_vat = $calc['vat'];
+    $grand_total = $calc['grand'];
+    $amount_paid = (float)($invoice['amount_paid'] ?? 0);
+    $balance_due = max(0, round($grand_total - $amount_paid, 2));
+    if ($amount_paid > 0) {
+        $status = $balance_due <= 0 ? 'paid' : 'partial';
+    } else {
+        $status = sanitizeDocumentStatus($_POST['status'] ?? 'draft');
     }
 
     // Build UPDATE with edit tracking
@@ -99,11 +115,7 @@ try {
         $status
     ];
 
-    // Phase 4: Track edit if finalized (Skipping as column missing in schema for invoices too likely)
-    if ($is_finalized && isset($_SESSION['user_id'])) {
-        // $update_sql .= ", last_edited_by = ?, last_edited_at = NOW()";
-        // $params[] = $_SESSION['user_id'];
-    }
+    // Phase 4 block removed (dead code referencing undefined $is_finalized).
 
     $update_sql .= " WHERE id = ?";
     $params[] = $invoice_id;
@@ -111,8 +123,8 @@ try {
     $stmt = $pdo->prepare($update_sql);
     $stmt->execute($params);
 
-    // Handle line items
-    $line_items = $_POST['line_items'] ?? [];
+    // Handle line items (recalculated rows only)
+    $line_items = $line_items ?? [];
 
     if (!empty($line_items)) {
         // Delete existing line items
@@ -125,16 +137,15 @@ try {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        $item_number = 1;
         foreach ($line_items as $item) {
             $stmt->execute([
                 $invoice_id,
-                $item_number++,
+                $item['item_number'],
                 $item['quantity'],
                 $item['description'],
                 $item['unit_price'],
-                isset($item['vat_applicable']) ? 1 : 0,
-                $item['vat_amount'] ?? 0,
+                $item['vat_applicable'],
+                $item['vat_amount'],
                 $item['line_total']
             ]);
         }

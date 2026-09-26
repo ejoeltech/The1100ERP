@@ -1,6 +1,7 @@
 <?php
 require_once '../../config.php';
 include '../../includes/session-check.php';
+requirePermission('manage_store');
 
 $id = $_GET['id'] ?? null;
 if (!$id) {

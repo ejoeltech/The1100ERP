@@ -23,14 +23,27 @@ try {
     }
 
     if ($id) {
-        // Update
+        // Update: fetch first so ownership can be checked per row.
+        $stmt = $pdo->prepare("SELECT created_by FROM proposals WHERE id = ?");
+        $stmt->execute([$id]);
+        $existing = $stmt->fetch();
+        if (!$existing) {
+            throw new Exception('Proposal not found');
+        }
+        // WP3: creators/editors need create_document; sales reps touch own drafts only
+        // (pre-ownership rows with NULL creator are manager+ only).
+        requirePermission('create_document');
+        if (getUserRole() === 'sales_rep' && (int)($existing['created_by'] ?? 0) !== (int)$_SESSION['user_id']) {
+            throw new Exception('You do not have permission to edit this proposal', 403);
+        }
         $stmt = $pdo->prepare("UPDATE proposals SET content = ?, system_specs = ?, title = ? WHERE id = ?");
         $stmt->execute([$content, json_encode($specs), $title, $id]);
         $message = "Proposal updated successfully";
     } else {
         // Insert
-        $stmt = $pdo->prepare("INSERT INTO proposals (title, content, system_specs, status) VALUES (?, ?, ?, 'draft')");
-        $stmt->execute([$title, $content, json_encode($specs)]);
+        requirePermission('create_document');
+        $stmt = $pdo->prepare("INSERT INTO proposals (title, content, system_specs, status, created_by) VALUES (?, ?, ?, 'draft', ?)");
+        $stmt->execute([$title, $content, json_encode($specs), $_SESSION['user_id']]);
         $id = $pdo->lastInsertId();
         $message = "Proposal draft saved successfully";
     }

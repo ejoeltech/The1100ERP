@@ -25,6 +25,12 @@ try {
         throw new Exception('Quote not found or not finalized');
     }
 
+    // WP3: converting needs convert_to_invoice + visibility of the source quote.
+    requirePermission('convert_to_invoice');
+    if (function_exists('canViewDocument') && !canViewDocument($quote)) {
+        throw new Exception('You do not have permission to use this quote');
+    }
+
     // Check if already converted
     $stmt = $pdo->prepare("
         SELECT id FROM invoices 

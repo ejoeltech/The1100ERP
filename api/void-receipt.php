@@ -8,14 +8,9 @@ require_once '../includes/session-check.php';
 
 header('Content-Type: application/json');
 
-// 1. Check Admin Permissions
-// Assuming role is in session or user table. For now, strict check on 'role' column if exists, or just use login.
-// User requested "only available to admin accounts".
-if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized: Admin access required']);
-    exit;
-}
+// 1. Check delete permission (WP3: was raw role==='admin', which locked
+// out super_admin and group grants. Voiding is a delete-class action.)
+requirePermission('delete_receipt');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

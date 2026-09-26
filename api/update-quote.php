@@ -1,7 +1,9 @@
 <?php
 require_once '../config.php';
 require_once '../includes/helpers.php';
-session_start();
+// WP3: was session_start() only — anonymous users could POST edits.
+// session-check enforces login (redirects anonymous to login.php).
+include '../includes/session-check.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
@@ -17,10 +19,9 @@ try {
     $salesperson = trim($_POST['salesperson']);
     $quote_date = $_POST['quote_date'];
     $payment_terms = trim($_POST['payment_terms']);
-    $subtotal = parseFormNumber($_POST['subtotal']);
-    $total_vat = parseFormNumber($_POST['total_vat']);
-    $grand_total = parseFormNumber($_POST['grand_total']);
-    $status = $_POST['status'];
+    // WP3-D: money figures are recomputed server-side; posted totals ignored.
+    // Status is allow-listed (draft/finalized only).
+    $status = sanitizeDocumentStatus($_POST['status'] ?? 'draft');
     $line_items = $_POST['line_items'];
 
     // Fetch existing quote
@@ -32,12 +33,11 @@ try {
         throw new Exception('Quote not found');
     }
 
-    // Phase 4: Check if finalized - only admins can edit
-    $is_finalized = $quote['status'] === 'finalized';
-    if ($is_finalized) {
-        if (!function_exists('hasPermission') || !hasPermission('edit_finalized')) {
-            throw new Exception('Only administrators can edit finalized quotes');
-        }
+    // WP3 IDOR: canonical edit gate (finalized = admin only, drafts = own
+    // for sales reps). Mirrors pages/edit-quote.php.
+    require_once '../includes/permissions.php';
+    if (!canEditDocument($quote)) {
+        throw new Exception('You do not have permission to edit this quote');
     }
 
     // Validate required fields
@@ -45,10 +45,12 @@ try {
         throw new Exception('Required fields are missing');
     }
 
-    if (empty($line_items) || !is_array($line_items)) {
-        // throw new Exception('No line items provided'); // Allow saving without items? Probably not.
-        throw new Exception('No line items provided');
-    }
+    // Server-side recalculation (throws on empty/invalid items)
+    $calc = recalcDocumentTotals($line_items);
+    $line_items = $calc['items'];
+    $subtotal = $calc['subtotal'];
+    $total_vat = $calc['vat'];
+    $grand_total = $calc['grand'];
 
     // Ensure customer exists or update (not tracking customer IDs strictly on update if name changes, but good practice to update)
     // For now, we update the name in the quote.
@@ -79,26 +81,6 @@ try {
         $status
     ];
 
-    // Phase 4: Track edit if finalized
-    if ($is_finalized && isset($_SESSION['user_id'])) {
-        // quotes table checks for created_by, deleted_at. Schema doesn't show last_edited_by column in my memory of install-schema.sql for quotes.
-        // Let's check schema.
-        // install-schema.sql: 
-        // CREATE TABLE quote ...
-        // It does NOT have last_edited_by.
-        // So I must remove that part or add column. 
-        // The original logic tried to update it. Maybe the column exists in live DB but not in my view of schema? 
-        // Or user added it later.
-        // My task is to fix `documents` error. 
-        // If I try to update `last_edited_by` and it doesn't exist, it will fail.
-        // I'll skip it for now to be safe, or check if I can add it. 
-        // Given I am replacing `documents` table usage, and `documents` table likely had it.
-        // `quotes` table definitely should have it if we want this feature. 
-        // I'll skip it to avoid SQL error since I didn't add it in migration.
-        // $update_sql .= ", last_edited_by = ?, last_edited_at = NOW()";
-        // $params[] = $_SESSION['user_id'];
-    }
-
     $update_sql .= " WHERE id = ?";
     $params[] = $quote_id;
 
@@ -118,39 +100,24 @@ try {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
-    $item_number = 1;
     foreach ($line_items as $item) {
-        $quantity = parseFormNumber($item['quantity']);
-        $description = trim($item['description']);
-        $unit_price = parseFormNumber($item['unit_price']);
-        $vat_applicable = isset($item['vat_applicable']) ? 1 : 0;
-        $vat_amount = parseFormNumber($item['vat_amount']);
-        $line_total = parseFormNumber($item['line_total']);
-        $item_id = !empty($item['item_id']) ? intval($item['item_id']) : null;
-        $item_name = !empty($item['item_name']) ? trim($item['item_name']) : null;
-
-        if (empty($description) || $quantity <= 0 || $unit_price < 0) {
-            throw new Exception("Invalid line item data");
-        }
-
+        // Recalculated rows only; client money figures are never used.
         $stmt->execute([
             $quote_id,
-            $item_number,
-            $quantity,
-            $description,
-            $unit_price,
-            $vat_applicable,
-            $vat_amount,
-            $line_total,
-            $item_id,
-            $item_name
+            $item['item_number'],
+            $item['quantity'],
+            $item['description'],
+            $item['unit_price'],
+            $item['vat_applicable'],
+            $item['vat_amount'],
+            $item['line_total'],
+            $item['item_id'],
+            $item['item_name']
         ]);
-
-        $item_number++;
     }
 
     // Phase 4: Log audit trail if finalized was edited
-    if ($is_finalized && function_exists('logDocumentEdit')) {
+    if ($quote['status'] === 'finalized' && function_exists('logDocumentEdit')) {
         logDocumentEdit('quote', $quote_id, $quote['quote_number'], [
             'edited_by' => $_SESSION['full_name'] ?? 'Unknown',
             'status' => 'finalized',

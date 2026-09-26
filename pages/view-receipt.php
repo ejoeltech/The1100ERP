@@ -23,6 +23,12 @@ if (!$receipt) {
     exit;
 }
 
+// WP3 IDOR: sales reps may only open their own documents.
+if (function_exists('canViewDocument') && !canViewDocument($receipt)) {
+    http_response_code(403);
+    die('Access Denied: you do not have permission to view this document.');
+}
+
 // Fetch parent invoice
 $parent_invoice = null;
 if ($receipt['invoice_id']) {
@@ -135,6 +141,18 @@ include '../includes/header.php';
             </a>
         </div>
     </div>
+
+    <?php if (function_exists('hasPermission') && hasPermission('email_document')): ?>
+        <a href="email-document.php?id=<?php echo $receipt['id']; ?>&type=receipt"
+            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2 2v10a2 2 0 002 2z">
+                </path>
+            </svg>
+            Email PDF
+        </a>
+    <?php endif; ?>
 
     <?php if (function_exists('isAdmin') && isAdmin()): ?>
         <?php if (($receipt['status'] ?? '') !== 'void'): ?>

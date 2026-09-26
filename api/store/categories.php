@@ -7,6 +7,11 @@ header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
 
+// WP3: category writes need manage_store; list stays open (quote picker).
+if (!in_array($action, ['list', ''], true)) {
+    requirePermission('manage_store');
+}
+
 try {
     switch ($action) {
         case 'list':

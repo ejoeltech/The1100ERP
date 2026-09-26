@@ -1,6 +1,7 @@
 <?php
 require_once '../../config.php';
 include '../../includes/session-check.php';
+requirePermission('manage_store');
 
 $pageTitle = 'Manage Items - Store';
 include '../../includes/header.php';
