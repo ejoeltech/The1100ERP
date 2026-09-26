@@ -56,7 +56,9 @@ try {
 
     // Privilege escalation guards
     $promotingToAdmin = in_array($role, ['super_admin', 'admin'], true) && !in_array($old_user['role'], ['super_admin', 'admin'], true);
-    if ($promotingToAdmin && !isSuperAdmin()) {
+    // Bootstrap: promoting to super_admin is allowed when the system has none
+    $bootstrapSuper = ($role === 'super_admin') && !systemHasSuperAdmin();
+    if ($promotingToAdmin && !isSuperAdmin() && !$bootstrapSuper) {
         throw new Exception('Only a super admin can promote users to admin level');
     }
     // Only super_admin may edit a super_admin (or change their role/group)
@@ -80,8 +82,12 @@ try {
         if (!$group) {
             throw new Exception('Invalid group selected');
         }
-        if ($group['name'] === 'super_admin' && !isSuperAdmin()) {
+        if ($group['name'] === 'super_admin' && !isSuperAdmin() && !$bootstrapSuper && (int)$group_id !== (int)($old_user['group_id'] ?? 0)) {
             throw new Exception('Only a super admin can assign the super admin group');
+        }
+        // The developer group is super-admin managed, always (unchanged values pass through)
+        if ($group['name'] === 'developer' && !isSuperAdmin() && (int)$group_id !== (int)($old_user['group_id'] ?? 0)) {
+            throw new Exception('Only a super admin can assign the developer group');
         }
     } else {
         $group_id = $old_user['group_id'];

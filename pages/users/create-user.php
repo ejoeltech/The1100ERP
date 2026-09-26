@@ -11,6 +11,8 @@ try {
     $groups = [];
 }
 $isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
+$hasSuper = function_exists('systemHasSuperAdmin') ? systemHasSuperAdmin() : true;
+$canMakeSuper = $isSuper || !$hasSuper;
 
 include '../../includes/header.php';
 ?>
@@ -23,6 +25,12 @@ include '../../includes/header.php';
             <p class="text-red-800 text-sm">
                 <?php echo htmlspecialchars($_GET['error']); ?>
             </p>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$hasSuper): ?>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p class="text-yellow-800 text-sm font-semibold">No super admin exists yet — the next user created will automatically become the Super Admin.</p>
         </div>
     <?php endif; ?>
 
@@ -79,7 +87,7 @@ include '../../includes/header.php';
                     <select name="role" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                         <option value="">-- Select Role --</option>
-                        <?php if ($isSuper): ?><option value="super_admin">Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($canMakeSuper): ?><option value="super_admin">Super Admin (Full system control)</option><?php endif; ?>
                         <?php if ($isSuper): ?><option value="admin">Admin (Manage users & settings)</option><?php endif; ?>
                         <option value="manager">Manager (View All, Edit Own)</option>
                         <option value="accountant">Accountant (Invoices & payments)</option>
@@ -97,7 +105,8 @@ include '../../includes/header.php';
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                         <option value="">-- Auto (match role) --</option>
                         <?php foreach ($groups as $g): ?>
-                            <?php if ($g['name'] === 'super_admin' && !$isSuper) continue; ?>
+                            <?php if ($g['name'] === 'super_admin' && !$canMakeSuper) continue; ?>
+                            <?php if ($g['name'] === 'developer' && !$isSuper) continue; ?>
                             <option value="<?php echo $g['id']; ?>"><?php echo htmlspecialchars($g['name']); ?></option>
                         <?php endforeach; ?>
                     </select>

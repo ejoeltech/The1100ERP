@@ -28,6 +28,8 @@ try {
     $groups = [];
 }
 $isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
+$hasSuper = function_exists('systemHasSuperAdmin') ? systemHasSuperAdmin() : true;
+$canMakeSuper = $isSuper || !$hasSuper;
 
 include '../../includes/header.php';
 ?>
@@ -112,7 +114,7 @@ include '../../includes/header.php';
                         required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     >
-                        <?php if ($isSuper || $user['role'] === 'super_admin'): ?><option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($canMakeSuper || $user['role'] === 'super_admin'): ?><option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin (Full system control)</option><?php endif; ?>
                         <?php if ($isSuper || $user['role'] === 'admin'): ?><option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin (Manage users & settings)</option><?php endif; ?>
                         <option value="manager" <?php echo $user['role'] === 'manager' ? 'selected' : ''; ?>>Manager (View All, Edit Own)</option>
                         <option value="accountant" <?php echo $user['role'] === 'accountant' ? 'selected' : ''; ?>>Accountant (Invoices & payments)</option>
@@ -131,7 +133,8 @@ include '../../includes/header.php';
                     >
                         <option value="">-- Keep current --</option>
                         <?php foreach ($groups as $g): ?>
-                            <?php if ($g['name'] === 'super_admin' && !$isSuper) continue; ?>
+                            <?php if ($g['name'] === 'super_admin' && !$canMakeSuper && (string)($user['group_id'] ?? '') !== (string)$g['id']) continue; ?>
+                            <?php if ($g['name'] === 'developer' && !$isSuper && (string)($user['group_id'] ?? '') !== (string)$g['id']) continue; ?>
                             <option value="<?php echo $g['id']; ?>" <?php echo (string)($user['group_id'] ?? '') === (string)$g['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($g['name']); ?></option>
                         <?php endforeach; ?>
                     </select>

@@ -307,10 +307,11 @@ function createAdminUser()
         // Hash password (using PASSWORD_ARGON2ID)
         $hashedPassword = hashPassword($adminPassword);
 
-        // Insert admin user
+        // Insert the first-ever account as super_admin: someone must be able
+        // to create super users, and the patcher backstop only runs at Step 7.
         $stmt = $pdo->prepare("
             INSERT INTO users (username, password, full_name, email, role, is_active)
-            VALUES (?, ?, ?, ?, 'admin', 1)
+            VALUES (?, ?, ?, ?, 'super_admin', 1)
         ");
 
         $stmt->execute([$username, $hashedPassword, $fullName, $email]);

@@ -42,8 +42,16 @@ try {
         throw new Exception('Invalid role selected');
     }
 
+    // Bootstrap: a system with no active super_admin has no one who can
+    // create one, so the next user created IS a super_admin (self-closing:
+    // normal guards apply again once one exists).
+    $bootstrapSuper = !systemHasSuperAdmin();
+    if ($bootstrapSuper) {
+        $role = 'super_admin';
+    }
+
     // Privilege escalation guard: only a super_admin may create super_admin/admin users
-    if (in_array($role, ['super_admin', 'admin'], true) && !isSuperAdmin()) {
+    if (in_array($role, ['super_admin', 'admin'], true) && !isSuperAdmin() && !$bootstrapSuper) {
         throw new Exception('Only a super admin can create admin-level users');
     }
 
@@ -55,11 +63,21 @@ try {
         if (!$group) {
             throw new Exception('Invalid group selected');
         }
-        // Only super_admin may put users in the super_admin group
-        if ($group['name'] === 'super_admin' && !isSuperAdmin()) {
+        // Only super_admin may put users in the super_admin group (bootstrap excepted)
+        if ($group['name'] === 'super_admin' && !isSuperAdmin() && !$bootstrapSuper) {
             throw new Exception('Only a super admin can assign the super admin group');
         }
-    } else {
+        // The developer group is super-admin managed, always
+        if ($group['name'] === 'developer' && !isSuperAdmin()) {
+            throw new Exception('Only a super admin can assign the developer group');
+        }
+        if ($bootstrapSuper && $group['name'] !== 'super_admin') {
+            // Bootstrap users belong in the super_admin group, not a picked one
+            $group = null;
+            $group_id = null;
+        }
+    }
+    if (!$group_id) {
         // Default group = matching role name
         $stmt = $pdo->prepare("SELECT id FROM user_groups WHERE name = ?");
         $stmt->execute([$role]);

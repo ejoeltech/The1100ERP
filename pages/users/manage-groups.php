@@ -40,6 +40,9 @@ if (!empty($_GET['edit'])) {
 $editingPerms = $editing['perms'] ?? [];
 
 include '../../includes/header.php';
+
+$isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
+$lockedGroup = $editing && in_array($editing['name'], ['super_admin', 'developer'], true) && !$isSuper;
 ?>
 
 <div class="bg-white rounded-lg shadow-md p-8">
@@ -109,7 +112,12 @@ include '../../includes/header.php';
     <!-- Editor -->
     <div id="editor" class="mt-8 border-t pt-6">
         <h3 class="text-xl font-bold text-gray-900 mb-4"><?php echo $editing ? 'Edit Group: ' . htmlspecialchars($editing['name']) : 'Create Custom Group'; ?></h3>
-        <form method="POST" action="../../api/save-group.php">
+        <?php if ($lockedGroup): ?>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p class="text-yellow-800 text-sm font-semibold">The <?php echo htmlspecialchars($editing['name']); ?> group can only be managed by a super admin. Its permissions are shown read-only below.</p>
+            </div>
+        <?php endif; ?>
+        <form method="POST" action="../../api/save-group.php"<?php echo $lockedGroup ? ' onsubmit="return false;"' : ''; ?>>
             <?php echo csrfField(); ?>
             <?php if ($editing): ?>
                 <input type="hidden" name="group_id" value="<?php echo $editing['id']; ?>">
@@ -134,14 +142,25 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <p class="text-sm font-semibold text-gray-700 mb-2">Permissions in this group</p>
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-sm font-semibold text-gray-700">Permissions in this group</p>
+                <div class="flex gap-2">
+                    <button type="button" onclick="setAllGroupPerms(true)" class="px-3 py-1 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-xs">Select all</button>
+                    <button type="button" onclick="setAllGroupPerms(false)" class="px-3 py-1 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-xs">Deselect all</button>
+                </div>
+            </div>
+            <script>
+                function setAllGroupPerms(on) {
+                    document.querySelectorAll('input[name="permissions[]"]').forEach(function (cb) { cb.checked = on; });
+                }
+            </script>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <?php foreach ($catalog as $section => $perms): ?>
                     <div class="border rounded-lg p-4">
                         <p class="font-bold text-gray-900 text-sm mb-2"><?php echo htmlspecialchars($section); ?></p>
                         <?php foreach ($perms as $key => $label): ?>
                             <label class="flex items-center gap-2 text-sm text-gray-700 py-0.5">
-                                <input type="checkbox" name="permissions[]" value="<?php echo $key; ?>" <?php echo in_array($key, $editingPerms, true) ? 'checked' : ''; ?> class="w-4 h-4 text-primary rounded">
+                                <input type="checkbox" name="permissions[]" value="<?php echo $key; ?>" <?php echo in_array($key, $editingPerms, true) ? 'checked' : ''; ?> <?php echo !empty($lockedGroup) ? 'disabled' : ''; ?> class="w-4 h-4 text-primary rounded">
                                 <?php echo htmlspecialchars($label); ?>
                                 <span class="text-xs text-gray-400 font-mono"><?php echo $key; ?></span>
                             </label>
@@ -154,7 +173,9 @@ include '../../includes/header.php';
                 <?php if ($editing): ?>
                     <a href="manage-groups.php" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">Cancel</a>
                 <?php endif; ?>
+                <?php if (!$lockedGroup): ?>
                 <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold"><?php echo $editing ? 'Save Group' : 'Create Group'; ?></button>
+                <?php endif; ?>
             </div>
         </form>
     </div>

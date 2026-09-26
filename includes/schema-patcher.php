@@ -770,13 +770,15 @@ class SchemaPatcher
 ('manager', 'View all documents, manage team workflows', 'manager', 1),
 ('accountant', 'Invoices, payments and exports', 'accountant', 1),
 ('sales_rep', 'Own quotes and customers only', 'sales_rep', 1),
+('developer', 'Technical developers - managed by super admin only', 'admin', 1),
 ('viewer', 'Read-only access', 'viewer', 1)");
             $adminPerms = "'manage_users','create_user','edit_user','delete_user','toggle_user_status','manage_access','manage_settings','view_audit_log','view_all_documents','create_quote','create_document','edit_quote','edit_invoice','edit_document','edit_finalized','delete_quote','delete_invoice','delete_receipt','delete_document','archive_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_system_dashboard','view_team_dashboard','view_personal_dashboard','manage_store','manage_accessories','manage_hr','manage_payments','export_data'";
             $managerPerms = "'view_all_documents','create_quote','create_document','edit_quote','edit_invoice','edit_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_team_dashboard','view_personal_dashboard','manage_store','manage_accessories','manage_hr','manage_payments','export_data'";
             $accountantPerms = "'view_all_documents','create_quote','create_document','convert_to_invoice','generate_receipt','send_email','email_document','edit_own_profile','change_own_password','view_personal_dashboard','manage_payments','export_data'";
             $salesPerms = "'create_quote','create_document','edit_quote','edit_invoice','edit_document','send_email','email_document','edit_own_profile','change_own_password','view_personal_dashboard'";
+            $developerPerms = "'view_system_dashboard','view_audit_log','manage_settings','export_data','edit_own_profile','change_own_password','view_personal_dashboard'";
             $viewerPerms = "'view_all_documents','edit_own_profile','change_own_password','view_personal_dashboard'";
-            $seeds = ['admin' => $adminPerms, 'manager' => $managerPerms, 'accountant' => $accountantPerms, 'sales_rep' => $salesPerms, 'viewer' => $viewerPerms];
+            $seeds = ['admin' => $adminPerms, 'manager' => $managerPerms, 'accountant' => $accountantPerms, 'sales_rep' => $salesPerms, 'developer' => $developerPerms, 'viewer' => $viewerPerms];
             foreach ($seeds as $gname => $plist) {
                 // Insert each perm individually (IGNORE keeps idempotent)
                 foreach (explode(',', str_replace(chr(39), '', $plist)) as $perm) {

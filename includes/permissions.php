@@ -107,6 +107,24 @@ function isSuperAdmin()
     return getUserRole() === 'super_admin';
 }
 
+/**
+ * Whether the system has at least one active super_admin.
+ * Fail-closed (true) when the check itself errors, so bootstrap paths
+ * never trigger on a broken query.
+ */
+function systemHasSuperAdmin()
+{
+    global $pdo;
+    try {
+        if (!($pdo instanceof PDO)) {
+            return true;
+        }
+        return (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin' AND is_active = 1")->fetchColumn() > 0;
+    } catch (Exception $e) {
+        return true;
+    }
+}
+
 function isAdmin()
 {
     return in_array(getUserRole(), ['super_admin', 'admin'], true);

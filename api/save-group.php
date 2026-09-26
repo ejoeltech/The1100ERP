@@ -42,6 +42,11 @@ try {
     if ($primary_role === 'super_admin' && !isSuperAdmin()) {
         throw new Exception('Only a super admin can create a super-admin-level group');
     }
+    // The developer group is super-admin managed: only a super_admin may
+    // create it, rename to it, or edit its permissions.
+    if (strcasecmp($name, 'developer') === 0 && !isSuperAdmin() && !$group_id) {
+        throw new Exception('Only a super admin can create the developer group');
+    }
 
     // Validate permission keys against catalog
     $validKeys = getAllPermissionKeys();
@@ -64,6 +69,12 @@ try {
         }
         if ($existing['name'] === 'super_admin' && !isSuperAdmin()) {
             throw new Exception('Only a super admin can edit the super admin group');
+        }
+        if ($existing['name'] === 'developer' && !isSuperAdmin()) {
+            throw new Exception('Only a super admin can edit the developer group');
+        }
+        if (strcasecmp($name, 'developer') === 0 && $existing['name'] !== 'developer' && !isSuperAdmin()) {
+            throw new Exception('Only a super admin can rename a group to developer');
         }
         $stmt = $pdo->prepare("UPDATE user_groups SET name = ?, description = ?, primary_role = ? WHERE id = ?");
         $stmt->execute([$name, $description, $primary_role, $group_id]);
