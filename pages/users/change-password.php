@@ -40,16 +40,16 @@ include '../../includes/header.php';
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             New Password <span class="text-red-500">*</span>
                         </label>
-                        <input type="password" name="new_password" required minlength="6"
+                        <input type="password" name="new_password" required minlength="12"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                            placeholder="Minimum 6 characters">
+                            placeholder="Minimum 12 characters">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
                             Confirm New Password <span class="text-red-500">*</span>
                         </label>
-                        <input type="password" name="confirm_password" required minlength="6"
+                        <input type="password" name="confirm_password" required minlength="12"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                             placeholder="Re-enter new password">
                     </div>
@@ -59,9 +59,9 @@ include '../../includes/header.php';
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 class="font-semibold text-gray-900 mb-2">Password Requirements:</h4>
                 <ul class="text-sm text-gray-700 space-y-1">
-                    <li>• Minimum 6 characters</li>
-                    <li>• Should be unique and not easily guessable</li>
-                    <li>• Consider using a mix of letters, numbers, and symbols</li>
+                    <li>• Minimum 12 characters</li>
+                    <li>• Must not be a common password or contain your username</li>
+                    <li>• Must differ from your current password</li>
                 </ul>
             </div>
         </div>

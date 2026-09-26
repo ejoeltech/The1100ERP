@@ -5,10 +5,8 @@ require_once __DIR__ . '/../includes/helpers.php';
 
 require_once __DIR__ . '/../includes/session-check.php';
 
-// Admin only
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    die('Access Denied: Admin role required. Your role: ' . ($_SESSION['role'] ?? 'not set'));
-}
+// WP3: manage_settings instead of a raw role check (which locked out super_admin).
+requirePermission('manage_settings');
 
 require_once '../includes/ai-rate-limiter.php';
 

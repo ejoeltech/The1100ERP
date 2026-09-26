@@ -1,11 +1,8 @@
 <?php
 include '../includes/session-check.php';
 
-// Check if user is admin (simplified)
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: ../dashboard.php');
-    exit;
-}
+// WP3: view_audit_log instead of a raw role check (which locked out super_admin).
+requirePermission('view_audit_log');
 
 $pageTitle = 'Audit Log - ' . COMPANY_NAME;
 
@@ -89,7 +86,9 @@ try {
     $error_message = $e->getMessage();
 }
 
-// Simple formatAuditAction function
+// Simple formatAuditAction function (WP3: guarded — includes/audit.php
+// already defines it whenever session-check loads the audit system).
+if (!function_exists('formatAuditAction')) {
 function formatAuditAction($action)
 {
     $actions = [
@@ -110,6 +109,7 @@ function formatAuditAction($action)
     ];
     return $actions[$action] ?? ucfirst(str_replace('_', ' ', $action));
 }
+} // end function_exists guard
 
 include '../includes/header.php';
 ?>

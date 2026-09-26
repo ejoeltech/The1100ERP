@@ -1,14 +1,12 @@
 <?php
 include '../../includes/session-check.php';
 
-// Only admins can manage users - backward compatible check
+// WP3: manage_users via the permission system (the raw role fallback below
+// only runs if it is missing, and uses isAdmin so super_admin is covered).
 if (function_exists('requirePermission')) {
     requirePermission('manage_users');
 } elseif (!function_exists('isAdmin') || !isAdmin()) {
-    // Before migration, just check if user is admin from session
-    if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-        die('Access Denied: Admin only');
-    }
+    die('Access Denied: Admin only');
 }
 
 $pageTitle = 'Manage Users - ERP System';

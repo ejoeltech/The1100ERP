@@ -5,12 +5,8 @@ require_once '../../includes/db.php';
 
 header('Content-Type: application/json');
 
-// Admin only
-if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+// WP3: manage_settings instead of a raw role check (which locked out super_admin).
+requirePermission('manage_settings');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

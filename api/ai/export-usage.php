@@ -3,11 +3,8 @@ define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/db.php';
 
-// Admin only
-if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
-    header('Location: ../../dashboard.php');
-    exit;
-}
+// WP3: manage_settings instead of a raw role check (which locked out super_admin).
+requirePermission('manage_settings');
 
 // Set headers for CSV download
 header('Content-Type: text/csv');

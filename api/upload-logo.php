@@ -1,18 +1,15 @@
 <?php
 include '../includes/session-check.php';
 
-// Only admins can upload logo
+// Only privileged users can upload logo (WP3: manage_settings; the raw
+// role fallback below only runs if the permission system is missing).
 if (function_exists('requirePermission')) {
     requirePermission('manage_settings');
+} elseif (function_exists('isAdmin')) {
+    if (!isAdmin())
+        die('Access Denied');
 } else {
-    if (function_exists('isAdmin')) {
-        if (!isAdmin())
-            die('Access Denied');
-    } else {
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            die('Access Denied');
-        }
-    }
+    die('Access Denied');
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

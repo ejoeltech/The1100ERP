@@ -70,7 +70,7 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
     $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
-    if (!$user || !password_verify($password, $user['password'])) {
+    if (!$user || !verifyPassword($password, $user['password'])) {
         http_response_code(403);
         die('Password verification failed.');
     }

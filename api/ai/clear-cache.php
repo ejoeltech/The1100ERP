@@ -5,12 +5,9 @@ require_once '../../includes/ai-rate-limiter.php';
 
 header('Content-Type: application/json');
 
-// Admin only
-if ($_SESSION['role'] !== 'Admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+// WP3: manage_settings instead of a role-string check (the old 'Admin'
+// comparison never matched lowercase roles, leaving this open to any login).
+requirePermission('manage_settings');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
