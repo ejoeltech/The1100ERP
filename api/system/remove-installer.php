@@ -6,6 +6,7 @@
 define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/security.php';
+require_once '../../includes/passwords.php';
 
 header('Content-Type: application/json');
 
@@ -37,7 +38,7 @@ $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 
-if (!$user || !password_verify($password, $user['password'])) {
+if (!$user || !verifyPassword($password, $user['password'])) {
     echo json_encode(['success' => false, 'message' => 'Incorrect password']);
     exit;
 }

@@ -4,6 +4,7 @@ require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/permissions.php';
 require_once '../includes/audit.php';
+require_once '../includes/invites.php';
 
 if (!isLoggedIn()) {
     header('Location: ../login.php');
@@ -21,8 +22,6 @@ $ALLOWED_ROLES = ['super_admin', 'admin', 'manager', 'sales_rep', 'accountant', 
 
 try {
     $username = trim($_POST['username']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
@@ -30,17 +29,9 @@ try {
     $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
-    // Validation
-    if (empty($username) || empty($password) || empty($full_name) || empty($role)) {
+    // Validation (WP2: no admin-chosen password — the user gets a one-time invite)
+    if (empty($username) || empty($full_name) || empty($role)) {
         throw new Exception('Required fields are missing');
-    }
-
-    if ($password !== $confirm_password) {
-        throw new Exception('Passwords do not match');
-    }
-
-    if (strlen($password) < 6) {
-        throw new Exception('Password must be at least 6 characters');
     }
 
     if (!in_array($role, $ALLOWED_ROLES, true)) {
@@ -79,32 +70,14 @@ try {
         throw new Exception('Username already exists');
     }
 
-    // Hash password
-    $password_hash = password_hash($password, PASSWORD_DEFAULT);
+    // WP2: unknowable initial password + one-time invite (shown once below).
+    $created = createUserWithInvite($username, $full_name, $email, $phone, $role, $group_id, $is_active, $_SESSION['user_id']);
+    $new_user_id = $created['user_id'];
 
-    // Insert user
-    $stmt = $pdo->prepare("
-        INSERT INTO users (username, password, full_name, email, phone, role, group_id, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-
-    $stmt->execute([
-        $username,
-        $password_hash,
-        $full_name,
-        $email,
-        $phone,
-        $role,
-        $group_id,
-        $is_active
-    ]);
-
-    $new_user_id = $pdo->lastInsertId();
-
-    // Log audit trail
+    // Log audit trail (invite token itself is never logged)
     logUserCreate($new_user_id, $username, $role);
 
-    header('Location: ../pages/users/manage-users.php?created=1');
+    header('Location: ../pages/users/manage-users.php?created=1&new_user_id=' . $new_user_id . '&invite=' . urlencode($created['invite_token']));
     exit;
 
 } catch (Exception $e) {

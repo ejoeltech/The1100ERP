@@ -9,8 +9,18 @@ if (!isset($_SESSION['onboarding_code_id'])) {
 }
 
 $code_id = $_SESSION['onboarding_code_id'];
-$signup_code = $_SESSION['onboarding_code'];
 $phone = $_SESSION['onboarding_phone'];
+
+// Re-resolve the code row server-side (never trust session-held secrets).
+$stmt = $pdo->prepare("SELECT * FROM hr_onboarding_codes WHERE id = ?");
+$stmt->execute([$code_id]);
+$codeRow = $stmt->fetch();
+if (!$codeRow || !empty($codeRow['is_used'])) {
+    session_destroy();
+    header("Location: ../../../signup.php");
+    exit;
+}
+$signup_code = $codeRow['code'];
 
 // Check if entry exists or create one
 $stmt = $pdo->prepare("SELECT * FROM hr_onboarding_entries WHERE code_id = ?");

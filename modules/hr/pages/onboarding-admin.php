@@ -2,6 +2,7 @@
 // HR Onboarding Admin
 // require_once '../../../config.php'; // Removed to prevent double inclusion
 require_once '../../../includes/session-check.php';
+require_once '../../../includes/invites.php';
 requireLogin();
 
 if (!isAdmin()) {
@@ -12,15 +13,16 @@ if (!isAdmin()) {
 $pageTitle = 'Onboarding Management | ' . COMPANY_NAME;
 $currentPage = 'hr_onboarding';
 
-// Handle Code Generation
+// Handle Code Generation (WP2: high-entropy, hashed at rest, expiring)
 if (isset($_POST['generate_code'])) {
-    $code = strtoupper('OB-' . substr(md5(uniqid()), 0, 6)); // Example: OB-A1B2C3
+    require_once '../../../includes/invites.php';
     $role = $_POST['role'] ?? 'viewer';
-    if (!in_array($role, ['viewer','intern'], true)) $role = 'viewer';
+    if (!in_array($role, ['viewer', 'intern'], true)) {
+        $role = 'viewer';
+    }
 
-    $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, role, created_by) VALUES (?, ?, ?)");
-    $stmt->execute([$code, $role, $_SESSION['user_id']]);
-    $success = "Generated Code: <strong>$code</strong>";
+    $code = issueOnboardingCode($role, $_SESSION['user_id']);
+    $success = "Generated Code (valid 30 days, single use): <strong>$code</strong>";
 }
 
 // Handle Import
@@ -35,16 +37,14 @@ if (isset($_POST['import_entry'])) {
     if ($entry && $entry['status'] == 'submitted') {
         $pdo->beginTransaction();
         try {
-            // 1. Create User Account
-            // Generate username/password (default password: phone number or changeme)
+            // 1. Create User Account (WP2: unknowable password + invite; never
+            // phone numbers or guessable defaults, never displayed).
             $username = strtolower(explode(' ', trim($entry['full_name']))[0]) . rand(100, 999);
-            $password_plain = $entry['phone']; // Default password is phone
-            $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
-            $role = 'viewer'; // Default role ('staff' not in enum, using 'viewer' as per HR_Employee)
-
-            $stmt = $pdo->prepare("INSERT INTO users (username, password, email, full_name, role, is_active) VALUES (?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$username, $password_hash, $entry['email'], $entry['full_name'], $role]);
+            $role = 'viewer'; // Least privilege; code role is never trusted.
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, email, full_name, role, is_active, must_change_password) VALUES (?, ?, ?, ?, ?, 1, 1)");
+            $stmt->execute([$username, hashPassword(bin2hex(random_bytes(32))), $entry['email'], $entry['full_name'], $role]);
             $user_id = $pdo->lastInsertId();
+            $invite_token = createUserInvite($user_id, $_SESSION['user_id']);
 
             // 2. Create HR Employee Record
             // Need to generate employee code
@@ -82,7 +82,8 @@ if (isset($_POST['import_entry'])) {
             $pdo->prepare("UPDATE hr_onboarding_entries SET status = 'imported' WHERE id = ?")->execute([$entry_id]);
 
             $pdo->commit();
-            $success = "Employee Imported Successfully! Username: $username";
+            $inviteLink = '../../pages/users/accept-invite.php?token=' . urlencode($invite_token);
+            $success = "Employee Imported Successfully! Username: $username<br>One-time invite (48h, single use, shown once): <a class='font-mono break-all' href='$inviteLink'>$inviteLink</a>";
 
         } catch (Exception $e) {
             $pdo->rollBack();

@@ -19,8 +19,7 @@ include_once '../../../includes/header.php';
     <div>
         <h1 class="text-2xl font-bold text-gray-900">Employees</h1>
         <p class="text-gray-600">Manage staff and roles</p>
-    </div>
-    <div class="flex gap-2">
+    </div>    <div class="flex gap-2">
         <a href="employee-form.php"
             class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +29,15 @@ include_once '../../../includes/header.php';
         </a>
     </div>
 </div>
+
+<?php if (!empty($_GET['invite'])): ?>
+    <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+        <p class="text-green-800 font-semibold">✓ Employee created.</p>
+        <p class="text-sm font-bold text-gray-900 mt-2">One-time invite link (valid 48 hours, single use, shown once):</p>
+        <p class="font-mono text-sm text-primary break-all select-all">../../pages/users/accept-invite.php?token=<?php echo htmlspecialchars($_GET['invite']); ?></p>
+        <p class="text-xs text-red-700 mt-1 font-semibold">Copy it for the employee now — it will never be shown again and is not stored anywhere.</p>
+    </div>
+<?php endif; ?>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="overflow-x-auto">

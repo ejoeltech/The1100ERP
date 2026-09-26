@@ -182,24 +182,9 @@ function setSecurityHeaders() {
 // Password Policy
 // ============================================
 
-function validatePasswordPolicy($password) {
-    if (strlen($password) < 12) {
-        return "Password must be at least 12 characters long.";
-    }
-    if (!preg_match('/[A-Z]/', $password)) {
-        return "Password must contain at least one uppercase letter.";
-    }
-    if (!preg_match('/[a-z]/', $password)) {
-        return "Password must contain at least one lowercase letter.";
-    }
-    if (!preg_match('/[0-9]/', $password)) {
-        return "Password must contain at least one number.";
-    }
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-        return "Password must contain at least one special character.";
-    }
-    return true;
-}
+// NOTE (WP2): password policy lives in includes/passwords.php
+// (validatePasswordPolicy with blocklist + history check). The old
+// single-argument complexity-only version was removed to avoid divergence.
 
 // ============================================
 // PII Encryption (Field-Level)

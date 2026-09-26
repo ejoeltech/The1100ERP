@@ -486,6 +486,50 @@ class SchemaPatcher
             }
         }
         $addCol('users', 'group_id', 'INT(11) UNSIGNED DEFAULT NULL');
+        $addCol('users', 'must_change_password', 'TINYINT(1) NOT NULL DEFAULT 0');
+        $exec("CREATE TABLE IF NOT EXISTS `user_invites` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` int(10) unsigned NOT NULL,
+    `token_hash` char(64) NOT NULL,
+    `expires_at` datetime NOT NULL,
+    `used_at` datetime DEFAULT NULL,
+    `created_by` int(10) unsigned DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_token_hash` (`token_hash`),
+    KEY `idx_invite_user` (`user_id`),
+    KEY `idx_invite_expiry` (`expires_at`),
+    CONSTRAINT `user_invites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_invites' table");
+        $exec("CREATE TABLE IF NOT EXISTS `auth_throttle` (
+    `bucket` varchar(128) NOT NULL,
+    `window_start` datetime NOT NULL,
+    `attempts` int(11) NOT NULL DEFAULT 0,
+    PRIMARY KEY (`bucket`, `window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'auth_throttle' table");
+        foreach ([
+            "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `code_hash` CHAR(64) DEFAULT NULL",
+            "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `expires_at` DATETIME DEFAULT NULL",
+            "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `failed_attempts` INT(11) NOT NULL DEFAULT 0",
+        ] as $ddl) {
+            try {
+                $pdo->exec($ddl);
+                $add('ok', 'columns', 'Applied onboarding hardening column.');
+            } catch (PDOException $e) {
+                if (stripos($e->getMessage(), 'Duplicate column') !== false) {
+                    $add('info', 'columns', 'Onboarding hardening column already exists.');
+                } else {
+                    $add('error', 'columns', 'Failed onboarding column: ' . $e->getMessage());
+                }
+            }
+        }
+        try {
+            $pdo->exec("UPDATE `hr_onboarding_codes` SET `code_hash` = SHA2(`code`, 256) WHERE `code_hash` IS NULL");
+            $pdo->exec("UPDATE `hr_onboarding_codes` SET `expires_at` = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE `expires_at` IS NULL");
+            $add('ok', 'seed', 'Backfilled onboarding code hashes/expiry.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed onboarding backfill: ' . $e->getMessage());
+        }
         $exec("CREATE TABLE IF NOT EXISTS `user_groups` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
     `name` varchar(50) NOT NULL,

@@ -34,6 +34,7 @@ $publicAllowList = [
     'pages/roi-calculator.php',
     'pages/system-designer.php',
     'modules/hr/pages/signup-form.php', // onboarding-code session, not login
+    'pages/users/accept-invite.php', // invite-token bearer, not login
 ];
 
 // Installer files with a different-but-sufficient gate (documented):

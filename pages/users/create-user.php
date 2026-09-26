@@ -104,24 +104,9 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Password <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" name="password" required minlength="6"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="Minimum 6 characters">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Confirm Password <span class="text-red-500">*</span>
-                    </label>
-                    <input type="password" name="confirm_password" required minlength="6"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="Re-enter password">
-                </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p class="text-sm text-blue-800 font-semibold">No password needed</p>
+                <p class="text-xs text-blue-700 mt-1">The new user receives a one-time invite link (valid 48 hours) to set their own password. The link is shown once after creation — copy it for them.</p>
             </div>
 
             <div>

@@ -44,7 +44,7 @@ $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 
-if (!$user || !password_verify($password, $user['password'])) {
+if (!$user || !verifyPassword($password, $user['password'])) {
     echo json_encode(['success' => false, 'message' => 'Incorrect password']);
     exit;
 }

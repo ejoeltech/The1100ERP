@@ -95,8 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = "Employee updated successfully.";
             $employee = $hr_employee->getEmployeeById($_GET['id']);
         } else {
-            $newId = $hr_employee->createEmployee($data);
-            header("Location: employees.php?msg=created");
+            $result = $hr_employee->createEmployee($data);
+            $dest = "employees.php?msg=created";
+            if (!empty($result['invite_token'])) {
+                $dest .= '&invite=' . urlencode($result['invite_token']);
+            }
+            header("Location: $dest");
             exit;
         }
     } catch (Exception $e) {

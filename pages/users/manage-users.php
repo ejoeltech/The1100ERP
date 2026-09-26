@@ -60,12 +60,26 @@ include '../../includes/header.php';
 <?php if (isset($_GET['created'])): ?>
     <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <p class="text-green-800 font-semibold">✓ User created successfully!</p>
+        <?php if (!empty($_GET['invite'])): ?>
+            <div class="mt-3 bg-white border border-green-300 rounded p-3">
+                <p class="text-sm font-bold text-gray-900">One-time invite link (valid 48 hours, single use, shown once):</p>
+                <p class="font-mono text-sm text-primary break-all select-all">accept-invite.php?token=<?php echo htmlspecialchars($_GET['invite']); ?></p>
+                <p class="text-xs text-red-700 mt-1 font-semibold">Copy it for the user now — it will never be shown again and is not stored anywhere.</p>
+            </div>
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 
 <?php if (isset($_GET['updated'])): ?>
     <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
         <p class="text-green-800 font-semibold">✓ User updated successfully!</p>
+        <?php if (!empty($_GET['invite'])): ?>
+            <div class="mt-3 bg-white border border-green-300 rounded p-3">
+                <p class="text-sm font-bold text-gray-900">Password reset invite (valid 48 hours, single use, shown once):</p>
+                <p class="font-mono text-sm text-primary break-all select-all">accept-invite.php?token=<?php echo htmlspecialchars($_GET['invite']); ?></p>
+                <p class="text-xs text-red-700 mt-1 font-semibold">Copy it for the user now — it will never be shown again and is not stored anywhere.</p>
+            </div>
+        <?php endif; ?>
     </div>
 <?php endif; ?>
 

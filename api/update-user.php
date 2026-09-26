@@ -4,6 +4,7 @@ require_once '../config.php';
 require_once '../includes/auth.php';
 require_once '../includes/permissions.php';
 require_once '../includes/audit.php';
+require_once '../includes/invites.php';
 
 if (!isLoggedIn()) {
     header('Location: ../login.php');
@@ -28,6 +29,7 @@ try {
     $role = $_POST['role'];
     $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $reset_password = !empty($_POST['reset_password']);
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
@@ -92,16 +94,19 @@ try {
     $update_fields = "username = ?, full_name = ?, email = ?, phone = ?, role = ?, group_id = ?, is_active = ?";
     $params = [$username, $full_name, $email, $phone, $role, $group_id, $is_active];
 
-    // Handle password change if provided
+    // Handle password change if provided (self-service style: policy-checked).
+    // Admin resets use the reset_password flag instead (invite flow below);
+    // any literal password fields posted alongside are ignored for resets.
     if (!empty($password)) {
         if ($password !== $confirm_password) {
             throw new Exception('Passwords do not match');
         }
-        if (strlen($password) < 6) {
-            throw new Exception('Password must be at least 6 characters');
+        $problems = validatePasswordPolicy($password, $old_user['password'], $username);
+        if ($problems) {
+            throw new Exception(implode(' ', $problems));
         }
-        $update_fields .= ", password = ?";
-        $params[] = password_hash($password, PASSWORD_DEFAULT);
+        $update_fields .= ", password = ?, must_change_password = 0";
+        $params[] = hashPassword($password);
     }
 
     $params[] = $user_id;
@@ -109,6 +114,14 @@ try {
     // Update user
     $stmt = $pdo->prepare("UPDATE users SET $update_fields WHERE id = ?");
     $stmt->execute($params);
+
+    // WP2 admin reset: unknowable password + forced-change flag + one-time invite.
+    $resetInvite = null;
+    if ($reset_password) {
+        $stmt = $pdo->prepare("UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?");
+        $stmt->execute([hashPassword(bin2hex(random_bytes(32))), $user_id]);
+        $resetInvite = createUserInvite($user_id, $_SESSION['user_id']);
+    }
 
     // Log audit trail
     $changes = [];
@@ -124,6 +137,8 @@ try {
         $changes['status'] = $is_active ? 'activated' : 'deactivated';
     if (!empty($password))
         $changes['password'] = 'changed';
+    if ($reset_password)
+        $changes['password'] = 'reset via invite';
 
     if (!empty($changes)) {
         logUserUpdate($user_id, $username, $changes);
@@ -132,7 +147,11 @@ try {
         clearUserPermissionCache($user_id);
     }
 
-    header('Location: ../pages/users/manage-users.php?updated=1');
+    $dest = '../pages/users/manage-users.php?updated=1';
+    if ($resetInvite) {
+        $dest .= '&reset_user_id=' . $user_id . '&invite=' . urlencode($resetInvite);
+    }
+    header('Location: ' . $dest);
     exit;
 
 } catch (Exception $e) {

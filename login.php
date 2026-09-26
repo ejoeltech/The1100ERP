@@ -32,8 +32,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 3. Attempt login
             if (login($pdo, $username, $password)) {
                 clearLoginAttempts($username);
-                header('Location: dashboard.php');
-                exit;
+                // WP2: accounts flagged for forced reset cannot start a session.
+                // They don't know any password (random), so this only fires for
+                // inconsistencies — direct them to their invite link / admin.
+                // Missing column (migration not applied yet) means no flag.
+                $mustChange = false;
+                try {
+                    $flagStmt = $pdo->prepare("SELECT must_change_password FROM users WHERE username = ?");
+                    $flagStmt->execute([$username]);
+                    $flagRow = $flagStmt->fetch();
+                    $mustChange = $flagRow && !empty($flagRow['must_change_password']);
+                } catch (Exception $e) {
+                    $mustChange = false;
+                }
+                if ($mustChange) {
+                    // Clear the just-created session WITHOUT redirecting, so the
+                    // message below survives (logout() would bounce to login.php
+                    // and drop it). Regenerate the ID against fixation.
+                    $_SESSION = [];
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_regenerate_id(true);
+                    }
+                    $error = 'A password reset is required on this account. Use your invite link or contact an administrator.';
+                } else {
+                    header('Location: dashboard.php');
+                    exit;
+                }
             } else {
                 recordFailedLogin($username);
                 $error = 'Invalid username or password';

@@ -7,6 +7,8 @@
 // CRITICAL: Start session FIRST before any output
 session_start();
 
+require_once __DIR__ . '/../../includes/passwords.php';
+
 // Block once configured, locked, or marked installed. Delete maintenance/setup/ after install.
 require_once __DIR__ . '/install-guard.php';
 if (install_is_installed()) {
@@ -260,6 +262,12 @@ function createAdminUser()
         throw new Exception('All admin fields are required');
     }
 
+    // WP2 password policy (12+, blocklist).
+    $problems = validatePasswordPolicy($adminPassword, null, $username);
+    if ($problems) {
+        throw new Exception(implode(' ', $problems));
+    }
+
     try {
         $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
         $pdo = new PDO($dsn, $user, $password, [
@@ -275,7 +283,7 @@ function createAdminUser()
         }
 
         // Hash password (using PASSWORD_ARGON2ID)
-        $hashedPassword = password_hash($adminPassword, PASSWORD_ARGON2ID);
+        $hashedPassword = hashPassword($adminPassword);
 
         // Insert admin user
         $stmt = $pdo->prepare("

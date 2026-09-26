@@ -3,12 +3,15 @@
 
 SET FOREIGN_KEY_CHECKS=0;
 
--- 1. Table for Signup Codes
+-- 1. Table for Signup Codes (WP2: hash at rest, expiry, attempt counter)
 CREATE TABLE IF NOT EXISTS `hr_onboarding_codes` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(20) NOT NULL,
+  `code_hash` char(64) DEFAULT NULL,
   `role` varchar(50) DEFAULT 'employee', -- intended role
   `is_used` tinyint(1) DEFAULT 0,
+  `expires_at` datetime DEFAULT NULL,
+  `failed_attempts` int(11) NOT NULL DEFAULT 0,
   `created_by` int(11) unsigned DEFAULT NULL,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

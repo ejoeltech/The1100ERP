@@ -1,5 +1,6 @@
 <?php
 // Authentication helper functions
+require_once __DIR__ . '/passwords.php';
 
 function isLoggedIn()
 {
@@ -65,10 +66,10 @@ function login($pdo, $username, $password)
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
-    if ($user && password_verify($password, $user['password'])) {
-        // Transparently re-hash if needed (using Argon2id)
-        if (password_needs_rehash($user['password'], PASSWORD_ARGON2ID)) {
-            $newHash = password_hash($password, PASSWORD_ARGON2ID);
+    if ($user && verifyPassword($password, $user['password'])) {
+        // Transparently re-hash if needed (consolidated Argon2id via helper)
+        if (passwordNeedsRehash($user['password'])) {
+            $newHash = hashPassword($password);
             $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
             $stmt->execute([$newHash, $user['id']]);
         }

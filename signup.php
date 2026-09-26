@@ -1,32 +1,34 @@
 <?php
 require_once 'config.php';
-// Public Signup Landing Page
+require_once 'includes/invites.php';
+// Public Signup Landing Page (WP2: hash-verified, expiring, throttled codes)
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $error = '';
+$ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $code = trim($_POST['code']);
-    $phone = trim($_POST['phone']);
+    $code = trim($_POST['code'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
 
     if (empty($code)) {
         $error = "Please enter your signup user code.";
+    } elseif (!throttleCheck('signup_ip:' . $ip, 10, 3600)) {
+        // Generic message: no oracle on whether the code exists.
+        $error = "Too many attempts. Try again later.";
     } else {
-        // 1. Check if Code Exists
-        $stmt = $pdo->prepare("SELECT * FROM hr_onboarding_codes WHERE code = ?");
-        $stmt->execute([$code]);
-        $codeData = $stmt->fetch();
+        // Hash-based verification, expiry + single-use enforced inside.
+        $codeData = verifyOnboardingCode($code, $ip);
 
         if (!$codeData) {
-            $error = "Invalid Signup Code.";
-        } elseif ($codeData['is_used']) {
-            $error = "This code has already been used and locked.";
+            $error = "Invalid or expired Signup Code.";
         } else {
-            // Code is valid. Check if entry exists for this code (created previously) or create new sess
-            // We use session to track "logged in" state for onboarding
-            session_start();
+            session_regenerate_id(true);
             $_SESSION['onboarding_code_id'] = $codeData['id'];
-            $_SESSION['onboarding_code'] = $codeData['code'];
-            $_SESSION['onboarding_phone'] = $phone; // used for verification if returning
+            $_SESSION['onboarding_phone'] = $phone;
 
             // Redirect to Form
             header("Location: modules/hr/pages/signup-form.php");

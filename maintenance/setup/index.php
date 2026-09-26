@@ -261,7 +261,7 @@ $requirements = checkRequirements();
                             <label for="admin_password">Password *</label>
                             <input type="password" id="admin_password" name="admin_password" required>
                             <small style="color: #6b7280; display: block; margin-top: 4px;">
-                                Minimum 8 characters
+                                Minimum 12 characters (not a common password)
                             </small>
                         </div>
                         <div class="form-group">

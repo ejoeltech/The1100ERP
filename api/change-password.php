@@ -1,5 +1,6 @@
 <?php
 include '../includes/session-check.php';
+require_once '../includes/passwords.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     die('Invalid request method');
@@ -19,28 +20,41 @@ try {
         throw new Exception('New passwords do not match');
     }
 
-    if (strlen($new_password) < 6) {
-        throw new Exception('New password must be at least 6 characters');
-    }
-
     // Verify current password
     $stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
     $stmt->execute([$current_user['id']]);
     $user = $stmt->fetch();
 
-    if (!password_verify($current_password, $user['password'])) {
+    if (!verifyPassword($current_password, $user['password'])) {
         throw new Exception('Current password is incorrect');
     }
 
-    // Update password
-    $new_password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+    // Policy (12+, blocklist, differs from current)
+    $problems = validatePasswordPolicy($new_password, $user['password'], $current_user['username']);
+    if ($problems) {
+        throw new Exception(implode(' ', $problems));
+    }
 
-    $stmt = $pdo->prepare("
-        UPDATE users 
-        SET password = ?, updated_at = NOW() 
-        WHERE id = ?
-    ");
-    $stmt->execute([$new_password_hash, $current_user['id']]);
+    // Update password and clear any forced-change flag.
+    // The flag column needs the WP2 migration; retry without it on stale DBs.
+    $new_password_hash = hashPassword($new_password);
+
+    try {
+        $stmt = $pdo->prepare("
+            UPDATE users
+            SET password = ?, must_change_password = 0, updated_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->execute([$new_password_hash, $current_user['id']]);
+    } catch (Exception $e) {
+        error_log('Change password without must_change_password flag (WP2 migration pending): ' . $e->getMessage());
+        $stmt = $pdo->prepare("
+            UPDATE users
+            SET password = ?, updated_at = NOW()
+            WHERE id = ?
+        ");
+        $stmt->execute([$new_password_hash, $current_user['id']]);
+    }
 
     // Log audit
     if (function_exists('logUserUpdate')) {

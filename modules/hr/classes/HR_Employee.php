@@ -1,4 +1,6 @@
 <?php
+require_once dirname(__DIR__, 3) . '/includes/invites.php';
+
 class HR_Employee
 {
     private $pdo;
@@ -63,24 +65,26 @@ class HR_Employee
         try {
             $this->pdo->beginTransaction();
 
-            // 1. Create User Account if user_id is not provided
+            // 1. Create User Account if user_id is not provided.
+            // WP2: unknowable initial password + forced-change flag + one-time
+            // invite. The plaintext token is returned to the caller ONCE.
             if (empty($data['user_id'])) {
-                $stmt = $this->pdo->prepare("
-                    INSERT INTO users (username, password, full_name, email, phone, role) 
-                    VALUES (?, ?, ?, ?, ?, 'viewer')
-                ");
-                // Default password is 'password123' - should be changed
-                $hashed_password = password_hash('password123', PASSWORD_DEFAULT);
-                $stmt->execute([
+                $created = createUserWithInvite(
                     $data['email'], // Username is email by default for auto-create
-                    $hashed_password,
                     $data['full_name'],
                     $data['email'],
-                    $data['phone']
-                ]);
-                $user_id = $this->pdo->lastInsertId();
+                    $data['phone'] ?? '',
+                    'viewer',
+                    null,
+                    1,
+                    $_SESSION['user_id'] ?? null,
+                    $this->pdo
+                );
+                $user_id = $created['user_id'];
+                $invite_token = $created['invite_token'];
             } else {
                 $user_id = $data['user_id'];
+                $invite_token = null;
             }
 
             // 2. Create Employee Record
@@ -133,7 +137,7 @@ class HR_Employee
 
             $employee_id = $this->pdo->lastInsertId();
             $this->pdo->commit();
-            return $employee_id;
+            return ['employee_id' => $employee_id, 'invite_token' => $invite_token ?? null];
 
         } catch (Exception $e) {
             $this->pdo->rollBack();

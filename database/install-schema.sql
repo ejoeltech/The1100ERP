@@ -44,6 +44,7 @@ CREATE TABLE users (
     phone VARCHAR(20) DEFAULT NULL,
     role ENUM('admin', 'manager', 'sales_rep', 'accountant', 'viewer') DEFAULT 'sales_rep',
     is_active TINYINT(1) DEFAULT 1,
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     signature_file VARCHAR(255) DEFAULT NULL,
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -655,3 +656,26 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('telegram_chat_id', ''),
     ('whatsapp_verify_token', ''),
     ('whatsapp_app_secret', '');
+
+-- One-time invite tokens + auth throttle buckets (WP2)
+CREATE TABLE IF NOT EXISTS `user_invites` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `token_hash` char(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_by` int(10) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_token_hash` (`token_hash`),
+  KEY `idx_invite_user` (`user_id`),
+  KEY `idx_invite_expiry` (`expires_at`),
+  CONSTRAINT `user_invites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `auth_throttle` (
+  `bucket` varchar(128) NOT NULL,
+  `window_start` datetime NOT NULL,
+  `attempts` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`bucket`, `window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
