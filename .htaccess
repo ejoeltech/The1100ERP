@@ -29,3 +29,16 @@ Options -Indexes
     Order allow,deny
     Deny from all
 </FilesMatch>
+
+# WP12: never serve version control, dependency manifests, cron internals,
+# or vendor sources (cron PHP files are CLI-guarded too — defense in depth).
+# NOTE: RedirectMatch is rejected by this stack — mod_rewrite instead.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.git(/|$) - [F]
+    RewriteRule ^(cron|vendor)(/|$) - [F]
+</IfModule>
+<FilesMatch "(^composer\.(json|lock)$)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

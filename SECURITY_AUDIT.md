@@ -262,6 +262,18 @@ compromised — rotation above is mandatory regardless of purging.
   HTTP traversal patch rejected generic with nothing written; `php -l`
   ×4; guard-audit REVIEW 0.
 
+## WP12: deploy hardening (verified 2026-09-26)
+
+- Root `.htaccess` now denies `.git/`, `composer.json/lock`, `cron/`,
+  `vendor/` (mod_rewrite `[F]` — this stack rejects RedirectMatch in
+  `.htaccess`, documented inline), backup-file patterns, conditional HSTS.
+  Cron PHP files were already CLI-guarded; backup/design already lived in
+  `cron/` + per-dir denies for storage/logs/tmp/exports.
+- `deploy/verify-deployment.sh` covers the new denies; runbook's dangling
+  "WP12 backup script" pointers now reference `cron/backup.sh`.
+- Verified per-URL over HTTP: cron/vendor/git/composer → 403, login → 200;
+  guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -328,3 +340,4 @@ compromised — rotation above is mandatory regardless of purging.
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |
+| WP12-01 | Medium | `.git`/composer/cron/vendor servable; runbook pointed at nonexistent backup script | Source/config disclosure | fixed (WP12: denies + pointers) |

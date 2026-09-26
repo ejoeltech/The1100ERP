@@ -66,7 +66,7 @@ There is no web factory reset anymore. To start over via SSH:
 
 ```sh
 cd /path/to/1100erp
-# 1. Full backup first (see deploy/ backup script, WP12).
+# 1. Full backup first (cron/backup.sh: encrypted DB + files bundle).
 # 2. Drop the database objects (never the whole server):
 mysql -u root -p -e "DROP DATABASE erpdb; CREATE DATABASE erpdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 # 3. Remove install signals so the wizard unlocks:
@@ -78,7 +78,7 @@ rm -f config.php storage/installed
 
 ## 5. Upgrades (no wizard)
 
-1. Backup (DB + uploads) — see WP12 backup script.
+1. Backup (DB + uploads) — cron/backup.sh (encrypted, rotated, Telegram report).
 2. Deploy new code over SSH (`git pull --ff-only` from the pinned remote).
 3. Log in as admin → **System Update** → run the schema patch.
 4. Never re-upload `maintenance/setup/` on an installed system.

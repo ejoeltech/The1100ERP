@@ -51,7 +51,8 @@ done
 
 echo "== sensitive files must be denied =="
 for p in /database/install-schema.sql /updates/v1.1_payment_module.sql \
-         /.env /composer.json /composer.lock /storage/installed; do
+         /.env /composer.json /composer.lock /storage/installed \
+         /.git/HEAD /cron/backup.sh /vendor/autoload.php; do
   check_gone "$p"
 done
 
