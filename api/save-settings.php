@@ -95,6 +95,15 @@ try {
         'whatsapp_app_secret' => $_POST['whatsapp_app_secret'] ?? '',
     ];
 
+    // WP1: secret fields render blank (leave-to-keep). An empty post must
+    // never wipe a stored secret — drop it so the saved value survives.
+    $secretKeys = ['smtp_password', 'ai_api_key', 'ai_custom_api_key', 'groq_api_key', 'telegram_bot_token', 'whatsapp_app_secret'];
+    foreach ($secretKeys as $sk) {
+        if (array_key_exists($sk, $settings) && trim((string)$settings[$sk]) === '') {
+            unset($settings[$sk]);
+        }
+    }
+
     // Create settings table if it doesn't exist
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS settings (

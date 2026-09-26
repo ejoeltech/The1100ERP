@@ -23,19 +23,30 @@ alerts, daily digest, off-site backup).
 git clone https://github.com/ejoeltech/1100erp-ai.git
 cd 1100erp-ai
 composer install          # installs mPDF (the only composer dependency)
-cp config.sample.php config.php
-cp .env.example .env       # if present
+cp .env.example .env       # then fill in real DB credentials (never commit)
+# config.php is the secret-free loader (config.sample.php); the wizard
+# generates it automatically, or copy it manually. Never commit config.php.
 ```
 
 ## 3. Configure
-Edit `config.php` (or `.env`) with your DB credentials, `GROQ_API_KEY`,
-and an `ENCRYPTION_KEY` for the backup script:
+Put secrets in the environment, never in code (WP1). Either export real
+environment variables, set `APP_SECRETS_FILE` to a file outside the web
+root, or fill in `.env` (gitignored — copy from `.env.example`):
+```env
+DB_HOST=localhost
+DB_NAME=1100erp
+DB_USER=your_db_user
+DB_PASS=your_db_pass
+```
+`config.php` is only the secret-free loader (copied from
+`config.sample.php` by you or the wizard). Missing or placeholder values
+fail fast with a generic 503.
 ```php
 define('DB_HOST', 'localhost');
 define('DB_NAME', '1100erp');
 define('DB_USER', 'your_db_user');
 define('DB_PASS', 'your_db_pass');
-// GROQ_API_KEY is read from env or the settings table.
+// GROQ_API_KEY is read from env or the settings table (never committed).
 ```
 Generate an encryption key for backups:
 ```bash

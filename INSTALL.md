@@ -36,15 +36,12 @@ If the setup wizard does not work or you prefer manual control:
 
 1.  **Configure Database**:
     *   Import `database/install-schema.sql` into your database using phpMyAdmin.
-2.  **Configure Config File**:
-    *   Rename `config.sample.php` to `config.php`.
-    *   Edit `config.php` and fill in your usage details:
-        ```php
-        define('DB_HOST', 'localhost');
-        define('DB_NAME', 'your_db_name');
-        define('DB_USER', 'your_db_user');
-        define('DB_PASS', 'your_db_password');
-        ```
+2.  **Configure Secrets (WP1: no secrets in code)**:
+    *   Copy `config.sample.php` to `config.php` (secret-free loader, gitignored).
+    *   Copy `.env.example` to `.env` and fill in real values
+        (or export real environment variables / set `APP_SECRETS_FILE`
+        outside the web root on production).
+    *   Missing or placeholder values fail fast with a generic 503.
 
 ---
 

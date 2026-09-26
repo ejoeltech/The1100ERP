@@ -56,6 +56,50 @@ none found in any kept file — the only `admin`/`password` seeds were inside
 deleted in WP0-A). Demo-seed removal comments in phase2/phase3a SQL confirm
 earlier cleanup.
 
+## WP1: secrets and credentials
+
+Gitleaks 8.30.1 (winget, scanner DB default ruleset):
+- Working tree: **no leaks found** (16 MB scanned).
+- Full history (`--all`, 49 commits): **3 leaks, all history-only**:
+  - `maintenance/bluedots_1100erp.sql:940` @40ce4c8 — third-party editor
+    API key in a deleted dump. File gone from tree; key must be revoked
+    at the provider.
+  - `tests/security_test.php:45` @7f73e30 — test-only encryption key.
+    File deleted in WP0-A.
+  - `install-schema.sql` settings seed @0740a4b — provider API key seed.
+    Removed from the file since; assume compromised.
+- `config.php` has committed history (old DB credentials assumed compromised).
+
+### Rotation list (type + location, no values)
+- MariaDB app user password: `config.php` history, live `.env`, deployed copies
+- SMTP username/password: `settings` table (`smtp_username`, `smtp_password`)
+- Telegram bot token / chat id: `settings` table
+- WhatsApp verify token + app secret: `settings` table
+- AI provider keys (`groq_api_key`, `ai_api_key`, `ai_custom_api_key`,
+  per-provider): `settings` table + `GROQ_API_KEY` env if set + history seed
+- Third-party editor key (deleted dump) and test encryption key: revoke/replace
+- `api_tokens` table rows, if any were issued
+- Admin passwords on dev/staging/prod (unknown sharing): reset at go-live
+- Per-session CSRF/session secrets: random per session, nothing to rotate
+
+### History purge (PREPARED, NOT RUN — awaiting approval)
+```sh
+# Fresh mirror clone; never run inside a working copy:
+git clone --mirror https://github.com/ejoeltech/1100erp-ai.git 1100erp-ai-mirror.git
+cd 1100erp-ai-mirror.git
+# Preview exposure first:
+git log --all --oneline -- config.php
+# Single rewrite pass (combining paths avoids a second rewrite):
+git filter-repo --path config.php --path maintenance/bluedots_1100erp.sql --path tests/security_test.php --invert-paths
+# Verify, then force-push branches+tags and re-clone everywhere:
+gitleaks detect --log-opts=--all
+git log --all --oneline -- config.php   # must print nothing
+```
+Caveats: rewrites every commit hash; invalidates all clones, forks, milestone
+tags and CI refs; requires force-push + full team re-clone; any secret already
+copied out of the repo (forks, backups, the deleted dump files) stays
+compromised — rotation above is mandatory regardless of purging.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -74,3 +118,9 @@ earlier cleanup.
 | WP0-13 | High | `maintenance/setup/run-schema-update.php` | No gate; linked from Step 7 | fixed (WP0-D: replaced by token/admin-gated `final_check` action in install.php; file deleted) |
 | WP0-14 | Medium | `maintenance/setup/cleanup.php` | Needed only fresh session + manage_settings | fixed (WP0-D: admin + POST + CSRF + password re-entry, realpath guard, token cleanup, leftover verification) |
 | WP0-15 | High | `modules/hr/api/generate-document.php` | Login-only; any role can generate docs for any employee_id (IDOR) | open → WP3 (needs hr-scoped permission + ownership check) |
+| WP1-01 | High | `config.php` committed history | Old DB credentials assumed compromised | rotation list above; purge commands prepared, awaiting approval |
+| WP1-02 | High | historical secret seeds (editor key, test key, provider key) | In git history only; tree clean per gitleaks | revoke at providers + rotate; purge awaiting approval |
+| WP1-03 | Medium | secret values rendered into settings HTML (`smtp_password`, `ai_api_key`, `groq_api_key` hidden, `telegram_bot_token`, `whatsapp_app_secret`) | Any admin session/XSS read them; blank saves wiped them | fixed (WP1: fields render blank + saved indicators; save path skips empty secrets; verified keep + rotate) |
+| WP1-04 | Medium | `config.php` disclosed PDO errors (host/db/user); permissive root/empty defaults | Info disclosure + weak-default encouragement | fixed (WP1: env-first loader, fail-fast 503, no error details; verified both paths) |
+| WP1-05 | Medium | installer `generateConfig()` embedded secrets in defines | Every installed config.php carried creds in code | fixed (WP1: wizard writes `.env`, copies secret-free loader) |
+| WP1-06 | Low | `.git/` deployability | Must never be web-accessible | open → WP12 server configs (deny rules) |

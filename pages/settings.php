@@ -246,11 +246,10 @@ include '../includes/header.php';
                         </div>
 
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">SMTP Password</label>
-                            <input type="password" name="smtp_password"
-                                value="<?php echo htmlspecialchars(getSetting('smtp_password', '')); ?>"
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">SMTP Password <?php echo getSetting('smtp_password', '') !== '' ? '<span class="text-xs font-normal text-green-700">(● saved)</span>' : '<span class="text-xs font-normal text-gray-400">(not set)</span>'; ?></label>
+                            <input type="password" name="smtp_password" value=""
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                                placeholder="App password or account password">
+                                placeholder="Leave blank to keep saved password" autocomplete="new-password">
                         </div>
                     </div>
 
@@ -774,10 +773,9 @@ include '../includes/header.php';
                     API Key <span class="text-red-500">*</span>
                 </label>
                 <div class="relative">
-                    <input type="password" name="ai_api_key" id="ai_api_key"
-                        value="<?php echo $currentApiKey; ?>"
-                        placeholder="sk-..., gsk_..., AIza..."
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10">
+                    <input type="password" name="ai_api_key" id="ai_api_key" value=""
+                        placeholder="Leave blank to keep saved key"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary pr-10" autocomplete="new-password">
                     <button type="button" onclick="togglePasswordVisibility(this)"
                         class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -793,7 +791,8 @@ include '../includes/header.php';
                     <span id="provider-docs"></span> |
                     Legacy Groq key auto-migrated. <a id="provider-docs-link" href="#" target="_blank" class="text-primary hover:underline">Get free key</a>
                 </p>
-                <input type="hidden" name="groq_api_key" id="groq_api_key" value="<?php echo $currentApiKey; ?>">
+                <input type="hidden" name="groq_api_key" id="groq_api_key" value="">
+                <p class="text-xs text-gray-500 mt-1">API key: <?php echo $currentApiKey !== '' ? '<span class="text-green-700 font-semibold">● saved</span> (leave blank to keep)' : '<span class="text-gray-400">not set</span>'; ?></p>
             </div>
 
             <div id="custom-url-group" class="mb-4 hidden">
@@ -869,10 +868,7 @@ include '../includes/header.php';
                 const model = document.getElementById('ai_model').value || document.getElementById('ai_model_custom').value;
                 const base_url = document.getElementById('ai_base_url').value;
                 const apiKey = document.getElementById('ai_api_key').value;
-                if (!apiKey) {
-                    status.innerHTML = '<span class="text-red-600 font-semibold">Enter API Key first</span>';
-                    return;
-                }
+                // Empty key = test the saved key (server falls back to stored settings).
                 btn.disabled = true; btn.classList.add('opacity-75','cursor-not-allowed');
                 status.innerHTML = '<span class="text-gray-600 animate-pulse">Testing '+provider+' ...</span>';
                 meta.textContent = model;
@@ -935,11 +931,10 @@ include '../includes/header.php';
             <h4 class="font-semibold text-gray-900 mb-4">📱 Telegram Alerts & Daily Digest</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bot Token</label>
-                    <input type="password" name="telegram_bot_token"
-                        value="<?php echo htmlspecialchars(getSetting('telegram_bot_token', '')); ?>"
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Bot Token <?php echo getSetting('telegram_bot_token', '') !== '' ? '<span class="text-xs font-normal text-green-700">(● saved)</span>' : '<span class="text-xs font-normal text-gray-400">(not set)</span>'; ?></label>
+                    <input type="password" name="telegram_bot_token" value=""
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="123456:ABC-DEF…">
+                        placeholder="Leave blank to keep saved token" autocomplete="new-password">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Chat ID</label>
@@ -991,11 +986,10 @@ include '../includes/header.php';
                         placeholder="any secret string">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">App Secret</label>
-                    <input type="password" name="whatsapp_app_secret"
-                        value="<?php echo htmlspecialchars(getSetting('whatsapp_app_secret', '')); ?>"
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">App Secret <?php echo getSetting('whatsapp_app_secret', '') !== '' ? '<span class="text-xs font-normal text-green-700">(● saved)</span>' : '<span class="text-xs font-normal text-gray-400">(not set)</span>'; ?></label>
+                    <input type="password" name="whatsapp_app_secret" value=""
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                        placeholder="App secret from Meta">
+                        placeholder="Leave blank to keep saved secret" autocomplete="new-password">
                 </div>
             </div>
             <p class="text-xs text-gray-500 mt-2">In Meta App → WhatsApp → Configuration, set Callback URL to <code><?php echo htmlspecialchars((getSetting('company_website','') ?: 'https://your-erp')); ?>/api/leads/whatsapp-webhook.php</code> and Verify Token to match above. Capture-only (no auto-reply).</p>
