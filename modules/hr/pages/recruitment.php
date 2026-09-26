@@ -67,12 +67,12 @@ include_once '../../../includes/header.php';
 
 <?php if ($message): ?>
     <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200">
-        <?php echo $message; ?>
+        <?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?>
     </div>
 <?php endif; ?>
 <?php if ($error): ?>
     <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200">
-        <?php echo $error; ?>
+        <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
     </div>
 <?php endif; ?>
 
@@ -128,7 +128,7 @@ include_once '../../../includes/header.php';
                                 </div>
                             </div>
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
-                                <?php echo $c['status']; ?>
+                                <?php echo htmlspecialchars($c['status'], ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                         </div>
                     </li>
@@ -171,7 +171,8 @@ include_once '../../../includes/header.php';
         <?php if ($generated_ad): ?>
             <div class="flex-grow border rounded-lg p-4 bg-gray-50 overflow-y-auto">
                 <div class="prose prose-sm max-w-none">
-                    <?php echo $generated_ad; ?>
+                    <?php /* WP5: AI output rendered as text (prompt-injection safe); copy uses innerText. */ ?>
+                    <?php echo nl2br(htmlspecialchars($generated_ad, ENT_QUOTES, 'UTF-8')); ?>
                 </div>
             </div>
             <button

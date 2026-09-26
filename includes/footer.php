@@ -9,21 +9,21 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div class="text-center text-sm text-gray-600">
             <p class="font-semibold">
-                <?php echo COMPANY_NAME; ?>
+                <?php echo htmlspecialchars(COMPANY_NAME, ENT_QUOTES, 'UTF-8'); ?>
             </p>
             <p class="mt-1">
-                <?php echo COMPANY_ADDRESS; ?>
+                <?php echo htmlspecialchars(COMPANY_ADDRESS, ENT_QUOTES, 'UTF-8'); ?>
             </p>
             <p class="mt-1">
                 Phone:
-                <?php echo COMPANY_PHONE; ?> |
+                <?php echo htmlspecialchars(COMPANY_PHONE, ENT_QUOTES, 'UTF-8'); ?> |
                 Email:
-                <?php echo COMPANY_EMAIL; ?> |
-                <?php echo COMPANY_WEBSITE; ?>
+                <?php echo htmlspecialchars(COMPANY_EMAIL, ENT_QUOTES, 'UTF-8'); ?> |
+                <?php echo htmlspecialchars(COMPANY_WEBSITE, ENT_QUOTES, 'UTF-8'); ?>
             </p>
             <p class="mt-4 text-xs text-gray-500">
                 ©
-                <?php echo date('Y'); ?> <?php echo COMPANY_NAME; ?>. All rights reserved.
+                <?php echo date('Y'); ?> <?php echo htmlspecialchars(COMPANY_NAME, ENT_QUOTES, 'UTF-8'); ?>. All rights reserved.
             </p>
         </div>
     </div>

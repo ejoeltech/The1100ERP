@@ -102,7 +102,7 @@ include '../includes/header.php';
                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                     Date <span class="text-red-500">*</span>
                 </label>
-                <input type="date" name="quote_date" value="<?php echo $invoice['quote_date']; ?>" required
+                <input type="date" name="quote_date" value="<?php echo htmlspecialchars($invoice['quote_date'], ENT_QUOTES, 'UTF-8'); ?>" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
@@ -147,7 +147,7 @@ include '../includes/header.php';
                     Amount Paid <span class="text-red-500">*</span>
                 </label>
                 <input type="number" step="0.01" name="amount_paid" id="amountPaidInput"
-                    value="<?php echo $invoice['amount_paid']; ?>" required onchange="updateBalanceDue()"
+                    value="<?php echo htmlspecialchars($invoice['amount_paid'], ENT_QUOTES, 'UTF-8'); ?>" required onchange="updateBalanceDue()"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
@@ -157,9 +157,9 @@ include '../includes/header.php';
                 </label>
                 <div
                     class="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium capitalize">
-                    <?php echo $invoice['status']; ?>
+                    <?php echo htmlspecialchars($invoice['status'], ENT_QUOTES, 'UTF-8'); ?>
                 </div>
-                <input type="hidden" name="status" id="statusInput" value="<?php echo $invoice['status']; ?>">
+                <input type="hidden" name="status" id="statusInput" value="<?php echo htmlspecialchars($invoice['status'], ENT_QUOTES, 'UTF-8'); ?>">
             </div>
         </div>
 

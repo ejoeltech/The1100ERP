@@ -145,7 +145,7 @@ include '../../includes/header.php';
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full capitalize">
-                                    <?php echo $doc['status']; ?>
+                                    <?php echo htmlspecialchars($doc['status'], ENT_QUOTES, 'UTF-8'); ?>
                                 </span>
                             </td>
                         </tr>

@@ -84,11 +84,12 @@ if (isset($_POST['import_entry'])) {
 
             $pdo->commit();
             $inviteLink = '../../pages/users/accept-invite.php?token=' . urlencode($invite_token);
-            $success = "Employee Imported Successfully! Username: $username<br>One-time invite (48h, single use, shown once): <a class='font-mono break-all' href='$inviteLink'>$inviteLink</a>";
+            // WP5: username derives from applicant-supplied full_name — escape at build.
+            $success = "Employee Imported Successfully! Username: " . htmlspecialchars($username, ENT_QUOTES, 'UTF-8') . "<br>One-time invite (48h, single use, shown once): <a class='font-mono break-all' href='$inviteLink'>$inviteLink</a>";
 
         } catch (Exception $e) {
             $pdo->rollBack();
-            $error = "Import Failed: " . $e->getMessage();
+            $error = "Import Failed: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         }
     }
 }
@@ -140,7 +141,7 @@ include_once '../../../includes/header.php';
                     <?php foreach ($codes as $c): ?>
                         <div class="flex justify-between items-center bg-gray-50 p-2 rounded text-sm border">
                             <span class="font-mono font-bold select-all">
-                                <?php echo $c['code']; ?>
+                                <?php echo htmlspecialchars($c['code'], ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                             <?php if ($c['is_used']): ?>
                                 <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded">Used</span>
@@ -168,7 +169,7 @@ include_once '../../../includes/header.php';
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex gap-4">
                                     <?php if ($e['passport_path']): ?>
-                                        <img src="../../../<?php echo $e['passport_path']; ?>"
+                                        <img src="../../../<?php echo htmlspecialchars($e['passport_path'], ENT_QUOTES, 'UTF-8'); ?>"
                                             class="w-12 h-12 rounded-full object-cover bg-gray-200">
                                     <?php endif; ?>
                                     <div>
@@ -180,7 +181,7 @@ include_once '../../../includes/header.php';
                                             <?php echo htmlspecialchars($e['phone']); ?>
                                         </p>
                                         <p class="text-xs text-gray-500 mt-1">Code:
-                                            <?php echo $e['code']; ?> • Submitted:
+                                            <?php echo htmlspecialchars($e['code'], ENT_QUOTES, 'UTF-8'); ?> • Submitted:
                                             <?php echo date('d M H:i', strtotime($e['updated_at'])); ?>
                                         </p>
                                     </div>
@@ -189,7 +190,7 @@ include_once '../../../includes/header.php';
                                     <form method="POST"
                                         onsubmit="return confirm('Import this employee? This will create a User account.');">
                                         <?php echo csrfField(); ?>
-                                        <input type="hidden" name="entry_id" value="<?php echo $e['id']; ?>">
+                                        <input type="hidden" name="entry_id" value="<?php echo (int)$e['id']; ?>">
                                         <button type="submit" name="import_entry"
                                             class="px-4 py-2 bg-green-600 text-white text-sm rounded font-bold hover:bg-green-700">Import</button>
                                     </form>
@@ -203,8 +204,8 @@ include_once '../../../includes/header.php';
                                         <?php echo htmlspecialchars($e['address']); ?>
                                     </p>
                                     <p><strong>DOB:</strong>
-                                        <?php echo $e['date_of_birth']; ?> (
-                                        <?php echo $e['gender']; ?>)
+                                        <?php echo htmlspecialchars($e['date_of_birth'], ENT_QUOTES, 'UTF-8'); ?> (
+                                        <?php echo htmlspecialchars($e['gender'], ENT_QUOTES, 'UTF-8'); ?>)
                                     </p>
                                     <p><strong>NOK:</strong>
                                         <?php echo htmlspecialchars($e['next_of_kin_name']); ?> (

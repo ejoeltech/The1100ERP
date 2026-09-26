@@ -101,10 +101,10 @@ include_once '../../../includes/header.php';
 </div>
 
 <?php if ($message): ?>
-    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo $message; ?></div>
+    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo $error; ?></div>
+    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -171,7 +171,7 @@ include_once '../../../includes/header.php';
                                 <div>
                                     <h4 class="font-bold text-gray-900"><?php echo htmlspecialchars($req['full_name']); ?></h4>
                                     <p class="text-sm text-gray-500">
-                                        <?php echo ucfirst($req['leave_type']); ?> Leave | 
+                                        <?php echo htmlspecialchars(ucfirst($req['leave_type']), ENT_QUOTES, 'UTF-8'); ?> Leave | 
                                         <?php echo date('M d', strtotime($req['start_date'])) . ' to ' . date('M d', strtotime($req['end_date'])); ?>
                                     </p>
                                     <p class="mt-2 text-gray-700 italic">"<?php echo htmlspecialchars($req['reason']); ?>"</p>
@@ -180,7 +180,7 @@ include_once '../../../includes/header.php';
                                     <form method="POST">
                                         <?php echo csrfField(); ?>
                                         <input type="hidden" name="update_status" value="1">
-                                        <input type="hidden" name="request_id" value="<?php echo $req['id']; ?>">
+                                        <input type="hidden" name="request_id" value="<?php echo (int)$req['id']; ?>">
                                         <button type="submit" name="status" value="approved" class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm">Approve</button>
                                         <button type="submit" name="status" value="rejected" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium text-sm">Reject</button>
                                     </form>
@@ -210,7 +210,7 @@ include_once '../../../includes/header.php';
                     <tbody class="divide-y divide-gray-200">
                         <?php foreach($my_requests as $req): ?>
                             <tr>
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900 capitalize"><?php echo $req['leave_type']; ?></td>
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900 capitalize"><?php echo htmlspecialchars($req['leave_type'], ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="px-6 py-4 text-sm text-gray-500">
                                     <?php echo date('M d', strtotime($req['start_date'])) . ' - ' . date('M d, Y', strtotime($req['end_date'])); ?>
                                 </td>
@@ -225,7 +225,7 @@ include_once '../../../includes/header.php';
                                     $statuscolors = ['pending'=>'bg-yellow-100 text-yellow-800', 'approved'=>'bg-green-100 text-green-800', 'rejected'=>'bg-red-100 text-red-800'];
                                     ?>
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full <?php echo $statuscolors[$req['status']]??'bg-gray-100'; ?>">
-                                        <?php echo ucfirst($req['status']); ?>
+                                        <?php echo htmlspecialchars(ucfirst($req['status']), ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 </td>
                             </tr>

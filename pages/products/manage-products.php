@@ -93,7 +93,7 @@ include '../../includes/header.php';
         <select name="category" class="px-4 py-2 border border-gray-300 rounded-lg">
             <option value="">All Categories</option>
             <?php foreach ($categories as $cat): ?>
-                <option value="<?php echo $cat; ?>" <?php echo $category_filter === $cat ? 'selected' : ''; ?>>
+                <option value="<?php echo htmlspecialchars($cat, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $category_filter === $cat ? 'selected' : ''; ?>>
                     <?php echo htmlspecialchars($cat); ?>
                 </option>
             <?php endforeach; ?>

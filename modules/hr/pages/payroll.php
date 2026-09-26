@@ -89,10 +89,10 @@ include_once '../../../includes/header.php';
 </div>
 
 <?php if ($message): ?>
-    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo $message; ?></div>
+    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo $error; ?></div>
+    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -136,7 +136,7 @@ include_once '../../../includes/header.php';
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                <?php echo ucfirst($pay['status']); ?>
+                                <?php echo htmlspecialchars(ucfirst($pay['status']), ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

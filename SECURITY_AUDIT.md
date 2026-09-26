@@ -151,6 +151,23 @@ compromised — rotation above is mandatory regardless of purging.
   10/10; `php -l` clean; test users/rows deleted (`wp*`), throttle cleared,
   temp ENCRYPTION_KEY removed from `.env`.
 
+## WP5: XSS output-escaping sweep (verified 2026-09-26)
+
+- Escaped ~70 stored/reflected sinks: HR self-service `signup-form.php`
+  (all repopulated values, img srcs, banner), `onboarding-admin.php`
+  (username built from applicant name, codes, passport src, DOB/gender,
+  import error text), message banners (`leave/voting/payroll/attendance/
+  employee-form/recruitment`), DB-backed selects/IDs (`(int)` casts),
+  `record-payment.php` customer option, `settings.php` logo src/provider
+  value + `CURRENT_PROVIDER` via `json_encode`, `edit-invoice.php`,
+  `view-customer.php`, `manage-products.php`, footer company constants,
+  header `<title>`, `email-document.php` (int-cast id, type allow-list
+  fallback, escaped hidden inputs/subject).
+- AI job-ad output now rendered as text (`nl2br`+escape): prompt-injection
+  can no longer become script execution (formatting trade-off documented).
+- Verified: `php -l` on all 19 files; login/signup render 200; grep shows
+  0 raw `$entry/$e/$c` echoes in top HR files (was ~30).
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -199,3 +216,7 @@ compromised — rotation above is mandatory regardless of purging.
 | WP4-05 | Medium | sessions: no strict mode, webroot files, no idle/absolute timeout, no revocation | Fixation/theft persistence; ex-staff sessions survive | fixed (WP4: hardened cookies, 30m/8h, registry + revocation; verified) |
 | WP4-06 | Medium | fail-open permission stubs on stale DBs | Every check passed pre-migration | fixed (WP4: fail-closed; verified) |
 | WP4-07 | Low | `wp4-auth-migration.sql` used MariaDB-invalid `ADD COLUMN IF NOT EXISTS` | Manual migration 1064s | fixed (plain ADD COLUMN + patcher idempotency note) |
+| WP5-01 | High | HR self-service + review queue echoed applicant data raw (values, img src, username-from-name) | Stored XSS via signup form | fixed (WP5: escaped/cast throughout) |
+| WP5-02 | Medium | message banners + status/category echoes raw across HR/core pages | Reflected/stored XSS via exception text, DB strings | fixed (WP5) |
+| WP5-03 | Medium | AI job-ad HTML rendered raw | Prompt-injection XSS | fixed (WP5: text rendering) |
+| WP5-04 | Low | footer constants, page title, settings JS string, customer option raw | Stored XSS if settings compromised; JS breakout | fixed (WP5) |

@@ -48,7 +48,7 @@ include_once '../../../includes/header.php';
                             class="w-full rounded-lg border-gray-300 focus:ring-primary focus:border-primary">
                             <option value="">-- Select Employee --</option>
                             <?php foreach ($employees as $emp): ?>
-                                <option value="<?php echo $emp['id']; ?>">
+                                <option value="<?php echo (int)$emp['id']; ?>">
                                     <?php echo htmlspecialchars($emp['full_name']); ?>
                                 </option>
                             <?php endforeach; ?>

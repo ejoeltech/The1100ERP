@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($success): ?>
             <div class="bg-green-100 text-green-700 p-4 border-b border-green-200 text-center font-bold">
-                <?php echo $success; ?>
+                <?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?>
             </div>
         <?php endif; ?>
 
@@ -174,22 +174,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Full Name</label>
-                            <input type="text" name="full_name" value="<?php echo $entry['full_name'] ?? ''; ?>" required
+                            <input type="text" name="full_name" value="<?php echo htmlspecialchars($entry['full_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Email Address</label>
-                            <input type="email" name="email" value="<?php echo $entry['email'] ?? ''; ?>" required
+                            <input type="email" name="email" value="<?php echo htmlspecialchars($entry['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Phone Number</label>
-                            <input type="tel" name="phone" value="<?php echo $entry['phone'] ?? $phone; ?>" required
+                            <input type="tel" name="phone" value="<?php echo htmlspecialchars($entry['phone'] ?? $phone ?? '', ENT_QUOTES, 'UTF-8'); ?>" required
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                            <input type="date" name="dob" value="<?php echo $entry['date_of_birth'] ?? ''; ?>" required
+                            <input type="date" name="dob" value="<?php echo htmlspecialchars($entry['date_of_birth'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
@@ -204,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Residential Address</label>
                             <textarea name="address" rows="2"
-                                class="w-full rounded border-gray-300 p-2 border"><?php echo $entry['address'] ?? ''; ?></textarea>
+                                class="w-full rounded border-gray-300 p-2 border"><?php echo htmlspecialchars($entry['address'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
                     </div>
                 </div>
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Passport Photo</label>
                             <?php if (!empty($entry['passport_path'])): ?>
-                                <img src="../../../<?php echo $entry['passport_path']; ?>"
+                                <img src="../../../<?php echo htmlspecialchars($entry['passport_path'], ENT_QUOTES, 'UTF-8'); ?>"
                                     class="h-20 w-20 object-cover rounded mb-2 border">
                             <?php endif; ?>
                             <input type="file" name="passport" accept="image/*" class="w-full text-sm">
@@ -224,19 +224,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Signature Scan</label>
                             <?php if (!empty($entry['signature_path'])): ?>
-                                <img src="../../../<?php echo $entry['signature_path']; ?>"
+                                <img src="../../../<?php echo htmlspecialchars($entry['signature_path'], ENT_QUOTES, 'UTF-8'); ?>"
                                     class="h-10 object-contain mb-2 border bg-gray-50">
                             <?php endif; ?>
                             <input type="file" name="signature" accept="image/*" class="w-full text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">NIN Number</label>
-                            <input type="text" name="nin" value="<?php echo $entry['nin_number'] ?? ''; ?>"
+                            <input type="text" name="nin" value="<?php echo htmlspecialchars($entry['nin_number'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">BVN Number</label>
-                            <input type="text" name="bvn" value="<?php echo $entry['bvn_number'] ?? ''; ?>"
+                            <input type="text" name="bvn" value="<?php echo htmlspecialchars($entry['bvn_number'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                     </div>
@@ -248,18 +248,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Name</label>
-                            <input type="text" name="nok_name" value="<?php echo $entry['next_of_kin_name'] ?? ''; ?>"
+                            <input type="text" name="nok_name" value="<?php echo htmlspecialchars($entry['next_of_kin_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                 required class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Relationship</label>
                             <input type="text" name="nok_rel"
-                                value="<?php echo $entry['next_of_kin_relationship'] ?? ''; ?>" required
+                                value="<?php echo htmlspecialchars($entry['next_of_kin_relationship'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required
                                 class="w-full rounded border-gray-300 p-2 border">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Phone</label>
-                            <input type="text" name="nok_phone" value="<?php echo $entry['next_of_kin_phone'] ?? ''; ?>"
+                            <input type="text" name="nok_phone" value="<?php echo htmlspecialchars($entry['next_of_kin_phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                                 required class="w-full rounded border-gray-300 p-2 border">
                         </div>
                     </div>

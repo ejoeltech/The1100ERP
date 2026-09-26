@@ -63,7 +63,7 @@ if (isset($_GET['invoice_id'])) {
                                     <?php
                                     $stmt = $pdo->query("SELECT id, customer_name FROM customers WHERE is_active = 1 ORDER BY customer_name ASC");
                                     while ($row = $stmt->fetch()) {
-                                        echo "<option value='{$row['id']}'>{$row['customer_name']}</option>";
+                                        echo "<option value='" . (int)$row['id'] . "'>" . htmlspecialchars($row['customer_name'], ENT_QUOTES, 'UTF-8') . "</option>";
                                     }
                                     ?>
                                 </select>

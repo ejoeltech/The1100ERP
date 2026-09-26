@@ -1,7 +1,7 @@
 <?php
 include '../includes/session-check.php';
 
-$document_id = $_GET['id'] ?? null;
+$document_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $document_type = $_GET['type'] ?? null;
 
 if (!$document_id || !$document_type) {
@@ -49,14 +49,27 @@ $type_names = [
     'invoice' => 'Invoice',
     'receipt' => 'Receipt'
 ];
-$type_display = $type_names[$document_type];
+$type_display = $type_names[$document_type] ?? 'Document';
+
+// Prefill recipient from customer record (matched by name)
+$prefill_email = '';
+try {
+    $stmt = $pdo->prepare("SELECT email FROM customers WHERE customer_name = ? AND deleted_at IS NULL LIMIT 1");
+    $stmt->execute([$document['customer_name']]);
+    $row = $stmt->fetch();
+    if ($row && filter_var($row['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+        $prefill_email = $row['email'];
+    }
+} catch (Exception $e) {
+    // leave blank
+}
 
 include '../includes/header.php';
 ?>
 
-<div class="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">Email
-        <?php echo $type_display; ?>
+<div class="bg-white rounded-lg shadow-md p-4 md:p-8 max-w-2xl mx-auto">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Email
+        <?php echo htmlspecialchars($type_display, ENT_QUOTES, 'UTF-8'); ?>
     </h2>
 
     <?php if (isset($_GET['error'])): ?>
@@ -98,18 +111,33 @@ include '../includes/header.php';
         </div>
     </div>
 
-    <form method="POST" action="../api/send-email.php">
-        <input type="hidden" name="document_id" value="<?php echo $document_id; ?>">
-        <input type="hidden" name="document_type" value="<?php echo $document_type; ?>">
+    <div id="emailResult" class="hidden rounded-lg p-4 mb-6 text-sm font-semibold"></div>
+
+    <form id="emailForm" method="POST" action="../api/send-email.php">
+        <input type="hidden" name="document_id" value="<?php echo (int)$document_id; ?>">
+        <input type="hidden" name="document_type" value="<?php echo htmlspecialchars($document_type, ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="space-y-6">
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Recipient Email <span class="text-red-500">*</span>
-                </label>
-                <input type="email" name="recipient_email" required placeholder="customer@example.com"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
-                <p class="text-xs text-gray-500 mt-1">Email address where the document will be sent</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Recipient Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" name="recipient_email" required placeholder="customer@example.com"
+                        value="<?php echo htmlspecialchars($prefill_email); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    <p class="text-xs text-gray-500 mt-1">Email address where the document will be sent</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Recipient Name
+                    </label>
+                    <input type="text" name="recipient_name" placeholder="Customer name"
+                        value="<?php echo htmlspecialchars($document['customer_name'] ?? ''); ?>"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    <p class="text-xs text-gray-500 mt-1">Used in the greeting</p>
+                </div>
             </div>
 
             <div>
@@ -117,7 +145,7 @@ include '../includes/header.php';
                     Subject <span class="text-red-500">*</span>
                 </label>
                 <input type="text" name="email_subject" required
-                    value="<?php echo $type_display; ?> <?php echo htmlspecialchars($document['document_number']); ?> - ERP System"
+                    value="<?php echo htmlspecialchars($type_display, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($document['document_number']); ?> - ERP System"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 

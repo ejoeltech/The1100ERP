@@ -131,10 +131,10 @@ include_once '../../../includes/header.php';
 </div>
 
 <?php if ($error): ?>
-    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo $error; ?></div>
+    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 <?php if ($success): ?>
-    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo $success; ?></div>
+    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 
 <form method="POST" enctype="multipart/form-data" class="space-y-6" data-is-edit="<?php echo isset($_GET['id']) ? 'true' : 'false'; ?>">

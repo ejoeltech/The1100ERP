@@ -91,10 +91,10 @@ include_once '../../../includes/header.php';
 </div>
 
 <?php if ($message): ?>
-    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo $message; ?></div>
+    <div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo $error; ?></div>
+    <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
 <?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -120,7 +120,7 @@ include_once '../../../includes/header.php';
                     <button type="submit" name="action" value="clock_in" class="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xl shadow-lg transition-transform transform hover:-translate-y-1">
                         ⏱️ Clock In
                     </button>
-                    <p class="mt-4 text-sm text-gray-500">Work starts at <?php echo getSetting('hr_work_start_time', '09:00'); ?></p>
+                    <p class="mt-4 text-sm text-gray-500">Work starts at <?php echo htmlspecialchars(getSetting('hr_work_start_time', '09:00'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php elseif (!$today_record['clock_out']): ?>
                     <div class="text-3xl font-bold text-gray-800 mb-6 font-mono">
                         <?php echo date('h:i A', strtotime($today_record['clock_in'])); ?>
@@ -204,7 +204,7 @@ include_once '../../../includes/header.php';
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 text-xs font-semibold rounded-full 
                                 <?php echo $log['status']==='late'?'bg-red-100 text-red-800':($log['status']==='present'?'bg-green-100 text-green-800':'bg-gray-100'); ?>">
-                                <?php echo ucfirst($log['status']); ?>
+                                <?php echo htmlspecialchars(ucfirst($log['status']), ENT_QUOTES, 'UTF-8'); ?>
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

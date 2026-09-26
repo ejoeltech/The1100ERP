@@ -129,14 +129,14 @@ include_once '../../../includes/header.php';
                                 ?>
                                 <span
                                     class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
-                                    <?php echo ucwords(str_replace('_', ' ', $emp['employment_status'])); ?>
+                                    <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $emp['employment_status'])), ENT_QUOTES, 'UTF-8'); ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <?php echo date('M d, Y', strtotime($emp['join_date'])); ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="employee-form.php?id=<?php echo $emp['id']; ?>"
+                                <a href="employee-form.php?id=<?php echo (int)$emp['id']; ?>"
                                     class="text-primary hover:text-blue-900 mr-3">Edit</a>
                             </td>
                         </tr>

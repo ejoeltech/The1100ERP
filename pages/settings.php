@@ -106,7 +106,7 @@ include '../includes/header.php';
                     <?php if ($current_logo && file_exists(__DIR__ . '/' . $logo_path)): ?>
                         <div class="mb-4">
                             <p class="text-sm text-gray-600 mb-2">Current Logo:</p>
-                            <img src="<?php echo $logo_path; ?>" alt="Company Logo"
+                            <img src="<?php echo htmlspecialchars($logo_path, ENT_QUOTES, 'UTF-8'); ?>" alt="Company Logo"
                                 class="h-20 object-contain bg-white p-2 rounded border border-gray-300">
                         </div>
                     <?php else: ?>
@@ -749,7 +749,7 @@ include '../includes/header.php';
                     <select name="ai_provider" id="ai_provider" onchange="onProviderChange()"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                         <?php foreach ($providers as $id => $p): ?>
-                            <option value="<?php echo $id; ?>" <?php echo $currentProvider === $id ? 'selected' : ''; ?>>
+                            <option value="<?php echo htmlspecialchars($id, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $currentProvider === $id ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($p['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -822,7 +822,7 @@ include '../includes/header.php';
 
         <script>
             const AI_PROVIDERS = <?php echo json_encode($providers); ?>;
-            const CURRENT_PROVIDER = "<?php echo $currentProvider; ?>";
+            const CURRENT_PROVIDER = <?php echo json_encode($currentProvider); ?>;
             const CURRENT_MODEL = <?php echo json_encode($currentModel); ?>;
 
             function onProviderChange() {
