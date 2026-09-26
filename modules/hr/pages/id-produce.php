@@ -1,7 +1,7 @@
 <?php
 // HR ID Card Maker — Page 2: Manual Production (type staff details by hand).
 require_once '../../../includes/session-check.php';
-requireLogin();
+requirePermission('hr_manage');
 
 require_once '../classes/HR_Employee.php';
 $hr = new HR_Employee($pdo);

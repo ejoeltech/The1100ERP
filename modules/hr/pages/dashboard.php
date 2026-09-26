@@ -3,7 +3,7 @@
 // require_once '../../../config.php'; // Removed to prevent double inclusion
 require_once '../../../includes/session-check.php';
 
-requireLogin();
+requirePermission('hr_view');
 
 $pageTitle = 'HR Dashboard | ' . COMPANY_NAME;
 $currentPage = 'hr_dashboard';

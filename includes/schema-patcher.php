@@ -154,8 +154,7 @@ class SchemaPatcher
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         $exec($sql, "Create 'settings' table");
 
-        // 1f. Leads & Follow-up (retired database/run-leads-migration.php).
-        // INSERT IGNORE (not ON DUPLICATE KEY UPDATE): re-runs must never
+        // 1f. Leads & Follow-up (retired database/run-leads-migration.php).        // INSERT IGNORE (not ON DUPLICATE KEY UPDATE): re-runs must never
         // wipe configured tokens/secrets.
         $exec("CREATE TABLE IF NOT EXISTS `leads` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -191,6 +190,33 @@ class SchemaPatcher
             $add('ok', 'seed', 'Ensured leads/follow-up settings keys.');
         } catch (Exception $e) {
             $add('error', 'seed', 'Failed seeding leads settings: ' . $e->getMessage());
+        }
+
+        // 1f2. HR permission seeds (WP3; mirrors database/wp3-hr-permissions.sql).
+        // Seeded ONLY into groups that hold none of the six HR keys, so a
+        // deliberate admin revocation is never re-added by a later patch run.
+        try {
+            $hrSeeds = [
+                'admin' => ['hr_view', 'hr_manage', 'leave_manage', 'payroll_view', 'payroll_run', 'recruitment_manage'],
+                'manager' => ['hr_view', 'hr_manage', 'leave_manage', 'payroll_view', 'recruitment_manage'],
+                'accountant' => ['payroll_view', 'payroll_run'],
+            ];
+            $hrKeys = ['hr_view', 'hr_manage', 'leave_manage', 'payroll_view', 'payroll_run', 'recruitment_manage'];
+            $inList = "'" . implode("','", $hrKeys) . "'";
+            $insPerm = $pdo->prepare("INSERT IGNORE INTO `group_permissions` (`group_id`, `permission_key`) SELECT id, ? FROM `user_groups` WHERE name = ?");
+            foreach ($hrSeeds as $gname => $perms) {
+                $has = $pdo->query("SELECT COUNT(*) FROM group_permissions gp JOIN user_groups g ON g.id = gp.group_id WHERE g.name = '$gname' AND gp.permission_key IN ($inList)")->fetchColumn();
+                if ((int)$has > 0) {
+                    $add('info', 'seed', "Group '$gname' already customised; HR permissions untouched.");
+                    continue;
+                }
+                foreach ($perms as $perm) {
+                    $insPerm->execute([$perm, $gname]);
+                }
+            }
+            $add('ok', 'seed', 'Ensured HR group permissions.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding HR permissions: ' . $e->getMessage());
         }
 
         // 1g. Bank Accounts

@@ -11,7 +11,8 @@ $currentPage = 'hr_leave';
 
 $hr_employee = new HR_Employee($pdo);
 $current_emp = $hr_employee->getEmployeeByUserId($_SESSION['user_id']);
-$is_admin = isAdmin();
+// WP3: leave approvals need leave_manage; own requests remain self-service.
+$can_manage_leave = hasPermission('leave_manage');
 
 $message = '';
 $error = '';
@@ -53,14 +54,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_leave'])) {
     }
 }
 
-// Handle Status Updates (Admin Only)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status']) && $is_admin) {
-    try {
-        $stmt = $pdo->prepare("UPDATE hr_leave_requests SET status = ?, approved_by = ? WHERE id = ?");
-        $stmt->execute([$_POST['status'], $_SESSION['user_id'], $_POST['request_id']]);
-        $message = "Leave status updated.";
-    } catch (Exception $e) {
-        $error = "Error: " . $e->getMessage();
+// Handle Status Updates (leave_manage only; status allow-listed)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status']) && $can_manage_leave) {
+    $newStatus = $_POST['status'] ?? '';
+    if (!in_array($newStatus, ['approved', 'rejected'], true)) {
+        $error = "Invalid status.";
+    } else {
+        try {
+            $stmt = $pdo->prepare("UPDATE hr_leave_requests SET status = ?, approved_by = ? WHERE id = ?");
+            $stmt->execute([$newStatus, $_SESSION['user_id'], $_POST['request_id']]);
+            $message = "Leave status updated.";
+        } catch (Exception $e) {
+            $error = "Error: " . $e->getMessage();
+        }
     }
 }
 
@@ -74,7 +80,7 @@ if ($current_emp) {
     $my_requests = $stmt->fetchAll();
 }
 
-if ($is_admin) {
+if ($can_manage_leave) {
     $stmt = $pdo->query("
         SELECT lr.*, u.full_name, e.employee_code 
         FROM hr_leave_requests lr 
@@ -151,7 +157,7 @@ include_once '../../../includes/header.php';
     <!-- Lists (Right Col) -->
     <div class="lg:col-span-2 space-y-6">
         
-        <?php if ($is_admin && !empty($pending_approvals)): ?>
+        <?php if ($can_manage_leave && !empty($pending_approvals)): ?>
             <!-- Admin Approvals -->
             <div class="bg-white rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
                 <div class="px-6 py-4 bg-yellow-50 border-b border-yellow-200">

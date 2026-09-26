@@ -4,7 +4,7 @@
 require_once '../../../includes/session-check.php';
 require_once '../classes/HR_Employee.php';
 
-requireLogin();
+requirePermission('hr_manage');
 
 $pageTitle = 'Staff Voting | ' . COMPANY_NAME;
 $currentPage = 'hr_voting';

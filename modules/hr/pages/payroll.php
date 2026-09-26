@@ -4,7 +4,7 @@
 require_once '../../../includes/session-check.php';
 require_once '../classes/HR_Employee.php';
 
-requireLogin();
+requirePermission('payroll_view');
 
 $pageTitle = 'Payroll | ' . COMPANY_NAME;
 $currentPage = 'hr_payroll';

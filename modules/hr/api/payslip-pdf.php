@@ -30,8 +30,10 @@ if (!$empUser) {
     http_response_code(404);
     die('Employee not found');
 }
-$isAdmin = (!empty($_SESSION['role']) && strtolower($_SESSION['role']) === 'admin');
-if (!$isAdmin && (int) $empUser['user_id'] !== (int) $_SESSION['user_id']) {
+// Permission: own payslip, or payroll_view (admin/manager/accountant groups).
+// Never trust a role string here: super_admin and manager were locked out before.
+$mine = (int)$empUser['user_id'] === (int)$_SESSION['user_id'];
+if (!$mine && !hasPermission('payroll_view')) {
     http_response_code(403);
     die('You may only view your own payslip');
 }

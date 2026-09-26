@@ -4,11 +4,7 @@
 require_once '../../../includes/session-check.php';
 require_once '../../../includes/invites.php';
 requireLogin();
-
-if (!isAdmin()) {
-    header("Location: dashboard.php");
-    exit;
-}
+requirePermission('hr_manage');
 
 $pageTitle = 'Onboarding Management | ' . COMPANY_NAME;
 $currentPage = 'hr_onboarding';

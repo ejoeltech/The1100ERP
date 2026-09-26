@@ -1,7 +1,7 @@
 <?php
 // HR ID Card Maker — Page 1: Template Maker (designs, layout, labels, back content, codes).
 require_once '../../../includes/session-check.php';
-requireLogin();
+requirePermission('hr_manage');
 
 $pageTitle = 'ID Template Maker | ' . COMPANY_NAME;
 $currentPage = 'hr_idcards';

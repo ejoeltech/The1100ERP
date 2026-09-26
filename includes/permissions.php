@@ -50,6 +50,14 @@ function getPermissionCatalog()
             'manage_hr' => 'Manage HR module',
             'manage_payments' => 'Manage payments',
         ],
+        'Human Resources' => [
+            'hr_view' => 'View HR directory and attendance',
+            'hr_manage' => 'Manage employees, documents and ID cards',
+            'leave_manage' => 'Approve and manage all leave requests',
+            'payroll_view' => 'View payroll and payslips',
+            'payroll_run' => 'Run payroll generation',
+            'recruitment_manage' => 'Manage recruitment candidates',
+        ],
         'Dashboard & Profile' => [
             'view_system_dashboard' => 'View system dashboard',
             'view_team_dashboard' => 'View team dashboard',
@@ -289,6 +297,19 @@ function hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId)
         case 'manage_payments':
             return in_array($role, ['admin', 'manager']);
 
+        // HR directory + attendance (Admin, Manager)
+        case 'hr_view':
+        case 'hr_manage':
+        case 'leave_manage':
+        case 'recruitment_manage':
+            return in_array($role, ['admin', 'manager']);
+
+        // Payroll viewing (Admin, Manager, Accountant); running (Admin, Accountant)
+        case 'payroll_view':
+            return in_array($role, ['admin', 'manager', 'accountant']);
+        case 'payroll_run':
+            return in_array($role, ['admin', 'accountant']);
+
         // Email Documents (all roles except read-only viewer)
         case 'send_email':
         case 'email_document':
@@ -433,6 +454,30 @@ function getRoleBadge($role)
         'viewer' => '<span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Viewer</span>'
     ];
     return $badges[$role] ?? '';
+}
+
+/**
+ * Resolve the caller's own HR employee id from the session (WP3).
+ * Returns int or null. Self-service endpoints must use this — never a
+ * request parameter — to scope data to the caller.
+ */
+function getMyEmployeeId($userId = null)
+{
+    global $pdo;
+    if ($userId === null) {
+        $userId = $_SESSION['user_id'] ?? null;
+    }
+    if (!$userId) {
+        return null;
+    }
+    try {
+        $stmt = $pdo->prepare("SELECT id FROM hr_employees WHERE user_id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        return $row ? (int)$row['id'] : null;
+    } catch (Exception $e) {
+        return null;
+    }
 }
 
 /**

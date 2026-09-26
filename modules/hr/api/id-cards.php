@@ -8,11 +8,16 @@ function out($d, $code = 200) { http_response_code($code); echo json_encode($d);
 if (!isset($_SESSION['user_id'])) {
     out(['ok' => false, 'error' => 'Unauthorized'], 401);
 }
+// WP3: card data, templates and the staff feed expose employee PII
+// (photos, phones, emails). Every action needs hr_manage; the calling
+// pages are all gated the same way, so no legitimate flow breaks.
+if (function_exists('hasPermission') && !hasPermission('hr_manage')) {
+    out(['ok' => false, 'error' => 'Forbidden: HR management permission required'], 403);
+}
 global $pdo;
 
 function canEditCards() {
-    $role = $_SESSION['role'] ?? '';
-    return in_array($role, ['admin', 'manager'], true);
+    return function_exists('hasPermission') && hasPermission('hr_manage');
 }
 
 function cleanJson($s) {

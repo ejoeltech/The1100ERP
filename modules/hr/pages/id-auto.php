@@ -1,7 +1,7 @@
 <?php
 // HR ID Card Maker — Page 3: Auto Production (bulk from HR records or CSV).
 require_once '../../../includes/session-check.php';
-requireLogin();
+requirePermission('hr_manage');
 
 $pageTitle = 'Bulk ID Production | ' . COMPANY_NAME;
 $currentPage = 'hr_idcards';

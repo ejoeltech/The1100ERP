@@ -4,7 +4,7 @@
 require_once '../../../includes/session-check.php';
 require_once '../../../includes/groq-config.php';
 
-requireLogin();
+requirePermission('recruitment_manage');
 
 $pageTitle = 'Recruitment | ' . COMPANY_NAME;
 $currentPage = 'hr_recruitment';

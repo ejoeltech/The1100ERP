@@ -13,6 +13,15 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+// WP3: generating documents for any employee needs hr_manage.
+// (Self-service copies, if ever added, must resolve the employee from the session.)
+require_once '../../../includes/permissions.php';
+if (function_exists('hasPermission') && !hasPermission('hr_manage')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Forbidden: HR management permission required']);
+    exit;
+}
+
 $data = json_decode(file_get_contents('php://input'), true);
 
 if (empty($data['employee_id']) || empty($data['type'])) {

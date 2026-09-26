@@ -9,11 +9,8 @@ require_once '../classes/HR_Payroll.php';
 
 header('Content-Type: application/json');
 
-if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Admin access required']);
-    exit;
-}
+// WP3: payroll runs need payroll_run (admin/accountant groups), not a raw role check.
+requirePermission('payroll_run');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
