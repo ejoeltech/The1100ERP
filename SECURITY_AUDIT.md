@@ -290,6 +290,18 @@ regardless of purging.
   mandatory ENCRYPTION_KEY, accounts, access control, server denies,
   backups, ongoing scans) with open decisions referenced.
 
+## WP15: session-store unification (verified 2026-09-27)
+
+- WP4's `configureSessionCookies()` moved sessions to a hardened path, but
+  ~24 manual-`session_start()` endpoints (all of `api/*` custom bootstrap,
+  `logout.php`, root `index.php`, `ai-settings.php`, `public-init.php`)
+  kept reading the default store: authenticated POSTs bounced to login
+  (and logout could not kill the real session). Every web session bootstrap
+  now runs `configureSessionCookies()` first. Installer flows untouched
+  (isolated, mutually consistent).
+- Verified: previously-failing guard probes (group/user writes as admin)
+  pass; WP3 regression 10/10; lint clean; guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -353,6 +365,7 @@ regardless of purging.
 | WP9-01 | High | v10 `ADD COLUMN IF NOT EXISTS` 1064'd on MariaDB — 18 payroll columns never created on fresh installs | Payroll generate fatals; override/exempt flags dead | fixed (WP9: valid ALTERs + patcher parity + seeds) |
 | WP9-02 | Low | `;` inside COMMENT strings vs `;`-splitting runner | 2 more 1064s on CLI installs | fixed (WP9: reworded) |
 | WP10-01 | Low | CSP missing object/base/form/frame lockdown; htaccess SAMEORIGIN vs DENY; logout absolute Host-based redirect | Plugin/frame/form-action abuse; header duplication | fixed (WP10) |
+| WP15-01 | High | session-store split-brain (hardened path vs default) on ~24 manual endpoints | Authed POSTs bounced; logout missed | fixed (WP15: unified bootstrap) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |

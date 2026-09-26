@@ -1,5 +1,7 @@
 <?php
 // Allow public access - no session required
+require_once '../../includes/security.php';
+configureSessionCookies();
 session_start();
 define('IS_API', true);
 define('ALLOW_PUBLIC', true);

@@ -6,6 +6,8 @@ require_once '../../../includes/groq-config.php';
 require_once '../classes/HR_Employee.php';
 
 // Check permissions (Basic session check)
+require_once '../../../includes/security.php';
+configureSessionCookies();
 session_start();
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);

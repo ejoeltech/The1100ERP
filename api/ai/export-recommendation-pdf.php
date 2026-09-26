@@ -1,5 +1,7 @@
 <?php
 define('IS_API', true);
+require_once '../../includes/security.php';
+configureSessionCookies();
 session_start();
 
 require_once '../../config.php';

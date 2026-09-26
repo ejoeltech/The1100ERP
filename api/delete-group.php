@@ -1,5 +1,7 @@
 <?php
 // Delete a custom group (system groups are protected). Members fall back to role-matched group.
+require_once '../includes/security.php';
+configureSessionCookies();
 session_start();
 require_once '../config.php';
 require_once '../includes/auth.php';

@@ -1,4 +1,6 @@
 <?php
+require_once '../includes/security.php';
+configureSessionCookies();
 session_start();
 include '../includes/session-check.php';
 

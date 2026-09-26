@@ -1,5 +1,7 @@
 <?php
 // Save per-user permission overrides. Deny (0) wins over group; grant (1) adds beyond group.
+require_once '../includes/security.php';
+configureSessionCookies();
 session_start();
 require_once '../config.php';
 require_once '../includes/auth.php';

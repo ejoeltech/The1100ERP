@@ -14,7 +14,9 @@ if (!in_array($__caller, $PUBLIC_ALLOW_LIST, true)) {
 }
 unset($__caller);
 
-// Initialize session without enforcing login
+// Initialize session without enforcing login (WP4-unified store/flags)
+require_once __DIR__ . '/security.php';
+configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
