@@ -217,6 +217,23 @@ compromised — rotation above is mandatory regardless of purging.
 - Verified: `php -l` ×14; HTTP error-path probe returns generic text with
   no SQLSTATE/syntax leakage; guard-audit REVIEW 0.
 
+## WP9: HR/payroll schema repair (verified 2026-09-26)
+
+- `update_schema_v10_payroll.sql` used MariaDB-invalid `ADD COLUMN IF
+  NOT EXISTS`: every v10 ALTER 1064'd, so fresh installs missed all 18
+  columns (`paye/nhf/pension_exempt`, `hourly_rate_override`, 14 payroll
+  breakdown cols) while payroll code reads/writes them. Rewrote as
+  single-column ALTERs (runner ignores Duplicate-column on re-run).
+- Found + fixed a second 1064: `;` inside two COMMENT strings broke the
+  `;`-splitting runner (install.php shares the pattern) — reworded.
+- Web path parity: all 18 columns (`$addCol`), `hr_payroll_items` +
+  `hr_loans` tables, 9 `payroll_*` settings seeds folded into
+  SchemaPatcher (0 errors; created the 4 missing `hr_employees` cols on
+  dev). `HR_Payroll` override read is now `??`-guarded for stale DBs.
+- Verified: v10 re-run yields zero 1064 (only Duplicate skips); all
+  columns present; PAYE known-answer 300k→21,000; class loads under
+  E_ALL warning-free; guard-audit REVIEW 0.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -277,3 +294,5 @@ compromised — rotation above is mandatory regardless of purging.
 | WP7-02 | Medium | signature base64 + import JSON with no size/content checks | DoS / malformed writes | fixed (WP7: caps + image check) |
 | WP7-03 | Medium | all upload dirs web-accessible, no `.htaccess`, no dirs in repo | Executable uploads on misconfig | fixed (WP7: auto-written no-exec guard) |
 | WP8-01 | Low | PDO/exception text echoed to users across 16 endpoints | SQL/table/path disclosure | fixed (WP8: error_log + generic) |
+| WP9-01 | High | v10 `ADD COLUMN IF NOT EXISTS` 1064'd on MariaDB — 18 payroll columns never created on fresh installs | Payroll generate fatals; override/exempt flags dead | fixed (WP9: valid ALTERs + patcher parity + seeds) |
+| WP9-02 | Low | `;` inside COMMENT strings vs `;`-splitting runner | 2 more 1064s on CLI installs | fixed (WP9: reworded) |

@@ -109,8 +109,10 @@ class HR_Payroll
         $gross = $basic + $grossAllowances;
 
         // Hourly rate (for overtime) — explicit override or derived.
-        $hourly = $emp['hourly_rate_override'] !== null && $emp['hourly_rate_override'] > 0
-            ? (float) $emp['hourly_rate_override']
+        // WP9: ?? guards keep stale DBs (pre-v10 columns) warning-free.
+        $override = $emp['hourly_rate_override'] ?? null;
+        $hourly = $override !== null && $override > 0
+            ? (float) $override
             : ($standardHours > 0 ? $basic / $standardHours : 0);
 
         // Overtime from attendance (hours beyond standard shift in the month).

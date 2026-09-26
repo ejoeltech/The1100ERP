@@ -629,6 +629,70 @@ class SchemaPatcher
     `attempts` int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (`bucket`, `window_start`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'auth_throttle' table");
+        // WP9: Nigeria-payroll v10 parity (the v10 SQL file used MariaDB-invalid
+        // ADD COLUMN IF NOT EXISTS, so fresh installs missed every column below;
+        // $addCol is existence-checked, keeping web-driven runs idempotent).
+        $addCol('hr_employees', 'paye_exempt', 'TINYINT(1) DEFAULT 0');
+        $addCol('hr_employees', 'nhf_exempt', 'TINYINT(1) DEFAULT 0');
+        $addCol('hr_employees', 'pension_exempt', 'TINYINT(1) DEFAULT 0');
+        $addCol('hr_employees', 'hourly_rate_override', 'DECIMAL(15,2) DEFAULT NULL');
+        foreach (['gross_salary', 'taxable_income', 'paye', 'nhf', 'pension_employee', 'pension_employer', 'loan_deduction', 'other_deductions', 'total_deductions', 'employer_cost'] as $moneyCol) {
+            $addCol('hr_payroll', $moneyCol, 'DECIMAL(15,2) DEFAULT 0.00');
+        }
+        $addCol('hr_payroll', 'payslip_pdf', 'VARCHAR(255) DEFAULT NULL');
+        $addCol('hr_payroll', 'approved_by', 'INT(10) UNSIGNED DEFAULT NULL');
+        $addCol('hr_payroll', 'approved_at', 'TIMESTAMP NULL DEFAULT NULL');
+        $addCol('hr_payroll', 'paid_at', 'TIMESTAMP NULL DEFAULT NULL');
+        $exec("CREATE TABLE IF NOT EXISTS `hr_payroll_items` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `employee_id` int(11) unsigned NOT NULL,
+    `month` int(2) NOT NULL,
+    `year` int(4) NOT NULL,
+    `type` enum('bonus','commission','overtime','allowance','deduction','loan_repayment') NOT NULL,
+    `description` varchar(255) DEFAULT NULL,
+    `amount` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `created_by` int(10) unsigned DEFAULT NULL,
+    `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_emp_period` (`employee_id`, `month`, `year`),
+    CONSTRAINT `hr_payroll_items_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `hr_employees` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `hr_payroll_items_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'hr_payroll_items' table");
+        $exec("CREATE TABLE IF NOT EXISTS `hr_loans` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `employee_id` int(11) unsigned NOT NULL,
+    `principal` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `interest_pct` decimal(5,2) DEFAULT 0.00,
+    `term_months` int(3) NOT NULL DEFAULT 1,
+    `monthly_repayment` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `total_repaid` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `balance` decimal(15,2) NOT NULL DEFAULT 0.00,
+    `start_month` int(2) NOT NULL,
+    `start_year` int(4) NOT NULL,
+    `status` enum('active','completed','cancelled') DEFAULT 'active',
+    `approved_by` int(10) unsigned DEFAULT NULL,
+    `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_emp` (`employee_id`),
+    INDEX `idx_status` (`status`),
+    CONSTRAINT `hr_loans_ibfk_1` FOREIGN KEY (`employee_id`) REFERENCES `hr_employees` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `hr_loans_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'hr_loans' table");
+        try {
+            $pdo->exec("INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`, `category`, `description`) VALUES
+('payroll_paye_consolidated_relief_pct', '20', 'payroll', 'Consolidated relief allowance % of gross income'),
+('payroll_paye_floor_relief_ngn', '200000', 'payroll', 'Minimum consolidated relief floor (NGN) per annum'),
+('payroll_nhf_pct', '2.5', 'payroll', 'NHF contribution % of gross (employee)'),
+('payroll_pension_employee_pct', '8', 'payroll', 'Pension contribution % of gross (employee)'),
+('payroll_pension_employer_pct', '10', 'payroll', 'Pension contribution % of gross (employer)'),
+('payroll_pension_min_ngn', '3000', 'payroll', 'Minimum monthly employer pension (NGN)'),
+('payroll_overtime_multiplier', '1.5', 'payroll', 'Overtime rate multiplier of hourly pay'),
+('payroll_standard_hours', '173', 'payroll', 'Standard monthly working hours used to derive hourly rate'),
+('payroll_currency_symbol', 'NGN', 'payroll', 'Currency symbol for payslips')");
+            $add('ok', 'seed', 'Ensured payroll settings keys.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding payroll settings: ' . $e->getMessage());
+        }
         foreach ([
             "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `code_hash` CHAR(64) DEFAULT NULL",
             "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `expires_at` DATETIME DEFAULT NULL",

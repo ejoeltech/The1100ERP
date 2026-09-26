@@ -5,7 +5,9 @@
 -- so finance can tune them without touching code.
 --
 -- Apply AFTER hr_schema.sql and update_schema_v2..v9 migrations.
--- Safe to re-run (IF NOT EXISTS / additive ALTERs).
+-- MariaDB has no ADD COLUMN IF NOT EXISTS: each column is its own ALTER so
+-- one existing column cannot abort the rest, and re-runs are safe because
+-- modules/hr/install.php ignores Duplicate-column errors.
 
 SET FOREIGN_KEY_CHECKS=0;
 
@@ -27,11 +29,10 @@ INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`, `category`, `desc
 -- 2. Extend hr_employees with statutory/contribution basics
 --    (additive; existing basic_salary etc. are preserved)
 -- ============================================================
-ALTER TABLE `hr_employees`
-    ADD COLUMN IF NOT EXISTS `paye_exempt` tinyint(1) DEFAULT 0 COMMENT '1 = exempt from PAYE (rare; e.g. below threshold)',
-    ADD COLUMN IF NOT EXISTS `nhf_exempt` tinyint(1) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS `pension_exempt` tinyint(1) DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS `hourly_rate_override` decimal(15,2) DEFAULT NULL COMMENT 'Optional explicit hourly rate; else derived from basic/173h';
+ALTER TABLE `hr_employees` ADD COLUMN `paye_exempt` tinyint(1) DEFAULT 0 COMMENT '1 = exempt from PAYE (rare, e.g. below threshold)';
+ALTER TABLE `hr_employees` ADD COLUMN `nhf_exempt` tinyint(1) DEFAULT 0;
+ALTER TABLE `hr_employees` ADD COLUMN `pension_exempt` tinyint(1) DEFAULT 0;
+ALTER TABLE `hr_employees` ADD COLUMN `hourly_rate_override` decimal(15,2) DEFAULT NULL COMMENT 'Optional explicit hourly rate, else derived from basic/173h';
 
 -- ============================================================
 -- 3. Per-period payroll adjustments (one-off bonus/commission/deduction)
@@ -82,21 +83,20 @@ CREATE TABLE IF NOT EXISTS `hr_loans` (
 --    (existing columns basic_salary, allowances, commission, bonus,
 --     overtime, deductions, tax, net_salary, status are kept.)
 -- ============================================================
-ALTER TABLE `hr_payroll`
-    ADD COLUMN IF NOT EXISTS `gross_salary` decimal(15,2) DEFAULT 0.00 COMMENT 'basic + taxable allowances + overtime + bonus + commission',
-    ADD COLUMN IF NOT EXISTS `taxable_income` decimal(15,2) DEFAULT 0.00 COMMENT 'gross minus approved exemptions',
-    ADD COLUMN IF NOT EXISTS `paye` decimal(15,2) DEFAULT 0.00 COMMENT 'Nigeria PAYE (progressive, monthly)',
-    ADD COLUMN IF NOT EXISTS `nhf` decimal(15,2) DEFAULT 0.00 COMMENT 'NHF 2.5%',
-    ADD COLUMN IF NOT EXISTS `pension_employee` decimal(15,2) DEFAULT 0.00 COMMENT 'Employee pension 8%',
-    ADD COLUMN IF NOT EXISTS `pension_employer` decimal(15,2) DEFAULT 0.00 COMMENT 'Employer pension 10% (cost, not deducted from net)',
-    ADD COLUMN IF NOT EXISTS `loan_deduction` decimal(15,2) DEFAULT 0.00 COMMENT 'Active loan repayment this period',
-    ADD COLUMN IF NOT EXISTS `other_deductions` decimal(15,2) DEFAULT 0.00 COMMENT 'Manual deductions from hr_payroll_items',
-    ADD COLUMN IF NOT EXISTS `total_deductions` decimal(15,2) DEFAULT 0.00 COMMENT 'paye + nhf + pension_employee + loan + other',
-    ADD COLUMN IF NOT EXISTS `employer_cost` decimal(15,2) DEFAULT 0.00 COMMENT 'gross + pension_employer (true staff cost)',
-    ADD COLUMN IF NOT EXISTS `payslip_pdf` varchar(255) DEFAULT NULL COMMENT 'Generated payslip file path',
-    ADD COLUMN IF NOT EXISTS `approved_by` int(10) unsigned DEFAULT NULL,
-    ADD COLUMN IF NOT EXISTS `approved_at` timestamp NULL DEFAULT NULL,
-    ADD COLUMN IF NOT EXISTS `paid_at` timestamp NULL DEFAULT NULL;
+ALTER TABLE `hr_payroll` ADD COLUMN `gross_salary` decimal(15,2) DEFAULT 0.00 COMMENT 'basic + taxable allowances + overtime + bonus + commission';
+ALTER TABLE `hr_payroll` ADD COLUMN `taxable_income` decimal(15,2) DEFAULT 0.00 COMMENT 'gross minus approved exemptions';
+ALTER TABLE `hr_payroll` ADD COLUMN `paye` decimal(15,2) DEFAULT 0.00 COMMENT 'Nigeria PAYE (progressive, monthly)';
+ALTER TABLE `hr_payroll` ADD COLUMN `nhf` decimal(15,2) DEFAULT 0.00 COMMENT 'NHF 2.5%';
+ALTER TABLE `hr_payroll` ADD COLUMN `pension_employee` decimal(15,2) DEFAULT 0.00 COMMENT 'Employee pension 8%';
+ALTER TABLE `hr_payroll` ADD COLUMN `pension_employer` decimal(15,2) DEFAULT 0.00 COMMENT 'Employer pension 10% (cost, not deducted from net)';
+ALTER TABLE `hr_payroll` ADD COLUMN `loan_deduction` decimal(15,2) DEFAULT 0.00 COMMENT 'Active loan repayment this period';
+ALTER TABLE `hr_payroll` ADD COLUMN `other_deductions` decimal(15,2) DEFAULT 0.00 COMMENT 'Manual deductions from hr_payroll_items';
+ALTER TABLE `hr_payroll` ADD COLUMN `total_deductions` decimal(15,2) DEFAULT 0.00 COMMENT 'paye + nhf + pension_employee + loan + other';
+ALTER TABLE `hr_payroll` ADD COLUMN `employer_cost` decimal(15,2) DEFAULT 0.00 COMMENT 'gross + pension_employer (true staff cost)';
+ALTER TABLE `hr_payroll` ADD COLUMN `payslip_pdf` varchar(255) DEFAULT NULL COMMENT 'Generated payslip file path';
+ALTER TABLE `hr_payroll` ADD COLUMN `approved_by` int(10) unsigned DEFAULT NULL;
+ALTER TABLE `hr_payroll` ADD COLUMN `approved_at` timestamp NULL DEFAULT NULL;
+ALTER TABLE `hr_payroll` ADD COLUMN `paid_at` timestamp NULL DEFAULT NULL;
 
 -- Keep the legacy `deductions`/`tax` columns in sync-friendly state:
 -- we no longer rely on them; `total_deductions` is the source of truth.

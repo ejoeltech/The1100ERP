@@ -20,7 +20,7 @@ PDF, and an approval/paid workflow.
 1. Install base HR module first: run `modules/hr/hr_schema.sql` then
    `update_schema_v2.sql … update_schema_v9_*.sql` (in order).
 2. Run this migration: `modules/hr/update_schema_v10_payroll.sql`.
-   It is additive and safe to re-run (IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
+   It is additive and safe to re-run (single-column ALTERs; the installer ignores Duplicate-column errors).
 3. Ensure employee records have `basic_salary`, `housing_allowance`,
    `transport_allowance`, `other_allowances` populated.
 4. Tune rates in the `settings` table if needed (keys prefixed `payroll_*`).
