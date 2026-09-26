@@ -115,6 +115,7 @@ include_once '../../../includes/header.php';
             </div>
 
             <form method="POST" class="w-full">
+                <?php echo csrfField(); ?>
                 <?php if (!$today_record): ?>
                     <button type="submit" name="action" value="clock_in" class="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xl shadow-lg transition-transform transform hover:-translate-y-1">
                         ⏱️ Clock In

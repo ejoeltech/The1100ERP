@@ -2,12 +2,16 @@
 session_start();
 require_once '../config.php';
 require_once '../includes/helpers.php';
+require_once '../includes/security.php';
 
 // Check authentication
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
 }
+
+// WP4: explicit CSRF check (manual session bootstrap, no central gate).
+requireCsrf();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/view-invoices.php');

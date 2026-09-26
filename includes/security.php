@@ -25,6 +25,31 @@ function csrfField() {
     return '<input type="hidden" name="csrf_token" value="' . generateCSRFToken() . '">';
 }
 
+/**
+ * Enforce CSRF on a state-changing request (WP4).
+ * Accepts the token from the POST field or the X-CSRF-TOKEN header
+ * (injected into every fetch() by assets/js/helpers.js).
+ * On failure: JSON 403 for API-ish callers, plain 403 otherwise.
+ */
+function requireCsrf()
+{
+    $token = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    if (!validateCSRFToken($token)) {
+        http_response_code(403);
+        $isApi = (defined('IS_API') && IS_API)
+            || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest')
+            || (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false)
+            || (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+        if ($isApi) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Invalid CSRF token']);
+        } else {
+            echo 'Invalid CSRF token. Please go back and try again.';
+        }
+        exit;
+    }
+}
+
 // ============================================
 // Rate Limiting (Login Attempts)
 // ============================================
@@ -147,6 +172,35 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_samesite', 'Strict');
+}
+
+/**
+ * Harden PHP session handling. MUST run before session_start() (WP4).
+ * - strict mode, cookies-only, httponly, SameSite=Strict
+ * - Secure flag when the request is HTTPS (auto; production terminates TLS)
+ * - session files outside the web root (SESSION_PATH env or OS temp dir)
+ * - GC lifetime aligned with the 8h absolute timeout
+ */
+function configureSessionCookies()
+{
+    if (session_status() !== PHP_SESSION_NONE) {
+        return;
+    }
+    ini_set('session.use_strict_mode', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_samesite', 'Strict');
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    ini_set('session.cookie_secure', $https ? 1 : 0);
+    $savePath = getenv('SESSION_PATH') ?: (rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'erp_sess');
+    if (!is_dir($savePath)) {
+        @mkdir($savePath, 0700, true);
+    }
+    if (is_dir($savePath) && is_writable($savePath)) {
+        ini_set('session.save_path', $savePath);
+    }
+    ini_set('session.gc_maxlifetime', 28800);
 }
 
 function secureSession() {

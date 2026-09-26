@@ -1,8 +1,9 @@
 <?php
+require_once 'includes/security.php';
+configureSessionCookies();
 session_start();
 require_once 'config.php';
 require_once 'includes/auth.php';
-require_once 'includes/security.php';
 
 // Secure Session
 secureSession();
@@ -23,15 +24,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-        // 2. Check Rate Limit
-        $rateCheck = checkLoginAttempts($username);
-        if ($rateCheck !== true) {
-            $error = $rateCheck;
+        // 2. Rate limits (WP4): global + per-IP + per-username, DB-backed so
+        // clearing cookies does not reset them. Generic messages throughout.
+        require_once 'includes/invites.php'; // throttleCheck()
+        $rateError = null;
+        if (!throttleCheck('login_global', 300, 3600)) {
+            $rateError = 'Too many login attempts right now. Try again later.';
+        } elseif (!throttleCheck('login_ip:' . preg_replace('/[^a-z0-9_.:]/i', '', $ip), 30, 3600)) {
+            $rateError = 'Too many login attempts from your network. Try again later.';
+        } elseif (!throttleCheck('login_user:' . md5(strtolower($username)), 10, 900)) {
+            $rateError = 'Too many login attempts for this account. Try again later.';
+        }
+        if ($rateError !== null) {
+            loginAuditLog($pdo, $username, $ip, 'rate_limited');
+            $error = $rateError;
         } else {
+            // Small progressive delay blunts online guessing (bounded).
+            usleep(500000);
             // 3. Attempt login
             if (login($pdo, $username, $password)) {
-                clearLoginAttempts($username);
                 // WP2: accounts flagged for forced reset cannot start a session.
                 // They don't know any password (random), so this only fires for
                 // inconsistencies — direct them to their invite link / admin.
@@ -55,14 +68,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $error = 'A password reset is required on this account. Use your invite link or contact an administrator.';
                 } else {
+                    // WP4: accounts with MFA pause here with zero privileges until
+                    // the second step (pages/login-mfa.php) verifies the code.
+                    require_once 'includes/totp.php';
+                    $loginUid = $_SESSION['user_id'] ?? null;
+                    if ($loginUid && mfaIsEnabled($loginUid)) {
+                        session_regenerate_id(true);
+                        $_SESSION['mfa_pending'] = ['user_id' => $loginUid, 'at' => time()];
+                        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['full_name'], $_SESSION['role']);
+                        loginAuditLog($pdo, $username, $ip, 'mfa_challenge');
+                        header('Location: pages/login-mfa.php');
+                        exit;
+                    }
+                    loginAuditLog($pdo, $username, $ip, 'success');
                     header('Location: dashboard.php');
                     exit;
                 }
             } else {
-                recordFailedLogin($username);
+                // Identical message + comparable timing for unknown users and
+                // wrong passwords (WP4: no oracle, no timing leak).
+                dummyPasswordVerify();
+                loginAuditLog($pdo, $username, $ip, 'failed');
                 $error = 'Invalid username or password';
             }
         }
+    }
+}
+
+/**
+ * Best-effort audit row for login outcomes (never includes passwords).
+ */
+function loginAuditLog($pdo, $username, $ip, $outcome)
+{
+    try {
+        require_once 'includes/audit.php';
+        if (function_exists('logAudit')) {
+            logAudit('login_' . $outcome, 'user', null, ['username' => mb_substr($username, 0, 50), 'ip' => $ip]);
+        }
+    } catch (Exception $e) {
+        // logging must never break login
     }
 }
 ?>

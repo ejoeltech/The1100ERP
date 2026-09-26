@@ -14,6 +14,7 @@ include '../includes/header.php';
     </div>
 
     <form id="quoteForm" method="POST" action="../api/save-readymade-quote.php">
+        <?php echo csrfField(); ?>
 
         <!-- Template Info Section -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">

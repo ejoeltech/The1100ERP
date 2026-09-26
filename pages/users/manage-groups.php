@@ -91,7 +91,12 @@ include '../../includes/header.php';
                                 <a href="?edit=<?php echo $g['id']; ?>#editor" class="text-primary hover:text-blue-700">Edit</a>
                                 <?php if (!$g['is_system']): ?>
                                     <span class="text-gray-300">|</span>
-                                    <a href="../../api/delete-group.php?id=<?php echo $g['id']; ?>" class="text-red-600 hover:text-red-700" onclick="return confirm('Delete group <?php echo htmlspecialchars($g['name'], ENT_QUOTES); ?>? Members will be moved to their role group.');">Delete</a>
+                                    <form method="POST" action="../../api/delete-group.php" class="inline"
+                                        onsubmit="return confirm('Delete group <?php echo htmlspecialchars($g['name'], ENT_QUOTES); ?>? Members will be moved to their role group.');">
+                                        <?php echo csrfField(); ?>
+                                        <input type="hidden" name="id" value="<?php echo $g['id']; ?>">
+                                        <button type="submit" class="text-red-600 hover:text-red-700">Delete</button>
+                                    </form>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -105,6 +110,7 @@ include '../../includes/header.php';
     <div id="editor" class="mt-8 border-t pt-6">
         <h3 class="text-xl font-bold text-gray-900 mb-4"><?php echo $editing ? 'Edit Group: ' . htmlspecialchars($editing['name']) : 'Create Custom Group'; ?></h3>
         <form method="POST" action="../../api/save-group.php">
+            <?php echo csrfField(); ?>
             <?php if ($editing): ?>
                 <input type="hidden" name="group_id" value="<?php echo $editing['id']; ?>">
             <?php endif; ?>

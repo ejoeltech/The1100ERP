@@ -42,6 +42,7 @@ include '../../includes/header.php';
     <?php endif; ?>
     
     <form method="POST" action="../../api/update-user.php">
+        <?php echo csrfField(); ?>
         <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
         
         <div class="space-y-6">

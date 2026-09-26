@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 requirePermission('delete_document');
+require_once '../includes/security.php';
+requireCsrf();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/readymade-quotes.php');

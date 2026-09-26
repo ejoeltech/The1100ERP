@@ -6,6 +6,11 @@ require_once '../../../includes/invites.php';
 requireLogin();
 requirePermission('hr_manage');
 
+// WP4: all state-changing posts on this page carry CSRF (fields added below).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !validateCSRFToken($_POST['csrf_token'] ?? '')) {
+    die('Invalid CSRF token. Please go back and try again.');
+}
+
 $pageTitle = 'Onboarding Management | ' . COMPANY_NAME;
 $currentPage = 'hr_onboarding';
 
@@ -116,6 +121,7 @@ include_once '../../../includes/header.php';
             <?php endif; ?>
 
             <form method="POST">
+                <?php echo csrfField(); ?>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <select name="role" class="w-full rounded-lg border-gray-300">
@@ -182,6 +188,7 @@ include_once '../../../includes/header.php';
                                 <div class="flex gap-2">
                                     <form method="POST"
                                         onsubmit="return confirm('Import this employee? This will create a User account.');">
+                                        <?php echo csrfField(); ?>
                                         <input type="hidden" name="entry_id" value="<?php echo $e['id']; ?>">
                                         <button type="submit" name="import_entry"
                                             class="px-4 py-2 bg-green-600 text-white text-sm rounded font-bold hover:bg-green-700">Import</button>

@@ -192,18 +192,25 @@ include '../../includes/header.php';
 
                                     <?php if ($user['id'] != $current_user['id']): // Can't toggle own status ?>
                                         <span class="text-gray-300">|</span>
-                                        <a href="../../api/toggle-user-status.php?id=<?php echo $user['id']; ?>"
-                                            class="text-<?php echo $user['is_active'] ? 'yellow' : 'green'; ?>-600 hover:text-<?php echo $user['is_active'] ? 'yellow' : 'green'; ?>-700 font-semibold text-sm"
-                                            onclick="return confirm('<?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?> this user?');">
-                                            <?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?>
-                                        </a>
+                                        <form method="POST" action="../../api/toggle-user-status.php" class="inline"
+                                            onsubmit="return confirm('<?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?> this user?');">
+                                            <?php echo csrfField(); ?>
+                                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                                            <button type="submit"
+                                                class="text-<?php echo $user['is_active'] ? 'yellow' : 'green'; ?>-600 hover:text-<?php echo $user['is_active'] ? 'yellow' : 'green'; ?>-700 font-semibold text-sm">
+                                                <?php echo $user['is_active'] ? 'Deactivate' : 'Activate'; ?>
+                                            </button>
+                                        </form>
 
                                         <span class="text-gray-300">|</span>
-                                        <a href="../../api/delete-user.php?id=<?php echo $user['id']; ?>"
-                                            class="text-red-600 hover:text-red-700 font-semibold text-sm"
-                                            onclick="return confirm('Delete this user? This action cannot be undone.');">
-                                            Delete
-                                        </a>
+                                        <form method="POST" action="../../api/delete-user.php" class="inline"
+                                            onsubmit="return confirm('Delete this user? This action cannot be undone.');">
+                                            <?php echo csrfField(); ?>
+                                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                                            <button type="submit" class="text-red-600 hover:text-red-700 font-semibold text-sm">
+                                                Delete
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                 </div>
                             </td>

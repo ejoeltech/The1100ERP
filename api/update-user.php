@@ -12,6 +12,8 @@ if (!isLoggedIn()) {
 }
 
 requirePermission('edit_user');
+require_once '../includes/security.php';
+requireCsrf();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-users.php');
@@ -145,6 +147,10 @@ try {
     }
     if (function_exists('clearUserPermissionCache')) {
         clearUserPermissionCache($user_id);
+    }
+    // WP4: role/group/status/password changes revoke the target's other sessions.
+    if (function_exists('revokeOtherSessions')) {
+        revokeOtherSessions($user_id);
     }
 
     $dest = '../pages/users/manage-users.php?updated=1';

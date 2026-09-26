@@ -85,6 +85,7 @@ $leads = $stmt->fetchAll();
                     </td>
                     <td class="px-6 py-4 text-right text-sm space-x-2">
                         <form method="POST" action="../../api/leads/update-lead.php" class="inline">
+                            <?php echo csrfField(); ?>
                             <input type="hidden" name="lead_id" value="<?php echo $lead['id']; ?>">
                             <select name="status" onchange="this.form.submit()" class="text-xs border border-gray-300 rounded px-2 py-1">
                                 <?php foreach (['new','contacted','qualified','converted','lost'] as $s): ?>
@@ -93,6 +94,7 @@ $leads = $stmt->fetchAll();
                             </select>
                         </form>
                         <form method="POST" action="../../api/leads/convert-lead.php" class="inline">
+                            <?php echo csrfField(); ?>
                             <input type="hidden" name="lead_id" value="<?php echo $lead['id']; ?>">
                             <button type="submit" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs font-semibold">Convert</button>
                         </form>

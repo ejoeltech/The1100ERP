@@ -11,8 +11,16 @@ if (!isLoggedIn()) {
 }
 
 requirePermission('toggle_user_status');
+require_once '../includes/security.php';
+requireCsrf();
 
-$user_id = $_GET['id'] ?? null;
+// WP4: POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/users/manage-users.php');
+    exit;
+}
+
+$user_id = $_POST['id'] ?? null;
 
 if (!$user_id) {
     header('Location: ../pages/users/manage-users.php');
@@ -48,6 +56,11 @@ try {
 
     $stmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ?");
     $stmt->execute([$new_status, $user_id]);
+
+    // WP4: deactivation revokes all of the target's sessions immediately.
+    if ($new_status == 0 && function_exists('revokeAllSessions')) {
+        revokeAllSessions($user_id);
+    }
 
     // Log audit trail
     logUserStatusToggle($user_id, $user['username'], $new_status);

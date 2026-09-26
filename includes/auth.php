@@ -76,27 +76,7 @@ function login($pdo, $username, $password)
             $stmt->execute([$newHash, $user['id']]);
         }
 
-        // Regenerate session ID to prevent session fixation
-        session_regenerate_id(true);
-
-        // Set session
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['full_name'] = $user['full_name'];
-
-        // Set role if column exists (Phase 3A)
-        if (isset($user['role'])) {
-            $_SESSION['role'] = $user['role'];
-        }
-
-        // Update last login
-        $stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-        $stmt->execute([$user['id']]);
-
-        // Log audit trail (Phase 3A) - only if audit system is loaded
-        if (function_exists('logUserLogin')) {
-            logUserLogin($user['id'], $user['username']);
-        }
+        completeLoginSession($pdo, $user);
 
         return true;
     }
@@ -104,8 +84,47 @@ function login($pdo, $username, $password)
     return false;
 }
 
+/**
+ * Establish an authenticated session for an already-verified user
+ * (used by password login and by the MFA second step alike).
+ */
+function completeLoginSession($pdo, $user)
+{
+    // Regenerate session ID to prevent session fixation
+    session_regenerate_id(true);
+
+    // Set session
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['username'] = $user['username'];
+    $_SESSION['full_name'] = $user['full_name'];
+
+    // Set role if column exists (Phase 3A)
+    if (isset($user['role'])) {
+        $_SESSION['role'] = $user['role'];
+    }
+    unset($_SESSION['mfa_pending']);
+
+    // Update last login
+    $stmt = $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
+    $stmt->execute([$user['id']]);
+
+    // Log audit trail (Phase 3A) - only if audit system is loaded
+    if (function_exists('logUserLogin')) {
+        logUserLogin($user['id'], $user['username']);
+    }
+
+    // Register this session for revocation support (WP4)
+    if (function_exists('registerUserSession')) {
+        registerUserSession($user['id']);
+    }
+}
+
 function logout()
 {
+    // Revoke this session server-side first (WP4 session registry).
+    if (function_exists('revokeCurrentSession')) {
+        revokeCurrentSession();
+    }
     $_SESSION = array();
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
@@ -120,6 +139,106 @@ function logout()
     $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
     header('Location: ' . $protocol . '://' . $host . $base . '/login.php');
     exit;
+}
+
+/**
+ * Server-side session registry (WP4 revocation).
+ * Sessions are keyed by SHA-256 of the PHP session id (never stored raw).
+ */
+function currentSessionHash()
+{
+    return hash('sha256', session_id() . '|erp-session');
+}
+
+function registerUserSession($userId)
+{
+    global $pdo;
+    if (!($pdo instanceof PDO)) {
+        return;
+    }
+    try {
+        $stmt = $pdo->prepare("INSERT INTO user_sessions (session_hash, user_id, ip_address) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE last_seen = NOW(), ip_address = VALUES(ip_address)");
+        $stmt->execute([currentSessionHash(), $userId, $_SERVER['REMOTE_ADDR'] ?? null]);
+        $_SESSION['sess_registered_at'] = time();
+    } catch (Exception $e) {
+        // Table missing (migration pending): sessions still work, revocation waits.
+    }
+}
+
+function touchUserSession()
+{
+    global $pdo;
+    // Throttle last_seen writes to ~5 minutes.
+    if (!empty($_SESSION['sess_registered_at']) && (time() - $_SESSION['sess_registered_at']) < 300) {
+        return;
+    }
+    registerUserSession($_SESSION['user_id'] ?? 0);
+}
+
+function sessionStillValid($userId)
+{
+    global $pdo;
+    if (!($pdo instanceof PDO)) {
+        return true;
+    }
+    try {
+        // Grace: users with no registered sessions yet (pre-WP4 logins) pass
+        // until their next full login registers one.
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM user_sessions WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            return true;
+        }
+        $stmt = $pdo->prepare("SELECT 1 FROM user_sessions WHERE session_hash = ? AND user_id = ?");
+        $stmt->execute([currentSessionHash(), $userId]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return true;
+    }
+}
+
+function revokeOtherSessions($userId)
+{
+    global $pdo;
+    if (!($pdo instanceof PDO)) {
+        return;
+    }
+    try {
+        $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE user_id = ? AND session_hash <> ?");
+        $stmt->execute([$userId, currentSessionHash()]);
+    } catch (Exception $e) {
+        // best effort
+    }
+}
+
+function revokeAllSessions($userId)
+{
+    global $pdo;
+    if (!($pdo instanceof PDO)) {
+        return;
+    }
+    try {
+        $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE user_id = ?");
+        $stmt->execute([$userId]);
+    } catch (Exception $e) {
+        // best effort
+    }
+}
+
+function revokeCurrentSession()
+{
+    global $pdo;
+    if (!($pdo instanceof PDO)) {
+        return;
+    }
+    try {
+        if (session_status() === PHP_SESSION_ACTIVE && session_id() !== '') {
+            $stmt = $pdo->prepare("DELETE FROM user_sessions WHERE session_hash = ?");
+            $stmt->execute([currentSessionHash()]);
+        }
+    } catch (Exception $e) {
+        // best effort
+    }
 }
 
 function getBaseUrl()

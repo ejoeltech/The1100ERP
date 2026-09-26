@@ -1,8 +1,10 @@
 <?php
 require_once 'config.php';
+require_once 'includes/security.php';
 require_once 'includes/invites.php';
 // Public Signup Landing Page (WP2: hash-verified, expiring, throttled codes)
 
+configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -11,6 +13,9 @@ $error = '';
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = "Invalid security token. Please reload and try again.";
+    } else {
     $code = trim($_POST['code'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
 
@@ -34,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: modules/hr/pages/signup-form.php");
             exit;
         }
+    }
     }
 }
 ?>
@@ -65,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" class="space-y-5">
+            <?php echo csrfField(); ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Signup Code</label>
                 <input type="text" name="code" placeholder="OB-XXXXXX" required

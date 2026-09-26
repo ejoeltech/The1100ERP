@@ -2,7 +2,13 @@
 include '../../includes/session-check.php';
 requirePermission('manage_products');
 
-$id = intval($_GET['id'] ?? 0);
+// WP4: POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../../pages/products/manage-products.php');
+    exit;
+}
+
+$id = intval($_POST['id'] ?? 0);
 if (!$id) {
     header('Location: ../../pages/products/manage-products.php?error=Invalid product');
     exit;

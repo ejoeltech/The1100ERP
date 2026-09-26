@@ -27,6 +27,7 @@ include '../../includes/header.php';
     <?php endif; ?>
 
     <form method="POST" action="../../api/save-user.php">
+        <?php echo csrfField(); ?>
         <div class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

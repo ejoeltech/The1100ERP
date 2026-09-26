@@ -154,10 +154,14 @@ include '../../includes/header.php';
                             <a href="edit-product.php?id=<?php echo $product['id']; ?>"
                                 class="text-primary hover:text-blue-700 font-semibold text-sm">Edit</a>
                             <span class="text-gray-300">|</span>
-                            <a href="../../api/products/toggle-product-status.php?id=<?php echo $product['id']; ?>"
-                                class="text-yellow-600 hover:text-yellow-700 font-semibold text-sm">
-                                <?php echo $product['is_active'] ? 'Disable' : 'Enable'; ?>
-                            </a>
+                            <form method="POST" action="../../api/products/toggle-product-status.php" class="inline">
+                                <?php echo csrfField(); ?>
+                                <input type="hidden" name="id" value="<?php echo $product['id']; ?>">
+                                <button type="submit"
+                                    class="text-yellow-600 hover:text-yellow-700 font-semibold text-sm">
+                                    <?php echo $product['is_active'] ? 'Disable' : 'Enable'; ?>
+                                </button>
+                            </form>
                             <span class="text-gray-300">|</span>
                             <button onclick="deleteProduct(<?php echo $product['id']; ?>)"
                                 class="text-red-600 hover:text-red-800 font-semibold text-sm">Delete</button>

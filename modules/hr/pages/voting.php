@@ -130,6 +130,7 @@ include_once '../../../includes/header.php';
             </div>
         <?php elseif ($voter): ?>
             <form method="POST" class="space-y-4">
+                <?php echo csrfField(); ?>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Select Colleague</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">

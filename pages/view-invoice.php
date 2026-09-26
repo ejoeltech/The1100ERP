@@ -105,6 +105,7 @@ include '../includes/header.php';
         <form method="POST" action="../api/finalize-invoice.php"
             onsubmit="return confirm('Are you sure you want to finalize this invoice? It cannot be edited afterwards.');"
             class="inline">
+            <?php echo csrfField(); ?>
             <input type="hidden" name="invoice_id" value="<?php echo $invoice_id; ?>">
             <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
                 🔒 Finalize Invoice

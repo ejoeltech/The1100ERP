@@ -1,6 +1,7 @@
 <?php
 // HR Onboarding Form (Self Service)
 require_once '../../../config.php';
+require_once '../../../includes/security.php';
 session_start();
 
 if (!isset($_SESSION['onboarding_code_id'])) {
@@ -31,6 +32,11 @@ $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // WP4: token check on the self-service post (defense in depth; the
+    // onboarding session itself is the primary gate).
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        die('Invalid security token. Please go back and try again.');
+    }
     // Handle File Uploads (Passport & Signature)
     $uploadDir = '../assets/uploads/onboarding/';
     if (!file_exists($uploadDir)) {
@@ -161,6 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php else: ?>
 
             <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+                <?php echo csrfField(); ?>
                 <!-- Personal Info -->
                 <div>
                     <h3 class="text-lg font-bold text-gray-800 border-b pb-2 mb-4">Personal Information</h3>

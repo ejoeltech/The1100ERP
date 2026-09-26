@@ -20,16 +20,17 @@ function throttleCheck($bucket, $maxAttempts, $windowSecs = 3600)
 {
     global $pdo;
     $bucket = substr(preg_replace('/[^a-z0-9_:\-\.@]/i', '', $bucket), 0, 120);
+    $windowSecs = max(60, (int)$windowSecs);
     try {
-        $pdo->exec("DELETE FROM auth_throttle WHERE window_start < DATE_SUB(NOW(), INTERVAL " . (int)$windowSecs . " SECOND)");
-        $stmt = $pdo->prepare("SELECT attempts FROM auth_throttle WHERE bucket = ? AND window_start >= DATE_SUB(NOW(), INTERVAL " . (int)$windowSecs . " SECOND) ORDER BY window_start DESC LIMIT 1");
+        // Floored window key so concurrent attempts share one row and the
+        // counter actually accumulates (PK is bucket+window_start).
+        $pdo->exec("DELETE FROM auth_throttle WHERE window_start < DATE_SUB(NOW(), INTERVAL $windowSecs SECOND)");
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(attempts), 0) FROM auth_throttle WHERE bucket = ? AND window_start >= DATE_SUB(NOW(), INTERVAL $windowSecs SECOND)");
         $stmt->execute([$bucket]);
-        $row = $stmt->fetch();
-        $attempts = $row ? (int)$row['attempts'] : 0;
-        if ($attempts >= $maxAttempts) {
+        if ((int)$stmt->fetchColumn() >= $maxAttempts) {
             return false;
         }
-        $stmt = $pdo->prepare("INSERT INTO auth_throttle (bucket, window_start, attempts) VALUES (?, NOW(), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
+        $stmt = $pdo->prepare("INSERT INTO auth_throttle (bucket, window_start, attempts) VALUES (?, FROM_UNIXTIME(UNIX_TIMESTAMP(NOW()) DIV $windowSecs * $windowSecs), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
         $stmt->execute([$bucket]);
         return true;
     } catch (Exception $e) {

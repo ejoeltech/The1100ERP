@@ -3,7 +3,13 @@ require_once '../config.php';
 // session_check assumes user is logged in
 include '../includes/session-check.php';
 
-$quote_id = $_GET['id'] ?? null;
+// WP4: state-changing endpoint accepts POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/view-quotes.php?error=Invalid request method');
+    exit;
+}
+
+$quote_id = $_POST['id'] ?? null;
 
 if (!$quote_id) {
     header('Location: ../pages/view-quotes.php?error=No quote specified');

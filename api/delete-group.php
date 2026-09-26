@@ -11,8 +11,16 @@ if (!isLoggedIn()) {
 }
 
 requirePermission('manage_access');
+require_once '../includes/security.php';
+requireCsrf();
 
-$group_id = $_GET['id'] ?? $_POST['id'] ?? null;
+// WP4: POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/users/manage-groups.php');
+    exit;
+}
+
+$group_id = $_POST['id'] ?? null;
 if (!$group_id) {
     header('Location: ../pages/users/manage-groups.php');
     exit;

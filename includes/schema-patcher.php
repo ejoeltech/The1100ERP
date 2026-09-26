@@ -580,6 +580,29 @@ class SchemaPatcher
         }
         $addCol('users', 'group_id', 'INT(11) UNSIGNED DEFAULT NULL');
         $addCol('users', 'must_change_password', 'TINYINT(1) NOT NULL DEFAULT 0');
+        $addCol('users', 'mfa_secret', 'TEXT DEFAULT NULL');
+        $addCol('users', 'mfa_enabled', 'TINYINT(1) NOT NULL DEFAULT 0');
+        $addCol('users', 'mfa_enrolled_at', 'DATETIME DEFAULT NULL');
+        $exec("CREATE TABLE IF NOT EXISTS `mfa_recovery_codes` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` int(10) unsigned NOT NULL,
+    `code_hash` varchar(255) NOT NULL,
+    `used_at` datetime DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_mfa_rc_user` (`user_id`),
+    CONSTRAINT `mfa_recovery_codes_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'mfa_recovery_codes' table");
+        $exec("CREATE TABLE IF NOT EXISTS `user_sessions` (
+    `session_hash` char(64) NOT NULL,
+    `user_id` int(10) unsigned NOT NULL,
+    `ip_address` varchar(45) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `last_seen` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`session_hash`),
+    KEY `idx_us_user` (`user_id`),
+    CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_sessions' table");
         $exec("CREATE TABLE IF NOT EXISTS `user_invites` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
     `user_id` int(10) unsigned NOT NULL,

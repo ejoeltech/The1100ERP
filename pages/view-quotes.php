@@ -274,9 +274,32 @@ include '../includes/header.php';
 <script>initBulkActions('quote');</script>
 
 <script>
+    // WP4: POST helper for state-changing actions (CSRF token from meta tag).
+    function postApiAction(path, params) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = path;
+        for (const [k, v] of Object.entries(params)) {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = k;
+            inp.value = v;
+            form.appendChild(inp);
+        }
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) {
+            const t = document.createElement('input');
+            t.type = 'hidden';
+            t.name = 'csrf_token';
+            t.value = meta.getAttribute('content');
+            form.appendChild(t);
+        }
+        document.body.appendChild(form);
+        form.submit();
+    }
     function deleteQuote(quoteId, quoteNumber) {
         if (confirm(`Are you sure you want to delete quote ${quoteNumber}?\n\nThis action cannot be undone.`)) {
-            window.location.href = `../api/delete-quote.php?id=${quoteId}`;
+            postApiAction('../api/delete-quote.php', { id: quoteId });
         }
     }
 </script>

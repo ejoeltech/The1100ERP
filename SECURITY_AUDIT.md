@@ -116,6 +116,41 @@ compromised — rotation above is mandatory regardless of purging.
   guards. Verified by lint-all + all three behavior suites + page renders.
   Rule adopted: file writes only via edit/write tools, never scripts.
 
+## WP4: authentication & session hardening (verified 2026-09-26)
+
+- TOTP MFA (`includes/totp.php`, zero dependencies): RFC 6238 SHA1/30s/6-digit
+  ±1-step; secrets AES-256-GCM at rest (ENCRYPTION_KEY); 10 single-use
+  Argon2 recovery codes shown once. Mandatory for super_admin/admin/
+  accountant + hr_manage/payroll_run holders (confinement to
+  `pages/users/security-mfa.php`); enrollment/verify/disable/regen over
+  session-check POST + CSRF; login pauses with zero privileges in
+  `mfa_pending` (10-min) until `pages/login-mfa.php` verifies (TOTP or
+  recovery, per-IP 10/h throttle, single-use enforced).
+- Login rate limits (`login.php` + `throttleCheck()` fix): global 300/h,
+  per-IP 30/h, per-user 10/15min, DB-backed (cookie-clear proof); generic
+  messages + dummy verify (no oracle/timing leak); outcomes to audit_log.
+  Fixed `throttleCheck()` floored window key (old NOW() PK never
+  accumulated — limits never engaged).
+- Sessions: strict/cookies-only/httponly/SameSite=Strict (+Secure on HTTPS),
+  files outside web root, 5-min ID rotation, idle 30m / absolute 8h,
+  server-side registry (`user_sessions`, hashed IDs) with revocation on
+  password change (others), role/group/status change, deactivation (all),
+  logout (current); fail-open only when tables missing (pre-migration).
+- CSRF default-deny: central POST gate in `session-check.php` (field or
+  X-CSRF-TOKEN header auto-injected by `helpers.js` fetch wrapper + meta
+  tag); explicit `requireCsrf()` on manual-session APIs; tokens on all
+  forms; 7 state-changing GETs converted to POST (convert/duplicate quote,
+  duplicate/use-readymade, delete-quote/user/group, toggle user/product).
+- Fail-closed fallbacks in session-check (old stubs returned true/allowed
+  everything on stale DBs). Fresh-install coverage: WP4 objects folded into
+  SchemaPatcher + install-schema.sql (patcher run: 0 errors, idempotent).
+- guard-audit `--strict`: REVIEW 0 (`pages/login-mfa.php` allow-listed with
+  its mfa_pending+CSRF+throttle gate documented).
+- Verified: TOTP unit (3 RFC vectors + crypto + codes) ALL-PASS; MFA HTTP
+  13/13; rate-limit 2/2; revocation+CSRF 7/7; WP3 CSRF-aware regression
+  10/10; `php -l` clean; test users/rows deleted (`wp*`), throttle cleared,
+  temp ENCRYPTION_KEY removed from `.env`.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
@@ -157,3 +192,10 @@ compromised — rotation above is mandatory regardless of purging.
 | WP1-04 | Medium | `config.php` disclosed PDO errors (host/db/user); permissive root/empty defaults | Info disclosure + weak-default encouragement | fixed (WP1: env-first loader, fail-fast 503, no error details; verified both paths) |
 | WP1-05 | Medium | installer `generateConfig()` embedded secrets in defines | Every installed config.php carried creds in code | fixed (WP1: wizard writes `.env`, copies secret-free loader) |
 | WP1-06 | Low | `.git/` deployability | Must never be web-accessible | open → WP12 server configs (deny rules) |
+| WP4-01 | High | login rate limit (`throttleCheck()` NOW() PK + session-based `checkLoginAttempts`) | Counters never accumulated across requests; cookie-clear reset | fixed (WP4: floored DB window key; global+IP+user limits; verified lockout) |
+| WP4-02 | High | no MFA; password-only for privileged roles | Credential theft = full takeover | fixed (WP4: mandatory TOTP + recovery for admin/accountant/HR-payroll; verified) |
+| WP4-03 | High | state-changing GETs (convert/duplicate/delete/toggle links) | CSRF-able one-click actions | fixed (WP4: POST+CSRF forms; GET rejected; verified) |
+| WP4-04 | High | missing CSRF on ~all POST APIs/forms | Session-riding forged writes | fixed (WP4: central gate + header wrapper + tokens; verified incl. 403 negatives) |
+| WP4-05 | Medium | sessions: no strict mode, webroot files, no idle/absolute timeout, no revocation | Fixation/theft persistence; ex-staff sessions survive | fixed (WP4: hardened cookies, 30m/8h, registry + revocation; verified) |
+| WP4-06 | Medium | fail-open permission stubs on stale DBs | Every check passed pre-migration | fixed (WP4: fail-closed; verified) |
+| WP4-07 | Low | `wp4-auth-migration.sql` used MariaDB-invalid `ADD COLUMN IF NOT EXISTS` | Manual migration 1064s | fixed (plain ADD COLUMN + patcher idempotency note) |

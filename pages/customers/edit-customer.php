@@ -26,6 +26,7 @@ include '../../includes/header.php';
 
     <div class="bg-white rounded-lg shadow-md p-8">
         <form method="POST" action="../../api/customers/update-customer.php">
+            <?php echo csrfField(); ?>
             <input type="hidden" name="id" value="<?php echo $customer['id']; ?>">
 
             <div class="space-y-6">

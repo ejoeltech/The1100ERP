@@ -4,12 +4,18 @@ include '../includes/session-check.php';
 // Duplicating a template is document creation.
 requirePermission('create_document');
 
-if (!isset($_GET['id'])) {
+// WP4: POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/readymade-quotes.php');
+    exit;
+}
+
+if (!isset($_POST['id'])) {
     header('Location: ../pages/readymade-quotes.php?error=Template not specified');
     exit;
 }
 
-$template_id = intval($_GET['id']);
+$template_id = intval($_POST['id']);
 
 try {
     // Fetch original template

@@ -85,6 +85,7 @@ include '../includes/header.php';
     </h2>
 
     <form id="invoiceForm" method="POST" action="../api/update-invoice.php">
+        <?php echo csrfField(); ?>
         <input type="hidden" name="invoice_id" value="<?php echo $invoice_id; ?>">
 
         <!-- Invoice Header Section -->

@@ -8,6 +8,8 @@ require_once '../../includes/audit.php';
 // Check if user is logged in and has admin permission
 requireLogin();
 requirePermission('manage_settings');
+require_once '../../includes/security.php';
+requireCsrf();
 
 header('Content-Type: application/json');
 

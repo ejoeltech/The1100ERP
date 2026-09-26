@@ -57,6 +57,7 @@ include '../../includes/header.php';
     </div>
 
     <form method="POST" action="../../api/save-user-overrides.php">
+        <?php echo csrfField(); ?>
         <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <?php foreach ($catalog as $section => $perms): ?>

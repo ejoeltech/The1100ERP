@@ -117,6 +117,7 @@ include_once '../../../includes/header.php';
                 <div class="text-gray-500 italic">Please contact HR to link your account to an employee record first.</div>
             <?php else: ?>
                 <form method="POST" class="space-y-4">
+                    <?php echo csrfField(); ?>
                     <input type="hidden" name="request_leave" value="1">
                     
                     <div>
@@ -177,6 +178,7 @@ include_once '../../../includes/header.php';
                                 </div>
                                 <div class="flex gap-2">
                                     <form method="POST">
+                                        <?php echo csrfField(); ?>
                                         <input type="hidden" name="update_status" value="1">
                                         <input type="hidden" name="request_id" value="<?php echo $req['id']; ?>">
                                         <button type="submit" name="status" value="approved" class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 font-medium text-sm">Approve</button>

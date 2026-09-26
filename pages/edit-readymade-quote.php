@@ -35,6 +35,7 @@ include '../includes/header.php';
     </div>
 
     <form id="readymadeQuoteForm" method="POST" action="../api/update-readymade-quote.php">
+        <?php echo csrfField(); ?>
         <input type="hidden" name="template_id" value="<?php echo $template['id']; ?>">
 
         <!-- Template Info Section -->

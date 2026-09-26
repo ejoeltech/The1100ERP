@@ -56,6 +56,11 @@ try {
         $stmt->execute([$new_password_hash, $current_user['id']]);
     }
 
+    // WP4: a password change kills every other session of this account.
+    if (function_exists('revokeOtherSessions')) {
+        revokeOtherSessions($current_user['id']);
+    }
+
     // Log audit
     if (function_exists('logUserUpdate')) {
         logUserUpdate($current_user['id'], $current_user['username'], ['password' => 'changed']);

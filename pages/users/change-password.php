@@ -24,6 +24,7 @@ include '../../includes/header.php';
     <?php endif; ?>
 
     <form method="POST" action="../../api/change-password.php">
+        <?php echo csrfField(); ?>
         <div class="space-y-6">
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">

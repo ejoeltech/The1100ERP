@@ -84,6 +84,7 @@ include_once '../../../includes/header.php';
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-bold text-gray-900 mb-4">Add New Candidate</h3>
             <form method="POST" class="grid grid-cols-1 gap-4">
+                <?php echo csrfField(); ?>
                 <input type="hidden" name="add_candidate" value="1">
                 <div class="grid grid-cols-2 gap-4">
                     <input type="text" name="first_name" placeholder="First Name" required
@@ -146,6 +147,7 @@ include_once '../../../includes/header.php';
         </h3>
 
         <form method="POST" class="mb-4">
+            <?php echo csrfField(); ?>
             <input type="hidden" name="generate_ad" value="1">
             <div class="space-y-4">
                 <div>

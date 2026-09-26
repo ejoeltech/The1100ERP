@@ -11,8 +11,16 @@ if (!isLoggedIn()) {
 }
 
 requirePermission('delete_user');
+require_once '../includes/security.php';
+requireCsrf();
 
-$user_id = $_GET['id'] ?? null;
+// WP4: POST only (was GET-linkable).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/users/manage-users.php');
+    exit;
+}
+
+$user_id = $_POST['id'] ?? null;
 
 if (!$user_id) {
     header('Location: ../pages/users/manage-users.php');

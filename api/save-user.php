@@ -12,6 +12,8 @@ if (!isLoggedIn()) {
 }
 
 requirePermission('create_user');
+require_once '../includes/security.php';
+requireCsrf();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-users.php');

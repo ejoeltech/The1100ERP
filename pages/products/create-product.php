@@ -21,6 +21,7 @@ include '../../includes/header.php';
 
     <div class="bg-white rounded-lg shadow-md p-8">
         <form method="POST" action="../../api/products/save-product.php" id="productForm">
+            <?php echo csrfField(); ?>
             <div class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

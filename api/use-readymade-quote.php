@@ -2,6 +2,7 @@
 session_start();
 require_once '../config.php';
 require_once '../includes/permissions.php';
+require_once '../includes/security.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
@@ -10,7 +11,17 @@ if (!isset($_SESSION['user_id'])) {
 
 requirePermission('create_document');
 
-$template_id = $_GET['id'] ?? null;
+// WP4: explicit CSRF check (this endpoint boots its own session instead of
+// session-check.php, so the central POST gate does not cover it).
+requireCsrf();
+
+// WP4: POST only (was GET-linkable: creating a quote via link).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../pages/readymade-quotes.php');
+    exit;
+}
+
+$template_id = $_POST['id'] ?? null;
 
 if (!$template_id) {
     header('Location: ../pages/readymade-quotes.php');

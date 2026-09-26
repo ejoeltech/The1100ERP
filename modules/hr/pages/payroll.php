@@ -18,32 +18,6 @@ $year = max(2020, min(2035, (int) ($_GET['year'] ?? date('Y'))));
 $message = '';
 $error = '';
 
-// Handle Payroll Generation (delegates to the Nigeria-compliant engine)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_payroll'])) {
-    if (!isAdmin()) {
-        $error = "Only admins can generate payroll.";
-    } else {
-        // Call the API endpoint to keep one code path for the computation.
-        $apiUrl = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST']
-            . dirname($_SERVER['REQUEST_URI']) . '/api/payroll-generate.php';
-        $ctx = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => 'Content-Type: application/json',
-                'content' => json_encode(['month' => $month, 'year' => $year]),
-                'timeout' => 120
-            ]
-        ]);
-        $resp = @file_get_contents($apiUrl, false, $ctx);
-        $decoded = $resp ? json_decode($resp, true) : null;
-        if ($decoded && !empty($decoded['success'])) {
-            $message = $decoded['message'];
-        } else {
-            $error = $decoded['message'] ?? 'Payroll generation failed (check server error log).';
-        }
-    }
-}
-
 // Fetch Payroll Records
 $payrolls = [];
 $stmt = $pdo->prepare("
@@ -81,15 +55,36 @@ include_once '../../../includes/header.php';
                 <?php endfor; ?>
             </select>
         </form>
-        <?php if (isAdmin()): ?>
-            <form method="POST">
-                <input type="hidden" name="generate_payroll" value="1">
-                <button type="submit"
-                    class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium">
-                    ⚡ Generate Payroll for <?php echo date('F Y', mktime(0, 0, 0, $month, 1, $year)); ?>
-                </button>
-            </form>
+        <?php if (function_exists('hasPermission') && hasPermission('payroll_run')): ?>
+            <button type="button" id="generatePayrollBtn" onclick="generatePayroll(<?php echo $month; ?>, <?php echo $year; ?>)"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium">
+                ⚡ Generate Payroll for <?php echo date('F Y', mktime(0, 0, 0, $month, 1, $year)); ?>
+            </button>
         <?php endif; ?>
+        <div id="payrollGenMsg" class="text-sm mt-2"></div>
+        <script>
+            async function generatePayroll(month, year) {
+                const btn = document.getElementById('generatePayrollBtn');
+                const msg = document.getElementById('payrollGenMsg');
+                if (!confirm('Generate payroll for ' + month + '/' + year + '?')) return;
+                btn.disabled = true;
+                msg.textContent = 'Generating...';
+                try {
+                    const resp = await fetch('../api/payroll-generate.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ month, year })
+                    });
+                    const data = await resp.json();
+                    msg.textContent = data.message || (data.success ? 'Done' : 'Failed');
+                    if (data.success) window.location.reload();
+                } catch (e) {
+                    msg.textContent = 'Error: ' + e.message;
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+        </script>
     </div>
 </div>
 

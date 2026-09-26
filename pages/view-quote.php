@@ -153,8 +153,12 @@ include '../includes/header.php';
         </a>
     <?php endif; ?>
 
-    <!-- Duplicate Button -->
-    <a href="../api/duplicate-quote.php?id=<?php echo $quote['id']; ?>"
+    <!-- Duplicate Button (WP4: POST form, not a CSRF-able GET link) -->
+    <form method="POST" action="../api/duplicate-quote.php" style="display: inline-block;"
+        onsubmit="return confirm('Duplicate this quote?');">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="id" value="<?php echo $quote['id']; ?>">
+        <button type="submit"
         class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -162,7 +166,8 @@ include '../includes/header.php';
             </path>
         </svg>
         Duplicate
-    </a>
+        </button>
+    </form>
 
     <!-- Convert to Invoice Button (Finalized Quotes Only) -->
     <?php if ($quote['status'] === 'finalized'): ?>
@@ -174,8 +179,9 @@ include '../includes/header.php';
         ?>
 
         <?php if (!$existing_invoice): ?>
-            <form method="GET" action="../api/convert-to-invoice.php" style="display: inline-block;"
+            <form method="POST" action="../api/convert-to-invoice.php" style="display: inline-block;"
                 onsubmit="return confirm('Convert this quote to an invoice? This will create a new invoice based on this quote.');">
+                <?php echo csrfField(); ?>
                 <input type="hidden" name="id" value="<?php echo $quote['id']; ?>">
                 <button type="submit"
                     class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold flex items-center gap-2 cursor-pointer">

@@ -4,8 +4,10 @@
 // expires in 48h, and is single-use. No login required or possible here.
 require_once '../../config.php';
 require_once '../../includes/passwords.php';
+require_once '../../includes/security.php';
 require_once '../../includes/invites.php';
 
+configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -18,7 +20,9 @@ $error = '';
 $done = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!throttleCheck('invite_ip:' . $ip, 10, 3600)) {
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid security token. Please reload and try again.';
+    } elseif (!throttleCheck('invite_ip:' . $ip, 10, 3600)) {
         $error = 'Too many attempts. Try again later.';
     } elseif (!$invite) {
         $error = 'This invite link is invalid, expired, or already used.';
@@ -77,6 +81,7 @@ $pageTitle = 'Set Your Password - ERP System';
 
                 <?php if ($invite && !$error): ?>
                     <form method="POST">
+                        <?php echo csrfField(); ?>
                         <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                         <div class="mb-4">
                             <label class="block text-sm font-semibold text-gray-700 mb-2">New password</label>

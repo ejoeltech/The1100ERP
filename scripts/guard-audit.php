@@ -35,6 +35,7 @@ $publicAllowList = [
     'pages/system-designer.php',
     'modules/hr/pages/signup-form.php', // onboarding-code session, not login
     'pages/users/accept-invite.php', // invite-token bearer, not login
+    'pages/login-mfa.php', // WP4: mfa_pending session + CSRF + throttle, no privileges until verified
 ];
 
 // Installer files with a different-but-sufficient gate (documented):

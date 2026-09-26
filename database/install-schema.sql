@@ -45,6 +45,9 @@ CREATE TABLE users (
     role ENUM('admin', 'manager', 'sales_rep', 'accountant', 'viewer') DEFAULT 'sales_rep',
     is_active TINYINT(1) DEFAULT 1,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+    mfa_secret TEXT DEFAULT NULL,
+    mfa_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    mfa_enrolled_at DATETIME DEFAULT NULL,
     signature_file VARCHAR(255) DEFAULT NULL,
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -694,4 +697,26 @@ CREATE TABLE IF NOT EXISTS `auth_throttle` (
   `window_start` datetime NOT NULL,
   `attempts` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`bucket`, `window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `mfa_recovery_codes` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `code_hash` varchar(255) NOT NULL,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_mfa_rc_user` (`user_id`),
+  CONSTRAINT `mfa_recovery_codes_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `user_sessions` (
+  `session_hash` char(64) NOT NULL,
+  `user_id` int(10) unsigned NOT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `last_seen` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`session_hash`),
+  KEY `idx_us_user` (`user_id`),
+  CONSTRAINT `user_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
