@@ -32,6 +32,10 @@ if (!$current_user) {
 
 // WP4 session lifetime: idle 30 min, absolute 8 h. Timestamps are refreshed
 // on each request; expiry destroys the session (API callers get 401/403).
+// Exempt: the installer wizard manages its own lifetime (claim file +
+// admin password gates); a slow manual install must not die mid-wizard.
+$reqUri = $_SERVER['REQUEST_URI'] ?? '';
+$isInstaller = strpos($reqUri, '/maintenance/setup/') !== false;
 $now = time();
 if (!isset($_SESSION['sess_created_at'])) {
     $_SESSION['sess_created_at'] = $now;
@@ -39,13 +43,15 @@ if (!isset($_SESSION['sess_created_at'])) {
 if (!isset($_SESSION['sess_last_activity'])) {
     $_SESSION['sess_last_activity'] = $now;
 }
-if (($now - $_SESSION['sess_last_activity']) > 1800 || ($now - $_SESSION['sess_created_at']) > 28800) {
+if (!$isInstaller && (($now - $_SESSION['sess_last_activity']) > 1800 || ($now - $_SESSION['sess_created_at']) > 28800)) {
     logout();
 }
 $_SESSION['sess_last_activity'] = $now;
 
 // WP4 session registry: revoke sessions killed by password/role change.
-if (function_exists('sessionStillValid') && !sessionStillValid($current_user['id'])) {
+// Exempt: wizard sessions are never registered (no login event), so a strict
+// check could kill a live install after the operator logs in elsewhere.
+if (!$isInstaller && function_exists('sessionStillValid') && !sessionStillValid($current_user['id'])) {
     logout();
 }
 if (function_exists('touchUserSession')) {

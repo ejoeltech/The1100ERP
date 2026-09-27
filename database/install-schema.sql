@@ -42,7 +42,7 @@ CREATE TABLE users (
     full_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) DEFAULT NULL,
-    role ENUM('admin', 'manager', 'sales_rep', 'accountant', 'viewer') DEFAULT 'sales_rep',
+    role ENUM('super_admin', 'admin', 'manager', 'sales_rep', 'accountant', 'viewer') DEFAULT 'sales_rep',
     is_active TINYINT(1) DEFAULT 1,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     mfa_secret TEXT DEFAULT NULL,

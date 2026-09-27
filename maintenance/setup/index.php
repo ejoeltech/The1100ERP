@@ -355,7 +355,16 @@ $requirements = checkRequirements();
                 const formData = new FormData();
                 formData.append('action', 'final_check');
                 const response = await fetch('install.php', { method: 'POST', body: formData });
-                const result = await response.json();
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    // Non-JSON means the session died mid-wizard (server sent a
+                    // page, usually the login form): say so plainly.
+                    report.innerHTML = '<p style="color:red;">Session expired during install. Log in as the new admin in another tab (or restart the wizard), then retry.</p>';
+                    return;
+                }
                 if (result.success && result.entries) {
                     let html = '<ul style="list-style:none;padding:0;">';
                     result.entries.forEach(e => {

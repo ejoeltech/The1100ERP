@@ -431,6 +431,38 @@ function runFinalCheck()
             }
         }
         $entries = SchemaPatcher::run($pdo, dirname(__DIR__, 2));
+        // HR base + incremental schemas (same set/order as modules/hr/install.php,
+        // which is CLI-only). The wizard never runs that installer, so fresh
+        // installs would otherwise miss every HR table. Duplicate-tolerant.
+        $hrRoot = dirname(__DIR__, 2) . '/modules/hr';
+        $hrFiles = array_merge(
+            [ $hrRoot . '/hr_schema.sql' ],
+            glob($hrRoot . '/update_schema_v*.sql') ?: []
+        );
+        natcasesort($hrFiles);
+        foreach ($hrFiles as $hrFile) {
+            if (!file_exists($hrFile)) {
+                continue;
+            }
+            $hrSql = file_get_contents($hrFile);
+            $hrSql = preg_replace('/^\s*--.*$/m', '', $hrSql);
+            $hrSql = preg_replace('#/\*.*?\*/#s', '', $hrSql);
+            foreach (array_filter(array_map('trim', explode(';', $hrSql))) as $hrStmt) {
+                if ($hrStmt === '' || stripos($hrStmt, 'SET FOREIGN_KEY_CHECKS') === 0) {
+                    try { $pdo->exec($hrStmt); } catch (PDOException $e) { }
+                    continue;
+                }
+                try {
+                    $pdo->exec($hrStmt);
+                } catch (PDOException $e) {
+                    $msg = $e->getMessage();
+                    if (stripos($msg, 'Duplicate column') !== false || stripos($msg, 'already exists') !== false || stripos($msg, 'Duplicate entry') !== false) {
+                        continue;
+                    }
+                    $entries[] = ['status' => 'error', 'section' => basename($hrFile), 'message' => basename($hrFile) . ': ' . $msg];
+                }
+            }
+        }
         $response['success'] = true;
         $response['message'] = 'Final check complete';
         $response['entries'] = $entries;
@@ -515,13 +547,13 @@ function finalizeInstallation()
         try {
             $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
             $pdo = new PDO($dsn, $dbUser, $dbPassword, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            $stmt = $pdo->query("SELECT id, username, full_name FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+            $stmt = $pdo->query("SELECT id, username, full_name, role FROM users WHERE role IN ('super_admin', 'admin') ORDER BY id ASC LIMIT 1");
             if ($admin = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 session_regenerate_id(true);
                 $_SESSION['user_id'] = $admin['id'];
                 $_SESSION['username'] = $admin['username'];
                 $_SESSION['full_name'] = $admin['full_name'];
-                $_SESSION['role'] = 'admin';
+                $_SESSION['role'] = $admin['role'];
             }
         } catch (Exception $e) {
             // Non-fatal: user logs in manually, cleanup runs from System Update instead.

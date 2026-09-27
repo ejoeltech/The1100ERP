@@ -369,6 +369,9 @@ regardless of purging.
 | WP16-01 | High | `!requirePermission()` void pattern bricked git/autopopulate endpoints for everyone | Dead admin tools | fixed (maintenance commit) |
 | WP16-02 | High | maintenance state-changes via GET (pull/autopopulate); patch zips bundled `.env` | CSRF code deploy; secret exfil across installs | fixed (POST-only; exclusions) |
 | WP16-03 | Medium | audit chain raced under concurrency (30 forked rows on dev); login rows unchained; LIMIT bind broken; logout/password changes unwired | Tamper evidence unreliable; silent gaps | fixed (audit commit: sentinel-serialized appends, chained login, wired events, chain badge) |
+| WP17-01 | High | installer auto-login queried `role='admin'` but inserts `super_admin` → Step 7 sessionless (JSON parse of login page) | Fresh installs cannot finish | fixed (row-driven role; friendly expiry message) |
+| WP17-02 | High | fresh `install-schema` ENUM lacked `super_admin` → first role silently truncated to `''` | Admin locked out day one | fixed (ENUM + repaired 1100test row) |
+| WP17-03 | Medium | wizard never created HR tables; slow installs could idle-timeout mid-wizard | Final-check error wall; dead wizard | fixed (HR loop in final check; installer exempt from lifetime/registry kills) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |
