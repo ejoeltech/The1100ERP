@@ -12,6 +12,11 @@ session_start();
 
 require_once __DIR__ . '/../../includes/passwords.php';
 
+// This endpoint speaks JSON on every path: never let warnings/notices
+// corrupt a response (keep details in the server log).
+error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
+ini_set('display_errors', 0);
+
 // Block once configured, locked, or marked installed. Delete maintenance/setup/ after install.
 require_once __DIR__ . '/install-guard.php';
 if (install_is_installed()) {
@@ -42,10 +47,6 @@ if (install_is_installed()) {
 }
 // Every install action needs the server-side claim file (WP0-C).
 install_require_claim_ajax();
-
-// Suppress any output except JSON
-error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
-ini_set('display_errors', 0);
 
 header('Content-Type: application/json');
 
