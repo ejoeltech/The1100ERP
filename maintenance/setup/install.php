@@ -4,7 +4,10 @@
  * Handles backend installation logic and AJAX requests
  */
 
-// CRITICAL: Start session FIRST before any output
+// CRITICAL: unified session store/flags FIRST (same as the app and wizard UI),
+// otherwise the finalize auto-login is invisible to session-check.
+require_once __DIR__ . '/../../includes/security.php';
+configureSessionCookies();
 session_start();
 
 require_once __DIR__ . '/../../includes/passwords.php';

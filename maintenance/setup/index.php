@@ -4,6 +4,8 @@
  * Main installation interface
  */
 
+require_once __DIR__ . '/../../includes/security.php';
+configureSessionCookies();
 session_start();
 
 // Refuse on configured systems: the wizard must never run where a config exists.
@@ -343,6 +345,8 @@ $requirements = checkRequirements();
 
     <script src="assets/wizard.js"></script>
     <script>
+        // Server-minted CSRF token for Step-7 AJAX (same session the gate validates).
+        window.INSTALL_CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
         // Step 7: final schema check via the gated install.php action
         // (replaces the deleted run-schema-update.php).
         async function runStep7Check() {
@@ -354,6 +358,7 @@ $requirements = checkRequirements();
             try {
                 const formData = new FormData();
                 formData.append('action', 'final_check');
+                formData.append('csrf_token', window.INSTALL_CSRF);
                 const response = await fetch('install.php', { method: 'POST', body: formData });
                 const text = await response.text();
                 let result;
@@ -408,16 +413,11 @@ $requirements = checkRequirements();
             status.className = 'alert alert-info';
             status.textContent = 'Deleting installer...';
             try {
-                // Mint a CSRF token for this session, then post the delete.
-                const csrfForm = new FormData();
-                csrfForm.append('action', 'csrf_token');
-                const csrfResp = await fetch('install.php', { method: 'POST', body: csrfForm });
-                const csrfData = await csrfResp.json();
                 const formData = new FormData();
                 formData.append('confirm', 'YES');
                 formData.append('format', 'json');
                 formData.append('password', password);
-                if (csrfData.csrf_token) formData.append('csrf_token', csrfData.csrf_token);
+                formData.append('csrf_token', window.INSTALL_CSRF);
                 const response = await fetch('cleanup.php', { method: 'POST', body: formData });
                 const text = await response.text();
                 let result;
