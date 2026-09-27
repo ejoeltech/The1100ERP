@@ -65,6 +65,9 @@ try {
     if (function_exists('logUserUpdate')) {
         logUserUpdate($current_user['id'], $current_user['username'], ['password' => 'changed']);
     }
+    if (function_exists('logPasswordChange')) {
+        logPasswordChange($current_user['id'], $current_user['username']);
+    }
 
     header('Location: ../pages/users/change-password.php?success=1');
     exit;

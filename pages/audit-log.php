@@ -155,10 +155,22 @@ include '../includes/header.php';
             <h1 class="text-3xl font-bold text-gray-900">Audit Log</h1>
             <p class="text-gray-600 mt-1">System activity and change history</p>
         </div>
-        <div class="mt-4 md:mt-0">
+        <div class="mt-4 md:mt-0 flex items-center gap-3">
             <span class="text-sm text-gray-600">
                 Total Records: <strong><?php echo number_format($totalRecords); ?></strong>
             </span>
+            <?php
+            $chain = function_exists('verifyAuditChain') ? verifyAuditChain(500) : null;
+            if ($chain && $chain['ok']):
+            ?>
+                <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full" title="Last <?php echo (int)$chain['checked']; ?> chained entries verified<?php echo $chain['skipped'] ? '; ' . (int)$chain['skipped'] . ' pre-chain rows skipped' : ''; ?>">
+                    Chain intact (<?php echo (int)$chain['checked']; ?> verified)
+                </span>
+            <?php elseif ($chain): ?>
+                <span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full" title="Mismatch at entry #<?php echo (int)$chain['failed_at']; ?> — investigate immediately">
+                    Chain BROKEN at #<?php echo (int)$chain['failed_at']; ?>
+                </span>
+            <?php endif; ?>
         </div>
     </div>
 

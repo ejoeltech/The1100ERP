@@ -125,6 +125,12 @@ function logout()
     if (function_exists('revokeCurrentSession')) {
         revokeCurrentSession();
     }
+    // Audit the logout while the session identity is still available
+    // (logout.php has no DB handle, so this only fires where one exists).
+    if (function_exists('logUserLogout') && isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO
+        && !empty($_SESSION['user_id'])) {
+        logUserLogout($_SESSION['user_id'], $_SESSION['username'] ?? '');
+    }
     $_SESSION = array();
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();

@@ -629,6 +629,12 @@ class SchemaPatcher
     `attempts` int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (`bucket`, `window_start`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'auth_throttle' table");
+        $exec("CREATE TABLE IF NOT EXISTS `audit_seq` (
+    `id` tinyint(3) unsigned NOT NULL,
+    `tick` bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'audit_seq' table");
+        $exec("INSERT IGNORE INTO `audit_seq` (`id`, `tick`) VALUES (1, 0);", "Seed 'audit_seq' sentinel row");
         // WP9: Nigeria-payroll v10 parity (the v10 SQL file used MariaDB-invalid
         // ADD COLUMN IF NOT EXISTS, so fresh installs missed every column below;
         // $addCol is existence-checked, keeping web-driven runs idempotent).

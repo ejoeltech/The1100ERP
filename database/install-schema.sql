@@ -373,6 +373,13 @@ CREATE TABLE IF NOT EXISTS audit_log (
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `audit_seq` (
+    `id` tinyint(3) unsigned NOT NULL,
+    `tick` bigint(20) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT IGNORE INTO `audit_seq` (`id`, `tick`) VALUES (1, 0);
+
 -- ============================================
 -- SETTINGS TABLE
 -- ============================================

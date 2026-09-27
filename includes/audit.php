@@ -17,40 +17,86 @@ function logAudit($action, $resourceType, $resourceId = null, $details = [])
 {
     global $pdo;
 
-    try {
-        $userId = $_SESSION['user_id'] ?? null;
-        $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+    $userId = $_SESSION['user_id'] ?? null;
+    $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+    $detailsJson = json_encode($details);
 
-        // Get last hash for chain
-        $lastHash = '';
-        $lastStmt = $pdo->query("SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1");
-        $lastLog = $lastStmt->fetch();
-        if ($lastLog) {
-            $lastHash = $lastLog['hash'] ?? '';
+    // Serialize chain appends (deadlock-safe): the sentinel row is seeded by
+    // the patcher/install-schema, so the hot path takes exactly one lock in
+    // a fixed order — no INSERT+SELECT upgrade cycle to deadlock on.
+    $attempts = 0;
+    while (true) {
+        $attempts++;
+        $ownTxn = false;
+        try {
+            if (!$pdo->inTransaction()) {
+                $pdo->beginTransaction();
+                $ownTxn = true;
+            }
+            try {
+                $lockStmt = $pdo->query("SELECT tick FROM audit_seq WHERE id = 1 FOR UPDATE");
+                $tickRow = $lockStmt->fetchColumn();
+                $lockStmt->closeCursor();
+                if ($tickRow === false) {
+                    // Row deleted out-of-band: recreate, then lock it.
+                    $pdo->exec("INSERT IGNORE INTO audit_seq (id, tick) VALUES (1, 0)");
+                    $lockStmt = $pdo->query("SELECT tick FROM audit_seq WHERE id = 1 FOR UPDATE");
+                    $lockStmt->fetchColumn();
+                    $lockStmt->closeCursor();
+                }
+                $locked = true;
+            } catch (Exception $e) {
+                $locked = false; // pre-migration table: proceed unlocked
+            }
+
+            // Get last hash for chain
+            $lastHash = '';
+            $lastStmt = $pdo->query("SELECT hash FROM audit_log ORDER BY id DESC LIMIT 1");
+            $lastLog = $lastStmt->fetch();
+            if ($lastLog) {
+                $lastHash = $lastLog['hash'] ?? '';
+            }
+
+            $currentHash = hash('sha256', $lastHash . $action . $resourceType . $resourceId . $userId . $ipAddress . $detailsJson);
+
+            $stmt = $pdo->prepare("
+                INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details, hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $userId,
+                $action,
+                $resourceType,
+                $resourceId,
+                $ipAddress,
+                $userAgent,
+                $detailsJson,
+                $currentHash
+            ]);
+
+            if ($locked) {
+                $pdo->exec("UPDATE audit_seq SET tick = tick + 1 WHERE id = 1");
+            }
+            if ($ownTxn) {
+                $pdo->commit();
+            }
+            return;
+        } catch (Exception $e) {
+            if ($ownTxn && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            // Deadlock under contention: brief backoff and retry (bounded).
+            $isDeadlock = stripos($e->getMessage(), 'deadlock') !== false || ($e->getCode() == '40001');
+            if ($isDeadlock && $attempts < 3) {
+                usleep(random_int(10000, 50000));
+                continue;
+            }
+            // Log error but don't break application
+            error_log("Audit log error: " . $e->getMessage());
+            return;
         }
-
-        $detailsJson = json_encode($details);
-        $currentHash = hash('sha256', $lastHash . $action . $resourceType . $resourceId . $userId . $ipAddress . $detailsJson);
-
-        $stmt = $pdo->prepare("
-            INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details, hash)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
-            $userId,
-            $action,
-            $resourceType,
-            $resourceId,
-            $ipAddress,
-            $userAgent,
-            $detailsJson,
-            $currentHash
-        ]);
-    } catch (Exception $e) {
-        // Log error but don't break application
-        error_log("Audit log error: " . $e->getMessage());
     }
 }
 
@@ -177,28 +223,11 @@ function logReceiptGenerate($invoiceId, $receiptId, $invoiceNumber, $receiptNumb
 // ============================================
 
 /**
- * Log user login
+ * Log user login (chained like all other entries so the hash chain has no gaps)
  */
 function logUserLogin($userId, $username)
 {
-    global $pdo;
-
-    try {
-        $stmt = $pdo->prepare("
-            INSERT INTO audit_log (user_id, action, resource_type, resource_id, ip_address, user_agent, details)
-            VALUES (?, 'login', 'user', ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
-            $userId,
-            $userId,
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-            json_encode(['username' => $username])
-        ]);
-    } catch (Exception $e) {
-        error_log("Audit log error: " . $e->getMessage());
-    }
+    logAudit('login', 'user', $userId, ['username' => $username]);
 }
 
 /**
@@ -339,23 +368,71 @@ function getRecentAuditLog($limit = 50)
     global $pdo;
 
     try {
+        // Native prepares reject LIMIT placeholders: int-cast and interpolate.
+        $limit = max(1, min(500, (int)$limit));
         $stmt = $pdo->prepare("
-            SELECT 
+            SELECT
                 al.*,
                 u.full_name as user_name,
                 u.username
             FROM audit_log al
             LEFT JOIN users u ON al.user_id = u.id
             ORDER BY al.created_at DESC
-            LIMIT ?
+            LIMIT $limit
         ");
 
-        $stmt->execute([$limit]);
+        $stmt->execute();
         return $stmt->fetchAll();
     } catch (Exception $e) {
         error_log("Get recent audit error: " . $e->getMessage());
         return [];
     }
+}
+
+/**
+ * Verify the audit hash chain (tamper evidence, read-only).
+ * Rows written before chaining (empty hash) are counted as skipped, not failures.
+ * @return array ['ok'=>bool,'checked'=>int,'skipped'=>int,'failed_at'=>int|null,'breaks'=>int]
+ */
+function verifyAuditChain($limit = 500)
+{
+    global $pdo;
+
+    $result = ['ok' => true, 'checked' => 0, 'skipped' => 0, 'failed_at' => null, 'breaks' => 0];
+    try {
+        $limit = max(1, min(5000, (int)$limit));
+        $stmt = $pdo->query("SELECT * FROM audit_log ORDER BY id ASC LIMIT $limit");
+        $lastHash = '';
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (empty($row['hash'])) {
+                // Legacy row: logAudit() reads '' as the previous hash, so mirror that.
+                $lastHash = '';
+                $result['skipped']++;
+                continue;
+            }
+            // Same serialization as logAudit(): nulls concatenate as ''.
+            $expect = hash('sha256', $lastHash . $row['action'] . $row['resource_type'] . $row['resource_id'] . $row['user_id'] . $row['ip_address'] . $row['details']);
+            $expect = hash('sha256', $lastHash . $row['action'] . $row['resource_type'] . $row['resource_id'] . $row['user_id'] . $row['ip_address'] . $row['details']);
+            if (!hash_equals($expect, $row['hash'])) {
+                // Record the first break but keep going from the stored hash:
+                // one historical anomaly must not mask the health of the rest.
+                if ($result['failed_at'] === null) {
+                    $result['failed_at'] = (int)$row['id'];
+                }
+                $result['breaks']++;
+                $result['ok'] = false;
+                $lastHash = $row['hash'];
+                $result['checked']++;
+                continue;
+            }
+            $lastHash = $row['hash'];
+            $result['checked']++;
+        }
+    } catch (Exception $e) {
+        error_log("Verify audit chain error: " . $e->getMessage());
+        $result['ok'] = false;
+    }
+    return $result;
 }
 
 /**

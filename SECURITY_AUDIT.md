@@ -366,6 +366,9 @@ regardless of purging.
 | WP9-02 | Low | `;` inside COMMENT strings vs `;`-splitting runner | 2 more 1064s on CLI installs | fixed (WP9: reworded) |
 | WP10-01 | Low | CSP missing object/base/form/frame lockdown; htaccess SAMEORIGIN vs DENY; logout absolute Host-based redirect | Plugin/frame/form-action abuse; header duplication | fixed (WP10) |
 | WP15-01 | High | session-store split-brain (hardened path vs default) on ~24 manual endpoints | Authed POSTs bounced; logout missed | fixed (WP15: unified bootstrap) |
+| WP16-01 | High | `!requirePermission()` void pattern bricked git/autopopulate endpoints for everyone | Dead admin tools | fixed (maintenance commit) |
+| WP16-02 | High | maintenance state-changes via GET (pull/autopopulate); patch zips bundled `.env` | CSRF code deploy; secret exfil across installs | fixed (POST-only; exclusions) |
+| WP16-03 | Medium | audit chain raced under concurrency (30 forked rows on dev); login rows unchained; LIMIT bind broken; logout/password changes unwired | Tamper evidence unreliable; silent gaps | fixed (audit commit: sentinel-serialized appends, chained login, wired events, chain badge) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |
