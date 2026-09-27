@@ -1,7 +1,12 @@
 <?php
-// Normal bootstrap. This file must NEVER send visitors to the installer:
-// on a missing config it shows a static message with no link (WP0-C).
+// Fresh copies send the first visitor straight to the installer (the wizard
+// itself is gated by the ALLOW_INSTALL claim file). Installed copies fall
+// through to the normal bootstrap below.
 if (!file_exists('config.php')) {
+    if (is_dir('maintenance/setup')) {
+        header('Location: maintenance/setup/');
+        exit;
+    }
     http_response_code(503);
     die('
         <h1>Application Not Installed</h1>

@@ -315,7 +315,7 @@ regardless of purging.
 | WP0-08 | Medium | installer `create_admin` | `DELETE FROM users` before insert; no install token; first-come claim on fresh copies | fixed (WP0-C rev2: proof-of-write claim file `ALLOW_INSTALL` instead of token — equal strength, usable via file manager/FTP; create_admin aborts on non-empty users; storage/installed marker; root index.php no longer redirects to wizard) |
 | WP0-09 | Medium | `tests/security_test.php`, `updates/` | Web-accessible dev artifacts | fixed (deleted WP0-A) |
 | WP0-10 | Low | stale seed SQL in `database/` | `DELETE FROM` reseeds, never referenced | fixed (deleted WP0-A) |
-| WP0-11 | Medium | root `index.php` | Auto-redirected visitors to `maintenance/setup/` when config missing | fixed (WP0-C: static 503, no link) |
+| WP0-11 | Medium | root `index.php` | Auto-redirected visitors to `maintenance/setup/` when config missing | fixed (WP0-C: static 503, no link) → REVISED post-v1 by owner: first-visit redirect to `maintenance/setup/` restored (claim gate still guards the wizard) |
 | WP0-12 | Medium | wizard restore endpoint | Pre-auth backup restore; decision pending | fixed (WP14: endpoint + wizard UI deleted; CLI restore documented) |
 | WP0-13 | High | `maintenance/setup/run-schema-update.php` | No gate; linked from Step 7 | fixed (WP0-D: replaced by token/admin-gated `final_check` action in install.php; file deleted) |
 | WP0-14 | Medium | `maintenance/setup/cleanup.php` | Needed only fresh session + manage_settings | fixed (WP0-D: admin + POST + CSRF + password re-entry, realpath guard, token cleanup, leftover verification) |
