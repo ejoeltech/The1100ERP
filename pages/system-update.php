@@ -16,11 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['run'] ?? '') === 'patch') 
     }
     require_once '../includes/schema-patcher.php';
     $results = SchemaPatcher::run($pdo, dirname(__DIR__));
-    try {
-        $stmt = $pdo->prepare("INSERT INTO audit_log (user_id, action, details, created_at) VALUES (?, 'system_update', ?, NOW())");
-        $stmt->execute([$_SESSION['user_id'], json_encode(['source' => 'system-update-page'])]);
-    } catch (Exception $e) {
-        // audit_log may not exist yet; patcher creates it
+    if (function_exists('logAudit')) {
+        logAudit('system_update', 'system', null, ['source' => 'system-update-page']);
     }
 }
 

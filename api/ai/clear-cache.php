@@ -19,7 +19,8 @@ try {
     AiRateLimiter::clearAllCache();
     echo json_encode(['success' => true, 'message' => 'Cache cleared successfully']);
 } catch (Exception $e) {
+    error_log('AI clear-cache error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Cache clear failed. Check server logs.']);
 }
 ?>

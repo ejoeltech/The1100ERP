@@ -50,7 +50,8 @@ foreach ($files as $name => $file) {
         $relativePath = substr($filePath, strlen($rootPath) + 1);
 
         // EXCLUSIONS
-        // Skip .git, .vscode, node_modules, config.php, uploads, logs, brain, .gemini, database/backups
+        // Skip .git, .vscode, node_modules, config.php, uploads, logs, brain, .gemini, database/backups.
+        // WP: also never bundle secrets or server-side state (.env, storage, tmp).
         if (
             strpos($relativePath, '.git') === 0 ||
             strpos($relativePath, '.vscode') === 0 ||
@@ -60,8 +61,11 @@ foreach ($files as $name => $file) {
             strpos($relativePath, 'delete-me') === 0 ||
             strpos($relativePath, 'logs') === 0 ||
             strpos($relativePath, 'uploads') === 0 ||
+            strpos($relativePath, 'storage') === 0 ||
+            strpos($relativePath, 'tmp') === 0 ||
             strpos($relativePath, 'database' . DIRECTORY_SEPARATOR . 'backups') === 0 ||
-            $relativePath === 'config.php'
+            $relativePath === 'config.php' ||
+            $relativePath === '.env'
         ) {
             continue;
         }

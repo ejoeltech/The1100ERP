@@ -4,8 +4,12 @@ require_once '../../includes/session-check.php';
 
 requirePermission('manage_settings');
 
-// Check backup type
+// Check backup type (strict allow-list; anything else is rejected)
 $type = $_GET['type'] ?? 'db'; // 'db' or 'full'
+if (!in_array($type, ['db', 'full'], true)) {
+    http_response_code(400);
+    die('Invalid backup type.');
+}
 
 // Detect OS for command paths
 $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
@@ -38,7 +42,9 @@ if ($isWindows) {
 exec($command, $output, $returnVar);
 
 if ($returnVar !== 0) {
-    die("Database backup failed. Exit code: $returnVar");
+    @unlink($sqlPath);
+    error_log('Database backup failed, exit code: ' . $returnVar);
+    die('Database backup failed. Check server logs.');
 }
 
 if ($type === 'db') {
@@ -58,7 +64,9 @@ if ($type === 'full') {
 
     $zip = new ZipArchive();
     if ($zip->open($zipPath, ZipArchive::CREATE) !== TRUE) {
-        die("Cannot open <$zipPath>");
+        @unlink($sqlPath);
+        error_log('Backup zip open failed: ' . $zipPath);
+        die('Cannot create backup archive. Check server logs.');
     }
 
     // Add SQL file

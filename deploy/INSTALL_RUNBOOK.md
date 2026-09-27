@@ -80,5 +80,8 @@ rm -f config.php storage/installed
 
 1. Backup (DB + uploads) — cron/backup.sh (encrypted, rotated, Telegram report).
 2. Deploy new code over SSH (`git pull --ff-only` from the pinned remote).
+   The web git endpoints scope dubious-ownership trust to the app root
+   internally; for CLI use under another account, register the path once:
+   `git config --global --add safe.directory /path/to/1100erp`.
 3. Log in as admin → **System Update** → run the schema patch.
 4. Never re-upload `maintenance/setup/` on an installed system.

@@ -1977,7 +1977,7 @@ include '../includes/header.php';
         btn.disabled = true;
         btn.innerHTML = 'Updating...';
 
-        fetch('../api/system/git-pull.php')
+        fetch('../api/system/git-pull.php', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 btn.disabled = false;
@@ -2016,7 +2016,7 @@ include '../includes/header.php';
         btn.classList.add('opacity-75', 'cursor-not-allowed');
         status.innerHTML = '<span class="text-gray-600 animate-pulse">Processing categories...</span>';
 
-        fetch('../api/system/autopopulate-categories.php')
+        fetch('../api/system/autopopulate-categories.php', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 btn.disabled = false;

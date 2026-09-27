@@ -6,13 +6,17 @@
 include '../../includes/session-check.php';
 require_once '../../config.php';
 
-// Check permission
-if (!requirePermission('manage_settings', true)) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
-    exit;
-}
+// Check permission (requirePermission exits on failure; returns void on success)
+requirePermission('manage_settings');
 
 header('Content-Type: application/json');
+
+// State-changing: POST only (central session-check gate enforces CSRF).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit;
+}
 
 try {
     // 1. Get unique categories from products
@@ -53,8 +57,10 @@ try {
         $added++;
     }
 
-    // Log the activity
-    logActivity($_SESSION['user_id'], 'maintenance', "Autopopulated $added categories from inventory");
+    // Log the activity (audit.php is optional on minimal installs)
+    if (function_exists('logAudit')) {
+        logAudit('system_update', 'system', null, ['source' => 'autopopulate-categories', 'added' => $added]);
+    }
 
     echo json_encode([
         'success' => true,
@@ -64,8 +70,9 @@ try {
     ]);
 
 } catch (Exception $e) {
+    error_log('Autopopulate categories error: ' . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'error' => 'Database error: ' . $e->getMessage()
+        'error' => 'Database error. Check server logs.'
     ]);
 }

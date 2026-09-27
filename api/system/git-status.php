@@ -6,17 +6,34 @@
 include '../../includes/session-check.php';
 require_once '../../config.php';
 
-// Check permission
-if (!requirePermission('manage_settings', true)) {
-    echo json_encode(['success' => false, 'error' => 'Unauthorized']);
-    exit;
-}
+// Check permission (requirePermission exits on failure; returns void on success)
+requirePermission('manage_settings');
 
 header('Content-Type: application/json');
 
 function run_git($cmd) {
     $cwd = realpath(__DIR__ . '/../../');
-    $full_cmd = "cd /d \"$cwd\" && $cmd 2>&1";
+    // Scope dubious-ownership trust to the app root only.
+    putenv('GIT_CONFIG_COUNT=1');
+    putenv('GIT_CONFIG_KEY_0=safe.directory');
+    putenv('GIT_CONFIG_VALUE_0=' . $cwd);
+    // Absolute git path: the service account's PATH may not include it.
+    // Resolve via `where`, else the common install location, else PATH.
+    $git = 'git';
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        $found = trim((string)shell_exec('where git 2>NUL'));
+        $first = strtok($found, "\r\n");
+        if ($first !== '' && $first !== false && stripos($first, 'git.exe') !== false) {
+            $git = '"' . $first . '"';
+        } elseif (file_exists('C:\\Program Files\\Git\\cmd\\git.exe')) {
+            $git = '"C:\\Program Files\\Git\\cmd\\git.exe"';
+        }
+    } elseif (trim((string)shell_exec('command -v git')) === '') {
+        throw new Exception('git binary not found on server.');
+    }
+    // Callers pass full "git ..." commands; strip to avoid `git git`.
+    $cmd = preg_replace('/^\s*git\s+/', '', $cmd);
+    $full_cmd = "cd /d \"$cwd\" && $git $cmd 2>&1";
     exec($full_cmd, $output, $return_var);
     return [
         'output' => implode("\n", $output),
