@@ -494,7 +494,10 @@ function finalizeInstallation()
             }
         }
         $rootDir = dirname(__DIR__, 2);
-        $envContent = "DB_HOST={$dbHost}\nDB_NAME={$dbName}\nDB_USER={$dbUser}\nDB_PASS={$dbPassword}\nDB_PREFIX={$dbPrefix}\n";
+        // Every install gets a fresh random encryption key (MFA secrets, PII):
+        // without it, mandatory MFA enrollment fail-closes on first login.
+        $encKey = base64_encode(random_bytes(32));
+        $envContent = "DB_HOST={$dbHost}\nDB_NAME={$dbName}\nDB_USER={$dbUser}\nDB_PASS={$dbPassword}\nDB_PREFIX={$dbPrefix}\nENCRYPTION_KEY={$encKey}\n";
         if (!file_put_contents($rootDir . '/.env', $envContent)) {
             throw new Exception('Failed to write .env file. Check directory permissions.');
         }
