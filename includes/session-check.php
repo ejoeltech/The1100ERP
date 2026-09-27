@@ -134,37 +134,4 @@ if (!function_exists('logUserLogin')) {
         return;
     }
 }
-
-// WP4 mandatory MFA: privileged roles without an enrolled authenticator are
-// confined to the enrollment page until they enroll (API/CLI/installer paths
-// are never redirected).
-if (function_exists('mfaRequiredForUser') && function_exists('mfaIsEnabled')) {
-    $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
-    $uri = $_SERVER['REQUEST_URI'] ?? '';
-    $isApiLike = (defined('IS_API') && IS_API)
-        || strpos($uri, '/api/') !== false
-        || strpos($uri, '/maintenance/') !== false
-        || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
-    $mfaFreePages = ['security-mfa.php', 'logout.php', 'change-password.php'];
-    if (!$isApiLike && !in_array($script, $mfaFreePages, true) && isset($current_user['id'])) {
-        try {
-            if (mfaRequiredForUser($current_user['id']) && !mfaIsEnabled($current_user['id'])) {
-                // Depth-aware path to the enrollment page (same discovery order
-                // as requirePermission()).
-                $mfaBase = '.';
-                if (file_exists('../config.php')) {
-                    $mfaBase = '..';
-                } elseif (file_exists('../../config.php')) {
-                    $mfaBase = '../..';
-                } elseif (file_exists('../../../config.php')) {
-                    $mfaBase = '../../..';
-                }
-                header('Location: ' . $mfaBase . '/pages/users/security-mfa.php?enforce=1');
-                exit;
-            }
-        } catch (Exception $e) {
-            // MFA tables missing (migration pending): do not lock anyone out.
-        }
-    }
-}
 ?>

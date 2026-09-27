@@ -7,7 +7,6 @@ require_once '../../includes/totp.php';
 
 $uid = $current_user['id'];
 $enabled = mfaIsEnabled($uid);
-$required = mfaRequiredForUser($uid);
 $error = '';
 $success = '';
 $showSecret = null;   // ['b32' => ..., 'uri' => ...] during enrollment step
@@ -119,9 +118,7 @@ include '../../includes/header.php';
         <?php else: ?>
             <span class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Disabled</span>
         <?php endif; ?>
-        <?php if ($required && !$enabled): ?>
-            <span class="ml-2 px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Required for your role</span>
-        <?php endif; ?>
+        <span class="ml-2 text-xs text-gray-500">Optional — enable it any time to protect this account.</span>
     </p>
 
     <?php if ($error): ?>
