@@ -14,13 +14,14 @@ if (!isLoggedIn()) {
 
 requirePermission('manage_access');
 require_once '../includes/security.php';
-requireCsrf();
 
-// WP4: POST only (was GET-linkable).
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-groups.php');
     exit;
 }
+requireCsrf();
 
 $group_id = $_POST['id'] ?? null;
 if (!$group_id) {

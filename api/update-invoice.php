@@ -13,12 +13,14 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // WP4: explicit CSRF check (manual session bootstrap, no central gate).
-requireCsrf();
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/view-invoices.php');
     exit;
 }
+
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 try {
     $pdo->beginTransaction();

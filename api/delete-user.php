@@ -14,13 +14,14 @@ if (!isLoggedIn()) {
 
 requirePermission('delete_user');
 require_once '../includes/security.php';
-requireCsrf();
 
-// WP4: POST only (was GET-linkable).
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-users.php');
     exit;
 }
+requireCsrf();
 
 $user_id = $_POST['id'] ?? null;
 

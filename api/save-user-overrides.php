@@ -15,12 +15,14 @@ if (!isLoggedIn()) {
 
 requirePermission('manage_access');
 require_once '../includes/security.php';
-requireCsrf();
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-users.php');
     exit;
 }
+
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 try {
     $user_id = $_POST['user_id'] ?? null;

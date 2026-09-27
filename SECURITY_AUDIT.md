@@ -373,6 +373,7 @@ regardless of purging.
 | WP17-02 | High | fresh `install-schema` ENUM lacked `super_admin` → first role silently truncated to `''` | Admin locked out day one | fixed (ENUM + repaired 1100test row) |
 | WP17-03 | Medium | wizard never created HR tables; slow installs could idle-timeout mid-wizard | Final-check error wall; dead wizard | fixed (HR loop in final check; installer exempt from lifetime/registry kills) |
 | WP18-01 | High | wizard session in default store vs app hardened store → finalize auto-login invisible (login HTML parsed as JSON); Step-7 sent no CSRF token | Fresh installs cannot finish Step 7 | fixed (unified wizard sessions; server-embedded CSRF token; friendly expiry message) |
+| WP19-01 | Low | CSRF checked before method on manual endpoints → direct GETs got confusing 403 JSON | UX + probe clarity | fixed (method-first ordering on 16 endpoints; disclosure removed) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |

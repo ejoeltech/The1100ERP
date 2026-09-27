@@ -24,6 +24,13 @@ if (function_exists('hasPermission') && !hasPermission('hr_manage')) {
     echo json_encode(['error' => 'Forbidden: HR management permission required']);
     exit;
 }
+
+// State-changing: POST only (central gate doesn't cover this manual bootstrap).
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
 requireCsrf();
 
 $data = json_decode(file_get_contents('php://input'), true);

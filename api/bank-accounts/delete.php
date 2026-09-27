@@ -11,8 +11,6 @@ require_once '../../includes/audit.php';
 requireLogin();
 requirePermission('manage_settings');
 require_once '../../includes/security.php';
-requireCsrf();
-
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -20,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
     exit;
 }
+
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 try {
     $id = $_POST['id'] ?? null;

@@ -15,13 +15,14 @@ requirePermission('create_document');
 
 // WP4: explicit CSRF check (this endpoint boots its own session instead of
 // session-check.php, so the central POST gate does not cover it).
-requireCsrf();
 
-// WP4: POST only (was GET-linkable: creating a quote via link).
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/readymade-quotes.php');
     exit;
 }
+requireCsrf();
 
 $template_id = $_POST['id'] ?? null;
 

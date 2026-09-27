@@ -15,12 +15,14 @@ if (!isLoggedIn()) {
 
 requirePermission('manage_access');
 require_once '../includes/security.php';
-requireCsrf();
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-groups.php');
     exit;
 }
+
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 try {
     $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;

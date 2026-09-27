@@ -12,12 +12,14 @@ if (!isset($_SESSION['user_id'])) {
 
 requirePermission('delete_document');
 require_once '../includes/security.php';
-requireCsrf();
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/readymade-quotes.php');
     exit;
 }
+
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 $template_id = $_POST['id'] ?? null;
 
@@ -35,6 +37,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Delete readymade quote error: " . $e->getMessage());
-    header('Location: ../pages/readymade-quotes.php?error=' . urlencode($e->getMessage()));
+    header('Location: ../pages/readymade-quotes.php?error=Failed to delete template');
     exit;
 }

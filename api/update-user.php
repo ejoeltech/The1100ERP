@@ -15,12 +15,14 @@ if (!isLoggedIn()) {
 
 requirePermission('edit_user');
 require_once '../includes/security.php';
-requireCsrf();
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/users/manage-users.php');
     exit;
 }
+
+// Method first so direct navigation lands back on the page;
+// CSRF is enforced on actual POSTs below.
+requireCsrf();
 
 $ALLOWED_ROLES = ['super_admin', 'admin', 'manager', 'sales_rep', 'accountant', 'viewer'];
 
