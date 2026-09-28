@@ -15,6 +15,10 @@ $passMin = getSetting('security_password_min', '12');
 if (!in_array($passMin, ['8', '10', '12'], true)) {
     $passMin = '12';
 }
+$complexity = getSetting('security_password_complexity', 'strict');
+if (!in_array($complexity, ['relaxed', 'standard', 'strict'], true)) {
+    $complexity = 'strict';
+}
 
 include '../../includes/header.php';
 ?>
@@ -65,7 +69,18 @@ include '../../includes/header.php';
                     <option value="10" <?php echo $passMin === '10' ? 'selected' : ''; ?>>10 characters</option>
                     <option value="8" <?php echo $passMin === '8' ? 'selected' : ''; ?>>8 characters (relaxed)</option>
                 </select>
-                <p class="text-sm text-gray-600 mt-2">Common-password blocklist and username checks always apply. Never below 8.</p>
+                <p class="text-sm text-gray-600 mt-2">The floor is 8 characters at every level.</p>
+            </div>
+
+            <div class="border rounded-lg p-4">
+                <label class="block text-sm font-semibold text-gray-900 mb-2">Password complexity</label>
+                <select name="security_password_complexity"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+                    <option value="strict" <?php echo $complexity === 'strict' ? 'selected' : ''; ?>>Strict — length, blocklist, username and numbers-only checks</option>
+                    <option value="standard" <?php echo $complexity === 'standard' ? 'selected' : ''; ?>>Standard — length, blocklist and username checks</option>
+                    <option value="relaxed" <?php echo $complexity === 'relaxed' ? 'selected' : ''; ?>>Relaxed — length only</option>
+                </select>
+                <p class="text-sm text-gray-600 mt-2">Applies everywhere passwords are set: user creation, resets, and first-login changes.</p>
             </div>
         </div>
 

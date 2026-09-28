@@ -325,6 +325,7 @@ regardless of purging.
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|
 | WP20-01 | Medium | temp-password login blocked with no path to change it | First-login dead end | fixed (forced-change screen: flag-scoped, expiring, verified 9/9) |
+| WP21-01 | Low | one-size password policy (12+ always) | Admin cannot tune friction | added (complexity relaxed/standard/strict + length floor, verified matrix + E2E) |
 | WP0-01 | Critical | `maintenance/setup/factory-reset.php` | No auth; drops all tables, deletes config.php + lock on POST confirm | fixed (deleted WP0-A) |
 | WP0-02 | Critical | `maintenance/setup/tools/clear-users.php` | No auth; wipes users on `?confirm=yes` | fixed (deleted WP0-A) |
 | WP0-03 | Critical | `maintenance/setup/tools/restore_full_schema.php`, `recreate_users_table.php` | No auth; reset admin to published `admin`/`password`; recreate uses stale role ENUM corrupting auth | fixed (deleted WP0-A) |

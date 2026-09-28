@@ -104,18 +104,34 @@ function validatePasswordPolicy($password, $oldHash = null, $username = '')
     if (strlen($password) > 256) {
         $errors[] = 'Password must be at most 256 characters.';
     }
-    $lower = strtolower($password);
-    foreach (commonPasswordList() as $bad) {
-        if ($lower === $bad) {
-            $errors[] = 'That password is too common. Choose a different one.';
-            break;
+    // Complexity level, admin-configurable (Security settings page):
+    // relaxed = length only; standard adds blocklist + username check;
+    // strict (default) also bans numbers-only passwords.
+    $level = 'strict';
+    if (function_exists('getSetting')) {
+        try {
+            $level = getSetting('security_password_complexity', 'strict');
+        } catch (Exception $e) {
+            $level = 'strict';
         }
     }
-    if (ctype_digit($password)) {
-        $errors[] = 'Password cannot be numbers only.';
+    if (!in_array($level, ['relaxed', 'standard', 'strict'], true)) {
+        $level = 'strict';
     }
-    if ($username !== '' && stripos($password, $username) !== false && strlen($username) >= 4) {
-        $errors[] = 'Password must not contain your username.';
+    if ($level !== 'relaxed') {
+        $lower = strtolower($password);
+        foreach (commonPasswordList() as $bad) {
+            if ($lower === $bad) {
+                $errors[] = 'That password is too common. Choose a different one.';
+                break;
+            }
+        }
+        if ($username !== '' && stripos($password, $username) !== false && strlen($username) >= 4) {
+            $errors[] = 'Password must not contain your username.';
+        }
+    }
+    if ($level === 'strict' && ctype_digit($password)) {
+        $errors[] = 'Password cannot be numbers only.';
     }
     if ($oldHash && verifyPassword($password, $oldHash)) {
         $errors[] = 'New password must be different from the current one.';

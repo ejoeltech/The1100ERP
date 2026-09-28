@@ -712,7 +712,8 @@ class SchemaPatcher
             $pdo->exec("INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`, `category`, `description`) VALUES
 ('security_mfa_enabled', '1', 'security', 'Two-factor authentication available for opt-in enrollment'),
 ('security_invites_enabled', '0', 'security', 'Invite links for user onboarding (off = admin-set temporary passwords)'),
-('security_password_min', '12', 'security', 'Minimum password length (8-12)')");
+('security_password_min', '12', 'security', 'Minimum password length (8-12)'),
+('security_password_complexity', 'strict', 'security', 'Password complexity: relaxed, standard or strict')");
             $add('ok', 'seed', 'Ensured security toggle keys.');
         } catch (Exception $e) {
             $add('error', 'seed', 'Failed seeding security toggles: ' . $e->getMessage());

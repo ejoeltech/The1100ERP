@@ -30,6 +30,7 @@ try {
     $mfa = $_POST['security_mfa_enabled'] ?? null;
     $inv = $_POST['security_invites_enabled'] ?? null;
     $min = $_POST['security_password_min'] ?? null;
+    $cx = $_POST['security_password_complexity'] ?? null;
 
     if (!in_array($mfa, ['0', '1'], true)) {
         throw new Exception('Invalid MFA setting');
@@ -40,15 +41,20 @@ try {
     if (!in_array($min, ['8', '10', '12'], true)) {
         throw new Exception('Invalid password length setting');
     }
+    if (!in_array($cx, ['relaxed', 'standard', 'strict'], true)) {
+        throw new Exception('Invalid complexity setting');
+    }
 
     setSetting('security_mfa_enabled', $mfa);
     setSetting('security_invites_enabled', $inv);
     setSetting('security_password_min', $min);
+    setSetting('security_password_complexity', $cx);
 
     if (function_exists('logAudit')) {
         logAudit('system_update', 'system', null, [
             'source' => 'security-settings',
             'mfa' => $mfa, 'invites' => $inv, 'password_min' => $min,
+            'complexity' => $cx,
         ]);
     }
 
