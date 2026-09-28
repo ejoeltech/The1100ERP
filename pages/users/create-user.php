@@ -1,6 +1,7 @@
 <?php
 include '../../includes/session-check.php';
 requirePermission('create_user');
+require_once '../../includes/invites.php'; // invitesGloballyEnabled()
 
 $pageTitle = 'Create User - ERP System';
 
@@ -13,6 +14,8 @@ try {
 $isSuper = function_exists('isSuperAdmin') && isSuperAdmin();
 $hasSuper = function_exists('systemHasSuperAdmin') ? systemHasSuperAdmin() : true;
 $canMakeSuper = $isSuper || !$hasSuper;
+$invitesOn = function_exists('invitesGloballyEnabled') && invitesGloballyEnabled();
+$passMin = function_exists('passwordMinLength') ? passwordMinLength() : 12;
 
 include '../../includes/header.php';
 ?>
@@ -114,10 +117,34 @@ include '../../includes/header.php';
                 </div>
             </div>
 
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p class="text-sm text-blue-800 font-semibold">No password needed</p>
-                <p class="text-xs text-blue-700 mt-1">The new user receives a one-time invite link (valid 48 hours) to set their own password. The link is shown once after creation — copy it for them.</p>
-            </div>
+            <?php if ($invitesOn): ?>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-sm text-blue-800 font-semibold">No password needed</p>
+                    <p class="text-xs text-blue-700 mt-1">The new user receives a one-time invite link (valid 48 hours) to set their own password. The link is shown once after creation — copy it for them.</p>
+                </div>
+            <?php else: ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Temporary Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" name="password" required autocomplete="new-password"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                            placeholder="At least <?php echo (int)$passMin; ?> characters">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            Confirm Password <span class="text-red-500">*</span>
+                        </label>
+                        <input type="password" name="confirm_password" required autocomplete="new-password"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                            placeholder="Repeat the password">
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-xs text-blue-700">Relay this password to the user securely (in person or a trusted channel — never by email alone). They must change it at first login.</p>
+                </div>
+            <?php endif; ?>
 
             <div>
                 <label class="flex items-center gap-2">

@@ -239,6 +239,12 @@ if (function_exists('setSecurityHeaders')) {
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             🛡️ Groups & Permissions
                         </a>
+                        <?php if (function_exists('isSuperAdmin') && isSuperAdmin()): ?>
+                            <a href="<?php echo $base_path; ?>/pages/users/security-settings.php"
+                                class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                                🔐 Security Settings
+                            </a>
+                        <?php endif; ?>
                         <a href="<?php echo $base_path; ?>/pages/settings.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                             ⚙️ Settings
@@ -270,6 +276,12 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         🔒 Change Password
                     </a>
+                    <?php if (!function_exists('mfaGloballyEnabled') || mfaGloballyEnabled()): ?>
+                        <a href="<?php echo $base_path; ?>/pages/users/security-mfa.php"
+                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                            📱 Two-Factor Auth
+                        </a>
+                    <?php endif; ?>
                     <a href="<?php echo $base_path; ?>/logout.php"
                         class="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold">
                         🚪 Logout
@@ -527,6 +539,13 @@ if (function_exists('setSecurityHeaders')) {
                                         <div class="font-semibold">Groups & Permissions</div>
                                         <div class="text-xs text-gray-500">Access control</div>
                                     </a>
+                                    <?php if (function_exists('isSuperAdmin') && isSuperAdmin()): ?>
+                                        <a href="<?php echo $base_path; ?>/pages/users/security-settings.php"
+                                            class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                            <div class="font-semibold">🔐 Security Settings</div>
+                                            <div class="text-xs text-gray-500">2FA, invites, passwords</div>
+                                        </a>
+                                    <?php endif; ?>
                                     <a href="<?php echo $base_path; ?>/pages/settings.php"
                                         class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                         <div class="font-semibold">Settings</div>
@@ -577,6 +596,12 @@ if (function_exists('setSecurityHeaders')) {
                                     class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
                                     🔒 Change Password
                                 </a>
+                                <?php if (!function_exists('mfaGloballyEnabled') || mfaGloballyEnabled()): ?>
+                                    <a href="<?php echo $base_path; ?>/pages/users/security-mfa.php"
+                                        class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                        📱 Two-Factor Auth
+                                    </a>
+                                <?php endif; ?>
                                 <hr class="my-1">
                                 <a href="<?php echo $base_path; ?>/logout.php"
                                     class="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-b-lg font-semibold">

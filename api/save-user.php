@@ -30,6 +30,12 @@ try {
     $username = trim($_POST['username']);
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email'] ?? '');
+    // Email is optional: store NULL (never '') so the UNIQUE key can't
+    // collide on blank addresses. Validate format when one is given.
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new Exception('Invalid email address');
+    }
+    $email = $email !== '' ? $email : null;
     $phone = trim($_POST['phone'] ?? '');
     $role = $_POST['role'];
     $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;
@@ -94,14 +100,37 @@ try {
         throw new Exception('Username already exists');
     }
 
-    // WP2: unknowable initial password + one-time invite (shown once below).
-    $created = createUserWithInvite($username, $full_name, $email, $phone, $role, $group_id, $is_active, $_SESSION['user_id']);
-    $new_user_id = $created['user_id'];
+    // Credential handoff, two modes (Security settings page):
+    // - invites ON (legacy): unknowable password + one-time link shown once.
+    // - invites OFF (default): admin sets a temporary password; the user must
+    //   change it at first login (must_change_password is always set).
+    $new_user_id = null;
+    $inviteToken = null;
+    if (function_exists('invitesGloballyEnabled') && invitesGloballyEnabled()) {
+        $created = createUserWithInvite($username, $full_name, $email, $phone, $role, $group_id, $is_active, $_SESSION['user_id']);
+        $new_user_id = $created['user_id'];
+        $inviteToken = $created['invite_token'];
+    } else {
+        $tempPassword = $_POST['password'] ?? '';
+        $tempConfirm = $_POST['confirm_password'] ?? '';
+        if ($tempPassword === '' || $tempPassword !== $tempConfirm) {
+            throw new Exception('Temporary password and confirmation must match');
+        }
+        $problems = validatePasswordPolicy($tempPassword, null, $username);
+        if ($problems) {
+            throw new Exception(implode(' ', $problems));
+        }
+        $new_user_id = createUserWithPassword($username, $full_name, $email, $phone, $role, $group_id, $is_active, hashPassword($tempPassword));
+    }
 
-    // Log audit trail (invite token itself is never logged)
+    // Log audit trail (invite token itself is never logged; passwords never logged)
     logUserCreate($new_user_id, $username, $role);
 
-    header('Location: ../pages/users/manage-users.php?created=1&new_user_id=' . $new_user_id . '&invite=' . urlencode($created['invite_token']));
+    $dest = '../pages/users/manage-users.php?created=1&new_user_id=' . $new_user_id;
+    if ($inviteToken !== null) {
+        $dest .= '&invite=' . urlencode($inviteToken);
+    }
+    header('Location: ' . $dest);
     exit;
 
 } catch (Exception $e) {

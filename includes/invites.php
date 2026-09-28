@@ -96,6 +96,35 @@ function consumeInvite($inviteId, $userId, $newPasswordHash)
 }
 
 /**
+ * Whether invite links are enabled (Security settings page, default OFF).
+ * When OFF, user onboarding uses admin-set temporary passwords instead.
+ * (HR employee onboarding keeps its own flow regardless.)
+ */
+function invitesGloballyEnabled()
+{
+    if (!function_exists('getSetting')) {
+        return false;
+    }
+    try {
+        return getSetting('security_invites_enabled', '0') === '1';
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Create a user with an admin-set temporary password + must_change flag.
+ * Returns the new user id. The caller shows nothing secret (the admin chose
+ * the password and must relay it to the user out of band).
+ */
+function createUserWithPassword($username, $fullName, $email, $phone, $role, $groupId, $isActive, $passwordHash, $pdo = null)
+{
+    $pdo = $pdo ?: ($GLOBALS['pdo'] ?? null);
+    $stmt = $pdo->prepare("INSERT INTO users (username, password, full_name, email, phone, role, group_id, is_active, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)");
+    $stmt->execute([$username, $passwordHash, $fullName, $email, $phone, $role, $groupId, $isActive]);
+    return (int)$pdo->lastInsertId();
+}
+/**
  * Create a user with an unknowable password + must_change flag + invite.
  * Returns ['user_id' => int, 'invite_token' => string(plaintext, show once)].
  * The plaintext token must never be stored, emailed, or logged.

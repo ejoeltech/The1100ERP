@@ -585,6 +585,15 @@ class SchemaPatcher
             }
         }
         $addCol('users', 'group_id', 'INT(11) UNSIGNED DEFAULT NULL');
+        // Email is optional: NULL (not '') so the UNIQUE key never collides
+        // on blank addresses. Re-runnable without error.
+        try {
+            $pdo->exec("ALTER TABLE `users` MODIFY COLUMN `email` VARCHAR(255) NULL DEFAULT NULL");
+            $pdo->exec("UPDATE `users` SET `email` = NULL WHERE `email` = ''");
+            $add('ok', 'columns', 'users.email nullable + blanks cleared.');
+        } catch (Exception $e) {
+            $add('error', 'columns', 'Failed users.email nullable: ' . $e->getMessage());
+        }
         $addCol('users', 'must_change_password', 'TINYINT(1) NOT NULL DEFAULT 0');
         $addCol('users', 'mfa_secret', 'TEXT DEFAULT NULL');
         $addCol('users', 'mfa_enabled', 'TINYINT(1) NOT NULL DEFAULT 0');
@@ -698,6 +707,15 @@ class SchemaPatcher
             $add('ok', 'seed', 'Ensured payroll settings keys.');
         } catch (Exception $e) {
             $add('error', 'seed', 'Failed seeding payroll settings: ' . $e->getMessage());
+        }
+        try {
+            $pdo->exec("INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`, `category`, `description`) VALUES
+('security_mfa_enabled', '1', 'security', 'Two-factor authentication available for opt-in enrollment'),
+('security_invites_enabled', '0', 'security', 'Invite links for user onboarding (off = admin-set temporary passwords)'),
+('security_password_min', '12', 'security', 'Minimum password length (8-12)')");
+            $add('ok', 'seed', 'Ensured security toggle keys.');
+        } catch (Exception $e) {
+            $add('error', 'seed', 'Failed seeding security toggles: ' . $e->getMessage());
         }
         foreach ([
             "ALTER TABLE `hr_onboarding_codes` ADD COLUMN `code_hash` CHAR(64) DEFAULT NULL",

@@ -31,13 +31,17 @@ try {
     $username = trim($_POST['username']);
     $full_name = trim($_POST['full_name']);
     $email = trim($_POST['email'] ?? '');
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new Exception('Invalid email address');
+    }
+    $email = $email !== '' ? $email : null;
     $phone = trim($_POST['phone'] ?? '');
     $role = $_POST['role'];
     $group_id = !empty($_POST['group_id']) ? (int)$_POST['group_id'] : null;
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     $reset_password = !empty($_POST['reset_password']);
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
+    $new_temp_password = $_POST['new_password'] ?? '';
+    $new_temp_confirm = $_POST['confirm_password'] ?? '';
 
     // Validation
     if (empty($username) || empty($full_name) || empty($role)) {
@@ -106,19 +110,18 @@ try {
     $update_fields = "username = ?, full_name = ?, email = ?, phone = ?, role = ?, group_id = ?, is_active = ?";
     $params = [$username, $full_name, $email, $phone, $role, $group_id, $is_active];
 
-    // Handle password change if provided (self-service style: policy-checked).
-    // Admin resets use the reset_password flag instead (invite flow below);
-    // any literal password fields posted alongside are ignored for resets.
-    if (!empty($password)) {
-        if ($password !== $confirm_password) {
-            throw new Exception('Passwords do not match');
+    // Admin-set temporary password (policy-checked, forced change at next
+    // login). Replaces the old reset-via-invite flow.
+    if ($reset_password) {
+        if ($new_temp_password === '' || $new_temp_password !== $new_temp_confirm) {
+            throw new Exception('Temporary password and confirmation must match');
         }
-        $problems = validatePasswordPolicy($password, $old_user['password'], $username);
+        $problems = validatePasswordPolicy($new_temp_password, $old_user['password'], $username);
         if ($problems) {
             throw new Exception(implode(' ', $problems));
         }
-        $update_fields .= ", password = ?, must_change_password = 0";
-        $params[] = hashPassword($password);
+        $update_fields .= ", password = ?, must_change_password = 1";
+        $params[] = hashPassword($new_temp_password);
     }
 
     $params[] = $user_id;
@@ -126,14 +129,6 @@ try {
     // Update user
     $stmt = $pdo->prepare("UPDATE users SET $update_fields WHERE id = ?");
     $stmt->execute($params);
-
-    // WP2 admin reset: unknowable password + forced-change flag + one-time invite.
-    $resetInvite = null;
-    if ($reset_password) {
-        $stmt = $pdo->prepare("UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?");
-        $stmt->execute([hashPassword(bin2hex(random_bytes(32))), $user_id]);
-        $resetInvite = createUserInvite($user_id, $_SESSION['user_id']);
-    }
 
     // Log audit trail
     $changes = [];
@@ -147,10 +142,8 @@ try {
         $changes['group_id'] = $group_id;
     if ($old_user['is_active'] != $is_active)
         $changes['status'] = $is_active ? 'activated' : 'deactivated';
-    if (!empty($password))
-        $changes['password'] = 'changed';
     if ($reset_password)
-        $changes['password'] = 'reset via invite';
+        $changes['password'] = 'reset to temporary (forced change)';
 
     if (!empty($changes)) {
         logUserUpdate($user_id, $username, $changes);
@@ -164,9 +157,6 @@ try {
     }
 
     $dest = '../pages/users/manage-users.php?updated=1';
-    if ($resetInvite) {
-        $dest .= '&reset_user_id=' . $user_id . '&invite=' . urlencode($resetInvite);
-    }
     header('Location: ' . $dest);
     exit;
 

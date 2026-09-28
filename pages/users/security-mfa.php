@@ -6,7 +6,8 @@ require_once '../../includes/security.php';
 require_once '../../includes/totp.php';
 
 $uid = $current_user['id'];
-$enabled = mfaIsEnabled($uid);
+$mfaAvailable = !function_exists('mfaGloballyEnabled') || mfaGloballyEnabled();
+$enabled = $mfaAvailable && mfaIsEnabled($uid);
 $error = '';
 $success = '';
 $showSecret = null;   // ['b32' => ..., 'uri' => ...] during enrollment step
@@ -15,6 +16,8 @@ $showRecovery = [];   // plaintext codes, shown exactly once
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid security token. Please try again.';
+    } elseif (!$mfaAvailable && (($_POST['mfa_action'] ?? '') !== 'disable')) {
+        $error = 'Two-factor authentication is disabled by the administrator.';
     } elseif (($_POST['mfa_action'] ?? '') === 'start') {
         // Begin enrollment: keep the secret server-side in-session until verified.
         try {
@@ -143,7 +146,13 @@ include '../../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <?php if (!$enabled && !$showSecret): ?>
+    <?php if (!$mfaAvailable): ?>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+            <p class="text-gray-700 text-sm">Two-factor authentication is currently disabled by the administrator. Passwords still protect your account.</p>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$enabled && !$showSecret && $mfaAvailable): ?>
         <p class="text-sm text-gray-700 mb-4">Protect your account with an authenticator app (Google Authenticator, 1Password, Bitwarden, Authy). You will enter a 6-digit code at login.</p>
         <form method="POST">
             <?php echo csrfField(); ?>

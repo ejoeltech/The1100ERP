@@ -188,6 +188,23 @@ function mfaIsEnabled($userId)
 }
 
 /**
+ * Global MFA kill-switch (Security settings page, super_admin only).
+ * Default ON (opt-in enrollment available); when OFF, enrollment is hidden
+ * and the login second step is skipped even for enrolled accounts.
+ */
+function mfaGloballyEnabled()
+{
+    if (!function_exists('getSetting')) {
+        return true;
+    }
+    try {
+        return getSetting('security_mfa_enabled', '1') !== '0';
+    } catch (Exception $e) {
+        return true;
+    }
+}
+
+/**
  * Roles (and HR/payroll permission holders) for whom MFA is mandatory (WP4).
  */
 function mfaRequiredForRole($role)

@@ -14,12 +14,17 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
-$invite = $token !== '' ? findValidInvite($token) : null;
+// Invite links are optional (Security settings, default OFF). When off, this
+// page is closed and onboarding uses admin-set temporary passwords.
+$invitesOn = function_exists('invitesGloballyEnabled') && invitesGloballyEnabled();
+$invite = ($token !== '' && $invitesOn) ? findValidInvite($token) : null;
 
 $error = '';
 $done = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$invitesOn) {
+    $error = 'Invite links are disabled by the administrator. Ask your administrator for a temporary password.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
         $error = 'Invalid security token. Please reload and try again.';
     } elseif (!throttleCheck('invite_ip:' . $ip, 10, 3600)) {

@@ -14,6 +14,26 @@ function passwordHashOptions()
     return ['memory_cost' => 1 << 16, 'time_cost' => 4, 'threads' => 1];
 }
 
+/**
+ * Minimum password length, admin-configurable (Security settings page).
+ * Strict default 12; admin may relax to 8. Clamped to [8, 12].
+ */
+function passwordMinLength()
+{
+    $min = 12;
+    if (function_exists('getSetting')) {
+        try {
+            $min = (int)getSetting('security_password_min', 12);
+        } catch (Exception $e) {
+            $min = 12;
+        }
+    }
+    if ($min < 8 || $min > 12) {
+        $min = 12;
+    }
+    return $min;
+}
+
 function hashPassword($password)
 {
     return password_hash($password, PASSWORD_ARGON2ID, passwordHashOptions());
@@ -76,8 +96,9 @@ function commonPasswordList()
 function validatePasswordPolicy($password, $oldHash = null, $username = '')
 {
     $errors = [];
-    if (!is_string($password) || strlen($password) < 12) {
-        $errors[] = 'Password must be at least 12 characters.';
+    $min = passwordMinLength();
+    if (!is_string($password) || strlen($password) < $min) {
+        $errors[] = 'Password must be at least ' . $min . ' characters.';
         return $errors; // length first; other checks need enough material
     }
     if (strlen($password) > 256) {

@@ -302,6 +302,26 @@ regardless of purging.
 - Verified: previously-failing guard probes (group/user writes as admin)
   pass; WP3 regression 10/10; lint clean; guard-audit REVIEW 0.
 
+## WP20: simpler user security — temp passwords, security toggles (2026-09-28)
+
+- Admin-set temporary passwords replace invite links by default: create-user
+  takes password+confirm (policy-checked, forced change at first login);
+  edit-user reset sets a temp password the same way. Invite backend kept,
+  gated behind `security_invites_enabled` (default OFF); accept-invite page
+  refuses while off. must_change_password remains the backstop.
+- New super_admin-only Security settings page (`pages/users/security-settings.php`):
+  MFA kill-switch (default ON, opt-in), invite-links toggle (default OFF),
+  password minimum 8/10/12 (default 12, never below 8; blocklist always on).
+  All values allow-list validated; changes audited.
+- MFA kill-switch wired into login second step + enrollment page + nav;
+  login forced-change message no longer mentions invite links.
+- Fixed alongside: nullable `users.email` (empty strings collided on UNIQUE
+  after the second password-less user) + format validation, in patcher and
+  fresh schema.
+- Verified: 22/22 HTTP matrix (create/reset/invite-on/invite-off/MFA
+  on/off/policy), WP3 regression 10/10, lint + guard-audit clean, fixtures
+  and temp env key removed.
+
 ## Findings
 | ID | Severity | Location | Description | Status |
 |---|---|---|---|---|

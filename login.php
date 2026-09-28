@@ -66,12 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (session_status() === PHP_SESSION_ACTIVE) {
                         session_regenerate_id(true);
                     }
-                    $error = 'A password reset is required on this account. Use your invite link or contact an administrator.';
+                    $error = 'A password change is required on this account before you can log in. Contact your administrator for a temporary password.';
                 } else {
                     // WP4: accounts with MFA pause here with zero privileges until
                     // the second step (pages/login-mfa.php) verifies the code.
                     require_once 'includes/totp.php';
                     $loginUid = $_SESSION['user_id'] ?? null;
+                    if ($loginUid && function_exists('mfaGloballyEnabled') && !mfaGloballyEnabled()) {
+                        // MFA switched off globally: straight through, even for enrolled accounts.
+                        loginAuditLog($pdo, $username, $ip, 'success');
+                        header('Location: dashboard.php');
+                        exit;
+                    }
                     if ($loginUid && mfaIsEnabled($loginUid)) {
                         session_regenerate_id(true);
                         $_SESSION['mfa_pending'] = ['user_id' => $loginUid, 'at' => time()];
