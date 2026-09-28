@@ -59,14 +59,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mustChange = false;
                 }
                 if ($mustChange) {
-                    // Clear the just-created session WITHOUT redirecting, so the
-                    // message below survives (logout() would bounce to login.php
-                    // and drop it). Regenerate the ID against fixation.
+                    // Temporary password verified: park a single-purpose flag
+                    // and send the user to set their own password. The flag
+                    // authorizes nothing else and expires in 15 minutes.
+                    $flagUserId = null;
+                    try {
+                        $idStmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+                        $idStmt->execute([$username]);
+                        $idRow = $idStmt->fetch();
+                        $flagUserId = $idRow ? (int)$idRow['id'] : null;
+                    } catch (Exception $e) {
+                        $flagUserId = null;
+                    }
                     $_SESSION = [];
                     if (session_status() === PHP_SESSION_ACTIVE) {
                         session_regenerate_id(true);
                     }
-                    $error = 'A password change is required on this account before you can log in. Contact your administrator for a temporary password.';
+                    if ($flagUserId) {
+                        $_SESSION['pwd_change_required'] = ['user_id' => $flagUserId, 'at' => time()];
+                        header('Location: pages/users/force-password.php');
+                    } else {
+                        $error = 'A password change is required on this account before you can log in. Contact your administrator for a temporary password.';
+                    }
+                    exit;
                 } else {
                     // WP4: accounts with MFA pause here with zero privileges until
                     // the second step (pages/login-mfa.php) verifies the code.
@@ -173,6 +188,11 @@ function loginAuditLog($pdo, $username, $ip, $outcome)
                     <p class="text-red-800 text-sm">
                         <?php echo htmlspecialchars($error); ?>
                     </p>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($_GET['changed'])): ?>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                    <p class="text-green-800 font-semibold text-sm">Password updated. Log in with your new password.</p>
                 </div>
             <?php endif; ?>
 
