@@ -395,6 +395,7 @@ regardless of purging.
 | WP17-03 | Medium | wizard never created HR tables; slow installs could idle-timeout mid-wizard | Final-check error wall; dead wizard | fixed (HR loop in final check; installer exempt from lifetime/registry kills) |
 | WP18-01 | High | wizard session in default store vs app hardened store → finalize auto-login invisible (login HTML parsed as JSON); Step-7 sent no CSRF token | Fresh installs cannot finish Step 7 | fixed (unified wizard sessions; server-embedded CSRF token; friendly expiry message) |
 | WP19-01 | Low | CSRF checked before method on manual endpoints → direct GETs got confusing 403 JSON | UX + probe clarity | fixed (method-first ordering on 16 endpoints; disclosure removed) |
+| WP22-01 | High | logo upload fatals (missing GD/finfo, corrupt image) escape Exception-only catch → bare 500 on production | Save Settings unusable with logo | fixed (capability guards + corrupt-image check + Error catch → friendly redirect; save-settings hardened the same way) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
 | WP11-02 | High | root restore.php uploads target escaped to `htdocs/uploads` | Media written outside app / copy fails | fixed (WP11: app uploads + containment) |
 | WP11-03 | Medium | patch archives could overwrite `.env`/config; hand-quoted shell path; temp dirs never cleaned | Secret theft; shell breakout; disk fill | fixed (WP11) |

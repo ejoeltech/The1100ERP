@@ -124,6 +124,10 @@ try {
     header('Location: ../pages/settings.php?success=1');
     exit;
 
+} catch (Error $e) {
+    error_log("Save settings error: " . $e->getMessage());
+    header('Location: ../pages/settings.php?error=' . urlencode('Could not save settings. Check server logs.'));
+    exit;
 } catch (Exception $e) {
     error_log("Save settings error: " . $e->getMessage());
     header('Location: ../pages/settings.php?error=' . urlencode($e->getMessage()));
