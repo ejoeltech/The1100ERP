@@ -73,9 +73,9 @@ include '../includes/header.php';
     </div>
 <?php endif; ?>
 
-<div class="bg-white rounded-lg shadow-md p-8">
+<div class="bg-white rounded-lg shadow-md p-4 md:p-8">
     <div class="flex items-center justify-between mb-6">
-        <h2 class="text-3xl font-bold text-gray-900">Edit Quote:
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Edit Quote:
             <?php echo htmlspecialchars($quote['document_number']); ?>
         </h2>
         <span class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">Draft</span>
@@ -161,7 +161,7 @@ include '../includes/header.php';
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full border border-gray-300">
+                <table class="w-full border border-gray-300 line-items-table">
                     <thead>
                         <tr class="bg-primary text-white">
                             <th class="px-3 py-2 text-left text-sm font-semibold w-16">#</th>

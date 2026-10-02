@@ -48,9 +48,9 @@ include '../includes/header.php';
     </div>
 <?php endif; ?>
 
-<div class="bg-white rounded-lg shadow-md p-8">
+<div class="bg-white rounded-lg shadow-md p-4 md:p-8">
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-3xl font-bold text-gray-900">Create New Quote</h2>
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Create New Quote</h2>
         <button onclick="openAiQuoteModal()"
             class="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md">
             <img src="../assets/icons/flash.png" class="w-5 h-5" alt="Flash">
@@ -195,7 +195,7 @@ include '../includes/header.php';
 
             <!-- Line Items Table -->
             <div class="overflow-x-auto">
-                <table class="w-full border border-gray-300">
+                <table class="w-full border border-gray-300 line-items-table">
                     <thead>
                         <tr class="bg-primary text-white">
                             <th class="px-3 py-2 text-left text-sm font-semibold w-16">#</th>
@@ -312,7 +312,7 @@ include '../includes/header.php';
 
                             if (qtyInput) {
                                 qtyInput.value = item.quantity;
-                                formatInput(qtyInput);
+                                formatQtyInput(qtyInput);
                             }
                             if (descInput) descInput.value = item.description;
                             if (priceInput) {
@@ -418,7 +418,7 @@ async function generateAiQuote() {
                               if (inp.name.includes('[description]')) inp.value = item.name + (item.description ? ' - ' + item.description : '');
                               if (inp.name.includes('[quantity]')) {
                                   inp.value = item.quantity;
-                                  formatInput(inp);
+                                  formatQtyInput(inp);
                               }
                               if (inp.name.includes('[unit_price]')) {
                                   inp.value = item.price_per_unit_ngn;

@@ -12,11 +12,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    requirePermission('email_document');
+
     $documentType = $_POST['document_type'] ?? '';
     $documentId = intval($_POST['document_id'] ?? 0);
     $recipientEmail = trim($_POST['recipient_email'] ?? '');
     $recipientName = trim($_POST['recipient_name'] ?? '');
-    $customMessage = trim($_POST['custom_message'] ?? '');
+    // Form field names (email-document.php) + legacy API names
+    $customMessage = trim($_POST['additional_message'] ?? $_POST['custom_message'] ?? '');
+    $subject = trim($_POST['email_subject'] ?? '') ?: null;
+    $attachPdf = !isset($_POST['attach_pdf']) || $_POST['attach_pdf'] === '1' || $_POST['attach_pdf'] === 'on';
 
     // Validate inputs
     if (!in_array($documentType, ['quote', 'invoice', 'receipt'])) {
@@ -31,7 +36,6 @@ try {
         throw new Exception('Recipient email required');
     }
 
-    // Verify document exists and user has permission to view it
     // Verify document exists and user has permission to view it
     $document = null;
     if ($documentType === 'quote') {
@@ -57,13 +61,22 @@ try {
         throw new Exception('You do not have permission to email this document');
     }
 
+    // Optional BCC to salesperson (resolved from users by name)
+    $bcc = null;
+    if (!empty($_POST['bcc_salesperson']) && !empty($document['salesperson'])) {
+        $bcc = resolveSalespersonEmail($document['salesperson']);
+    }
+
     // Send email
     $result = sendDocumentEmail(
         $documentType,
         $documentId,
         $recipientEmail,
         $recipientName,
-        $customMessage
+        $customMessage,
+        $subject,
+        $attachPdf,
+        $bcc
     );
 
     header('Content-Type: application/json');

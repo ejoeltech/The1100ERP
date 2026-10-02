@@ -1,4 +1,6 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 // Receipt PDF Template
 $theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#2563eb';
 $html = '
@@ -59,7 +61,7 @@ $html = '
             </tr>
             <tr>
                 <td class="label">Date:</td>
-                <td>' . date('d/m/Y', strtotime($receipt['quote_date'])) . '</td>';
+                <td>' . date('d/m/Y', strtotime($receipt['payment_date'] ?? $receipt['created_at'] ?? 'now')) . '</td>';
 
 if ($parent_invoice) {
     $html .= '
@@ -82,10 +84,10 @@ $html .= '
             </tr>
             <tr>';
 
-if ($receipt['payment_reference']) {
+if (!empty($receipt['reference_number'])) {
     $html .= '
                 <td class="label">Payment Reference:</td>
-                <td>' . htmlspecialchars($receipt['payment_reference']) . '</td>';
+                <td>' . htmlspecialchars($receipt['reference_number']) . '</td>';
 } else {
     $html .= '<td></td><td></td>';
 }
@@ -101,7 +103,7 @@ $html .= '
         <table>
             <tr>
                 <td>Original Invoice Amount:</td>
-                <td style="text-align: right;"><strong>' . formatNaira($receipt['grand_total']) . '</strong></td>
+                <td style="text-align: right;"><strong>' . formatNaira($parent_invoice['grand_total'] ?? $receipt['amount_paid']) . '</strong></td>
             </tr>
             <tr>
                 <td>Amount Paid (This Receipt):</td>
@@ -124,7 +126,7 @@ $html .= '
         </table>
     </div>';
 
-if ($receipt['notes']) {
+if (!empty($receipt['notes'])) {
     $html .= '
     <div style="background-color: #F3F4F6; padding: 10px; margin: 20px 0; border-radius: 5px;">
         <p style="margin: 0; font-weight: bold; font-size: 10pt;">Notes:</p>
@@ -139,7 +141,7 @@ $html .= '
         <p style="font-style: italic; font-weight: bold;">Thank you for your payment!</p>
         <p style="margin-top: 10px; font-size: 8pt; color: #666;">
             This is a computer-generated receipt<br>
-            Receipt prepared by: ' . htmlspecialchars($receipt['salesperson']) . '
+            Receipt prepared by: ' . htmlspecialchars($receipt['salesperson'] ?? '') . '
         </p>
     </div>
 </body>

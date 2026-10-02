@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.querySelector(`[name="line_items[${currentCount}][description]"]`).value = item.description;
                     priceInput.value = item.unit_price;
 
-                    // Apply formatting
-                    formatInput(qtyInput);
+                    // Apply formatting (quantity is whole numbers, no decimals)
+                    formatQtyInput(qtyInput);
                     formatInput(priceInput);
 
                     // Handle checkbox

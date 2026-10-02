@@ -40,6 +40,9 @@ if (!$document) {
 if (function_exists('canViewDocument') && !canViewDocument($document)) {
     die('Access Denied: You cannot view this document');
 }
+if (function_exists('requirePermission')) {
+    requirePermission('email_document');
+}
 
 $pageTitle = 'Email Document - ERP System';
 
@@ -186,22 +189,54 @@ include '../includes/header.php';
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-4 justify-end mt-8">
+        <div class="flex flex-col md:flex-row gap-4 justify-end mt-8">
             <button type="button" onclick="window.history.back()"
-                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-center">
                 Cancel
             </button>
-            <button type="submit"
-                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center gap-2">
+            <button type="submit" id="sendEmailBtn"
+                class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center gap-2 text-center">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
                     </path>
                 </svg>
-                Send Email
+                <span id="sendEmailLabel">Send Email</span>
             </button>
         </div>
     </form>
 </div>
+
+<script>
+    document.getElementById('emailForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const btn = document.getElementById('sendEmailBtn');
+        const label = document.getElementById('sendEmailLabel');
+        const result = document.getElementById('emailResult');
+        btn.disabled = true;
+        label.textContent = 'SendingΓÇª';
+        result.className = 'hidden rounded-lg p-4 mb-6 text-sm font-semibold';
+        try {
+            const resp = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+            const data = await resp.json();
+            result.classList.remove('hidden');
+            if (data.success) {
+                result.classList.add('bg-green-50', 'border', 'border-green-200', 'text-green-800');
+                result.textContent = 'Γ£ô ' + (data.message || 'Email sent successfully');
+            } else {
+                result.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-800');
+                result.textContent = 'Γ£ò ' + (data.message || 'Failed to send email');
+            }
+        } catch (err) {
+            result.classList.remove('hidden');
+            result.classList.add('bg-red-50', 'border', 'border-red-200', 'text-red-800');
+            result.textContent = 'Γ£ò Network error: ' + err.message;
+        } finally {
+            btn.disabled = false;
+            label.textContent = 'Send Email';
+        }
+    });
+</script>
 
 <?php include '../includes/footer.php'; ?>

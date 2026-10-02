@@ -79,8 +79,8 @@ include '../includes/header.php';
     </div>
 <?php endif; ?>
 
-<div class="bg-white rounded-lg shadow-md p-8">
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">Edit Invoice:
+<div class="bg-white rounded-lg shadow-md p-4 md:p-8">
+    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Edit Invoice:
         <?php echo htmlspecialchars($invoice['document_number']); ?>
     </h2>
 
@@ -178,7 +178,7 @@ include '../includes/header.php';
 
             <!-- Line Items Table -->
             <div class="overflow-x-auto">
-                <table class="w-full border border-gray-300">
+                <table class="w-full border border-gray-300 line-items-table">
                     <thead>
                         <tr class="bg-primary text-white">
                             <th class="px-3 py-2 text-left text-sm font-semibold w-16">#</th>

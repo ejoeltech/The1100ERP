@@ -1,8 +1,12 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 /**
- * Simple Email Mailer
- * Uses PHP mail() function with PDF attachments
+ * Document Email Mailer
+ * Sends quotes, invoices and receipts with PDF attachments.
+ * Transport: SMTP (Settings > Email) when configured, else PHP mail().
  */
+require_once __DIR__ . '/smtp-mailer.php';
 
 /**
  * Send document email with PDF attachment
@@ -11,9 +15,12 @@
  * @param string $recipientEmail
  * @param string $recipientName
  * @param string $customMessage
- * @return array ['success' => bool, 'message' => string]
+ * @param string|null $subject   Override auto-generated subject
+ * @param bool $attachPdf        Attach the PDF (else body only)
+ * @param string|array|null $bcc BCC address(es)
+ * @return array ['success' => bool, 'message' => string, 'method' => string]
  */
-function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipientName = '', $customMessage = '')
+function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipientName = '', $customMessage = '', $subject = null, $attachPdf = true, $bcc = null)
 {
     global $pdo;
 
@@ -23,7 +30,6 @@ function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipie
             throw new Exception('Invalid email address');
         }
 
-        // Fetch document
         // Fetch document
         $document = null;
         if ($documentType === 'quote') {
@@ -36,55 +42,85 @@ function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipie
             $document = $stmt->fetch();
         } elseif ($documentType === 'receipt') {
             $stmt = $pdo->prepare("
-                SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title 
+                SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title
                 FROM receipts r
                 LEFT JOIN invoices i ON r.invoice_id = i.id
                 WHERE r.id = ? AND r.deleted_at IS NULL
             ");
             $stmt->execute([$documentId]);
             $document = $stmt->fetch();
+        } else {
+            throw new Exception('Invalid document type');
         }
 
         if (!$document) {
             throw new Exception('Document not found');
         }
 
-        // Generate PDF (use existing PDF export)
-        $pdfPath = generateDocumentPDF($documentType, $documentId);
-
-        if (!file_exists($pdfPath)) {
-            throw new Exception('Failed to generate PDF');
+        $companyName = defined('COMPANY_NAME') ? COMPANY_NAME : getSetting('company_name', 'Eleven100 ERP');
+        $fromEmail = getSetting('email_from_address', '') ?: getSetting('company_email', '');
+        $fromName = getSetting('email_from_name', '') ?: $companyName;
+        if (!$fromEmail) {
+            throw new Exception('Sender email is not configured (Settings > Email > From Email)');
         }
 
-        // Build email
-        $subject = getEmailSubject($documentType, $document);
-        $body = getEmailBody($documentType, $document, $recipientName, $customMessage);
-        $fromEmail = 'noreply@yourcompany.com';
-        $fromName = 'Your Company Name';
+        $emailSubject = $subject ?: getEmailSubject($documentType, $document, $companyName);
+        $body = getEmailBody($documentType, $document, $recipientName, $customMessage, $companyName);
 
-        // Send email with attachment
-        $result = sendEmailWithAttachment(
-            $recipientEmail,
-            $recipientName,
-            $subject,
-            $body,
-            $pdfPath,
-            $fromEmail,
-            $fromName
-        );
+        $attachments = [];
+        $filename = $document['document_number'] . '.pdf';
+        if ($attachPdf) {
+            $pdfBinary = buildDocumentPdfBinary($documentType, $documentId);
+            if (!$pdfBinary) {
+                throw new Exception('Failed to generate PDF');
+            }
+            $attachments[] = ['content' => $pdfBinary, 'name' => $filename, 'type' => 'application/pdf'];
+        }
 
-        // Log to email_log
-        logEmailSend(
-            $documentType,
-            $documentId,
-            $document['document_number'],
-            $recipientEmail,
-            $result['success'] ? 'sent' : 'failed'
-        );
+        // Transport: SMTP when fully configured, else PHP mail()
+        $method = getSetting('email_method', 'php_mail');
+        if ($method === 'smtp' && getSetting('smtp_host', '')) {
+            $result = smtpSendEmail(
+                $recipientEmail,
+                $emailSubject,
+                $body,
+                $attachments,
+                [
+                    'from' => $fromEmail,
+                    'fromName' => $fromName,
+                    'replyTo' => $fromEmail,
+                    'bcc' => $bcc ? (array)$bcc : [],
+                    'host' => getSetting('smtp_host', ''),
+                    'port' => (int)getSetting('smtp_port', 587),
+                    'encryption' => getSetting('smtp_encryption', 'tls'),
+                    'username' => getSetting('smtp_username', ''),
+                    'password' => getSetting('smtp_password', ''),
+                ]
+            );
+            $result['method'] = 'smtp';
+        } else {
+            $result = sendEmailWithAttachment(
+                $recipientEmail,
+                $recipientName,
+                $emailSubject,
+                $body,
+                $attachments ? $attachments[0] : null,
+                $fromEmail,
+                $fromName,
+                $bcc ? (array)$bcc : []
+            );
+            $result['method'] = 'php_mail';
+        }
 
-        // Clean up PDF
-        if (file_exists($pdfPath)) {
-            unlink($pdfPath);
+        // Log to audit trail
+        if (function_exists('logEmailSend')) {
+            logEmailSend(
+                $documentType,
+                $documentId,
+                $document['document_number'],
+                $recipientEmail,
+                $result['success'] ? 'sent' : 'failed'
+            );
         }
 
         return $result;
@@ -97,148 +133,253 @@ function sendDocumentEmail($documentType, $documentId, $recipientEmail, $recipie
         ];
     }
 }
-
 /**
- * Generate PDF for document
+ * Build the PDF binary for a document (same templates as the export endpoints,
+ * but returned as a string so no HTTP headers are polluted).
  */
-function generateDocumentPDF($documentType, $documentId)
+function buildDocumentPdfBinary($documentType, $documentId)
 {
-    // Use existing PDF export APIs
-    $tempDir = sys_get_temp_dir();
-    $filename = $documentType . '_' . $documentId . '_' . time() . '.pdf';
-    $pdfPath = $tempDir . '/' . $filename;
+    global $pdo;
 
-    // Call appropriate PDF export
-    $exportUrl = __DIR__ . '/../api/export-' . $documentType . '-pdf.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    require_once __DIR__ . '/validate-pdf-env.php';
+    validatePdfEnvironment(__DIR__ . '/../tmp/mpdf');
 
-    // Create PDF using existing export
-    $_GET['id'] = $documentId;
-    ob_start();
-    include $exportUrl;
-    $pdfContent = ob_get_clean();
+    if ($documentType === 'quote') {
+        $stmt = $pdo->prepare("
+            SELECT q.*, q.quote_number as document_number, u.signature_file
+            FROM quotes q
+            LEFT JOIN users u ON q.created_by = u.id
+            WHERE q.id = ? AND q.deleted_at IS NULL
+        ");
+        $stmt->execute([$documentId]);
+        $quote = $stmt->fetch();
+        if (!$quote) {
+            throw new Exception('Quote not found');
+        }
+        $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");
+        $stmt->execute([$documentId]);
+        $line_items = $stmt->fetchAll();
+        $template = __DIR__ . '/pdf-template.php';
+        $filename = 'Quote_' . $quote['document_number'] . '.pdf';
+    } elseif ($documentType === 'invoice') {
+        // Same row shape as api/export-invoice-pdf.php (template needs quote_date alias)
+        $stmt = $pdo->prepare("
+            SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date
+            FROM invoices
+            WHERE id = ? AND deleted_at IS NULL
+        ");
+        $stmt->execute([$documentId]);
+        $invoice = $stmt->fetch();
+        if (!$invoice) {
+            throw new Exception('Invoice not found');
+        }
+        $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
+        $stmt->execute([$documentId]);
+        $line_items = $stmt->fetchAll();
+        $template = __DIR__ . '/invoice-pdf-template.php';
+        $filename = 'Invoice_' . $invoice['document_number'] . '.pdf';
+    } elseif ($documentType === 'receipt') {
+        $stmt = $pdo->prepare("
+            SELECT r.*, r.receipt_number as document_number, i.invoice_title as quote_title
+            FROM receipts r
+            LEFT JOIN invoices i ON r.invoice_id = i.id
+            WHERE r.id = ? AND r.deleted_at IS NULL
+        ");
+        $stmt->execute([$documentId]);
+        $receipt = $stmt->fetch();
+        if (!$receipt) {
+            throw new Exception('Receipt not found');
+        }
+        $parent_invoice = null;
+        if ($receipt['invoice_id']) {
+            $stmt = $pdo->prepare("SELECT *, invoice_number as document_number FROM invoices WHERE id = ?");
+            $stmt->execute([$receipt['invoice_id']]);
+            $parent_invoice = $stmt->fetch();
+        }
+        $template = __DIR__ . '/receipt-pdf-template.php';
+        $filename = $receipt['document_number'] . '.pdf';
+    } else {
+        throw new Exception('Invalid document type');
+    }
 
-    file_put_contents($pdfPath, $pdfContent);
+    require_once __DIR__ . '/helpers.php';
+    ini_set('memory_limit', '256M');
+    set_time_limit(120);
 
-    return $pdfPath;
+    try {
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 15,
+            'margin_bottom' => 15,
+            'tempDir' => __DIR__ . '/../tmp/mpdf'
+        ]);
+
+        $html = include $template;
+        if (!$html || is_int($html)) {
+            throw new Exception("PDF template did not return valid content.");
+        }
+        $mpdf->WriteHTML($html);
+        return $mpdf->Output($filename, \Mpdf\Output\Destination::STRING_RETURN);
+    } catch (\Mpdf\MpdfException $e) {
+        error_log("Email PDF Generation Failure: " . $e->getMessage());
+        throw new Exception('Error generating PDF: ' . $e->getMessage());
+    }
 }
 
 /**
  * Get email subject based on document type
  */
-function getEmailSubject($documentType, $document)
+function getEmailSubject($documentType, $document, $companyName = 'Eleven100 ERP')
 {
     $subjects = [
-        'quote' => "Quote #{number} from Your Company",
-        'invoice' => "Invoice #{number} from Your Company",
-        'receipt' => "Payment Receipt #{number} from Your Company"
+        'quote' => "Quote #{number} from {company}",
+        'invoice' => "Invoice #{number} from {company}",
+        'receipt' => "Payment Receipt #{number} from {company}"
     ];
 
-    $subject = $subjects[$documentType] ?? "Document from Your Company";
-    return str_replace('{number}', $document['document_number'], $subject);
+    $subject = $subjects[$documentType] ?? "Document from {company}";
+    return str_replace(['{number}', '{company}'], [$document['document_number'], $companyName], $subject);
 }
 
 /**
- * Get email body based on document type
+ * Get email body based on document type.
+ * Only the requested type's body is built (avoids touching keys other types lack).
  */
-function getEmailBody($documentType, $document, $recipientName, $customMessage)
+function getEmailBody($documentType, $document, $recipientName, $customMessage, $companyName = 'Eleven100 ERP')
 {
     $greeting = $recipientName ? "Dear $recipientName," : "Dear Customer,";
+    $extra = $customMessage ? "$customMessage\n\n" : "";
+    $total = number_format($document['grand_total'] ?? 0, 2);
 
-    $bodies = [
-        'quote' => "
+    if ($documentType === 'quote') {
+        return "
 $greeting
 
 Please find attached Quote #{$document['document_number']} for {$document['quote_title']}.
 
-Total Amount: ₦" . number_format($document['grand_total'], 2) . "
+Total Amount: Î“Ã©Âª$total
 
-" . ($customMessage ? "$customMessage\n\n" : "") . "
-If you have any questions, please don't hesitate to contact us.
+" . $extra . "If you have any questions, please don't hesitate to contact us.
 
 Best regards,
-Your Company Name
-",
-        'invoice' => "
+$companyName
+";
+    }
+
+    if ($documentType === 'invoice') {
+        $paid = number_format($document['amount_paid'] ?? 0, 2);
+        $balance = number_format($document['balance_due'] ?? 0, 2);
+        $terms = $document['payment_terms'] ?? '';
+        return "
 $greeting
 
 Please find attached Invoice #{$document['document_number']} for {$document['quote_title']}.
 
-Total Amount: ₦" . number_format($document['grand_total'], 2) . "
-Amount Paid: ₦" . number_format($document['amount_paid'], 2) . "
-Balance Due: ₦" . number_format($document['balance_due'], 2) . "
+Total Amount: Î“Ã©Âª$total
+Amount Paid: Î“Ã©Âª$paid
+Balance Due: Î“Ã©Âª$balance
 
-" . ($customMessage ? "$customMessage\n\n" : "") . "
-Payment Terms: {$document['payment_terms']}
+" . $extra . "Payment Terms: $terms
 
 Thank you for your business!
 
 Best regards,
-Your Company Name
-",
-        'receipt' => "
+$companyName
+";
+    }
+
+    if ($documentType === 'receipt') {
+        $paid = number_format($document['amount_paid'] ?? 0, 2);
+        $method = $document['payment_method'] ?? '';
+        return "
 $greeting
 
 Thank you for your payment! Please find attached Receipt #{$document['document_number']}.
 
-Amount Paid: ₦" . number_format($document['amount_paid'], 2) . "
-Payment Method: {$document['payment_method']}
+Amount Paid: Î“Ã©Âª$paid
+Payment Method: $method
 
-" . ($customMessage ? "$customMessage\n\n" : "") . "
-We appreciate your business.
+" . $extra . "We appreciate your business.
 
 Best regards,
-Your Company Name
-"
-    ];
+$companyName
+";
+    }
 
-    return $bodies[$documentType] ?? "Please find attached document from Your Company.";
+    return "Please find attached document from $companyName.";
+}
+
+/**
+ * Resolve a salesperson name to a user email for BCC (matches username or full name).
+ */
+function resolveSalespersonEmail($salesperson)
+{
+    global $pdo;
+    $salesperson = trim($salesperson ?? '');
+    if ($salesperson === '') {
+        return null;
+    }
+    try {
+        $stmt = $pdo->prepare("SELECT email FROM users WHERE (username = ? OR full_name = ?) AND is_active = 1 LIMIT 1");
+        $stmt->execute([$salesperson, $salesperson]);
+        $row = $stmt->fetch();
+        if ($row && filter_var($row['email'], FILTER_VALIDATE_EMAIL)) {
+            return $row['email'];
+        }
+    } catch (Exception $e) {
+        // ignore lookup failures
+    }
+    return null;
 }
 
 /**
  * Send email with PDF attachment using PHP mail()
  */
-function sendEmailWithAttachment($to, $toName, $subject, $body, $attachmentPath, $fromEmail, $fromName)
+function sendEmailWithAttachment($to, $toName, $subject, $body, $attachment, $fromEmail, $fromName, $bcc = [])
 {
     try {
-        // Read attachment
-        $fileContent = file_get_contents($attachmentPath);
-        $fileContent = chunk_split(base64_encode($fileContent));
-        $filename = basename($attachmentPath);
+        $boundary = md5((string)time());
 
-        // Generate boundary
-        $boundary = md5(time());
-
-        // Headers
         $headers = "From: $fromName <$fromEmail>\r\n";
         $headers .= "Reply-To: $fromEmail\r\n";
+        if ($bcc) {
+            $headers .= 'Bcc: ' . implode(', ', $bcc) . "\r\n";
+        }
         $headers .= "MIME-Version: 1.0\r\n";
-        $headers .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\r\n";
 
-        // Message body
-        $message = "--$boundary\r\n";
-        $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
-        $message .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
-        $message .= $body . "\r\n\r\n";
+        if ($attachment && isset($attachment['content'])) {
+            $fileContent = chunk_split(base64_encode($attachment['content']));
+            $filename = $attachment['name'] ?? 'document.pdf';
 
-        // Attachment
-        $message .= "--$boundary\r\n";
-        $message .= "Content-Type: application/pdf; name=\"$filename\"\r\n";
-        $message .= "Content-Transfer-Encoding: base64\r\n";
-        $message .= "Content-Disposition: attachment; filename=\"$filename\"\r\n\r\n";
-        $message .= $fileContent . "\r\n";
-        $message .= "--$boundary--";
+            $headers .= "Content-Type: multipart/mixed; boundary=\"$boundary\"\r\n";
 
-        // Send email
+            $message = "--$boundary\r\n";
+            $message .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
+            $message .= $body . "\r\n\r\n";
+
+            $message .= "--$boundary\r\n";
+            $message .= "Content-Type: application/pdf; name=\"$filename\"\r\n";
+            $message .= "Content-Transfer-Encoding: base64\r\n";
+            $message .= "Content-Disposition: attachment; filename=\"$filename\"\r\n\r\n";
+            $message .= $fileContent . "\r\n";
+            $message .= "--$boundary--";
+        } else {
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $message = $body;
+        }
+
         $result = mail($to, $subject, $message, $headers);
 
         if ($result) {
             return ['success' => true, 'message' => 'Email sent successfully'];
-        } else {
-            throw new Exception('Failed to send email');
         }
-
+        throw new Exception('PHP mail() failed (no local mail server Î“Ã‡Ã¶ configure SMTP in Settings > Email)');
     } catch (Exception $e) {
         return ['success' => false, 'message' => $e->getMessage()];
     }
 }
-?>

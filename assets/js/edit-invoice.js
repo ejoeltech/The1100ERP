@@ -10,40 +10,41 @@ document.addEventListener('DOMContentLoaded', function () {
             row.id = `line-${lineItemCount}`;
 
             row.innerHTML = `
-                <td class="px-3 py-2 text-center font-semibold text-gray-700">${lineItemCount}</td>
-                <td class="px-3 py-2">
+                <td class="px-3 py-2 text-center font-semibold text-gray-700 li-num">${lineItemCount}</td>
+                <td class="px-3 py-2 li-qty">
                     <input 
-                        type="number" 
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
                         name="line_items[${lineItemCount}][quantity]"
-                        min="0.01"
-                        step="0.01"
-                        value="${item.quantity}"
+                        value="${Math.round(parseNumber(item.quantity) || 0)}"
                         required
-                        class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                        onchange="calculateLine(${lineItemCount})"
+                        class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input qty-input"
+                        onfocus="unformatInput(this)"
+                        onblur="formatQtyInput(this); calculateLine(${lineItemCount})"
                     >
                 </td>
-                <td class="px-3 py-2">
+                <td class="px-3 py-2 li-desc">
                     <textarea 
                         name="line_items[${lineItemCount}][description]"
                         rows="2"
                         required
-                        class="w-full min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
+                        class="w-full min-w-0 md:min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
                     >${item.description}</textarea>
                 </td>
-                <td class="px-3 py-2">
+                <td class="px-3 py-2 li-price">
                     <input 
-                        type="number" 
+                        type="text"
+                        inputmode="decimal"
                         name="line_items[${lineItemCount}][unit_price]"
-                        min="0"
-                        step="0.01"
                         value="${item.unit_price}"
                         required
-                        class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary"
-                        onchange="calculateLine(${lineItemCount})"
+                        class="w-full min-w-0 md:min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input price-input"
+                        onfocus="unformatInput(this)"
+                        onblur="formatInput(this); calculateLine(${lineItemCount})"
                     >
                 </td>
-                <td class="px-3 py-2 text-center">
+                <td class="px-3 py-2 text-center li-vat">
                     <input 
                         type="checkbox" 
                         name="line_items[${lineItemCount}][vat_applicable]"
@@ -53,14 +54,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         onchange="calculateLine(${lineItemCount})"
                     >
                 </td>
-                <td class="px-3 py-2 text-right">
-                    <span id="lineTotal-${lineItemCount}" class="font-bold text-gray-900">₦0.00</span>
+                <td class="px-3 py-2 text-right li-total">
+                    <span id="lineTotal-${lineItemCount}" class="font-bold text-gray-900 line-total-val">₦0.00</span>
                     <input type="hidden" name="line_items[${lineItemCount}][line_total]" id="lineTotalInput-${lineItemCount}">
                     <input type="hidden" name="line_items[${lineItemCount}][vat_amount]" id="vatAmountInput-${lineItemCount}">
                 </td>
-                <td class="px-3 py-2 text-center">
-                    <button 
-                        type="button" 
+                <td class="px-3 py-2 text-center li-remove">
+                    <button
+                        type="button"
                         onclick="removeLine(${lineItemCount})"
                         class="text-red-500 hover:text-red-700"
                         title="Remove line"

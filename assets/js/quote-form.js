@@ -42,31 +42,32 @@ function addLineItem(itemData = null) {
     const itemName = itemData ? itemData.name : '';
 
     row.innerHTML = `
-        <td class="px-3 py-2 text-center font-semibold text-gray-700">${currentCount}</td>
-        <td class="px-3 py-2">
+        <td class="px-3 py-2 text-center font-semibold text-gray-700 li-num">${currentCount}</td>
+        <td class="px-3 py-2 li-qty">
             <input 
                 type="text" 
-                inputmode="decimal"
+                inputmode="numeric"
+                pattern="[0-9]*"
                 name="line_items[${currentCount}][quantity]"
                 value="1"
                 required
-                class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input"
+                class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input qty-input"
                 onfocus="unformatInput(this)"
-                onblur="formatInput(this); calculateLine(${currentCount})"
+                onblur="formatQtyInput(this); calculateLine(${currentCount})"
             >
         </td>
-        <td class="px-3 py-2">
+        <td class="px-3 py-2 li-desc">
             <textarea 
                 name="line_items[${currentCount}][description]"
                 rows="2"
                 required
                 placeholder="Enter item description"
-                class="w-full min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
+                class="w-full min-w-0 md:min-w-[200px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary resize-none"
             >${description}</textarea>
             <input type="hidden" name="line_items[${currentCount}][item_id]" value="${itemId}">
             <input type="hidden" name="line_items[${currentCount}][item_name]" value="${itemName}">
         </td>
-        <td class="px-3 py-2">
+        <td class="px-3 py-2 li-price">
             <input 
                 type="text" 
                 inputmode="decimal"
@@ -74,12 +75,12 @@ function addLineItem(itemData = null) {
                 required
                 value="${price}"
                 placeholder="0.00"
-                class="w-full min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input"
+                class="w-full min-w-0 md:min-w-[120px] px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary numeric-input price-input"
                 onfocus="unformatInput(this)"
                 onblur="formatInput(this); calculateLine(${currentCount})"
             >
         </td>
-        <td class="px-3 py-2 text-center">
+        <td class="px-3 py-2 text-center li-vat">
             <input 
                 type="checkbox" 
                 name="line_items[${currentCount}][vat_applicable]"
@@ -88,12 +89,12 @@ function addLineItem(itemData = null) {
                 onchange="calculateLine(${currentCount})"
             >
         </td>
-        <td class="px-3 py-2 text-right">
-            <span id="lineTotal-${currentCount}" class="font-bold text-gray-900">₦0.00</span>
+        <td class="px-3 py-2 text-right li-total">
+            <span id="lineTotal-${currentCount}" class="font-bold text-gray-900 line-total-val">₦0.00</span>
             <input type="hidden" name="line_items[${currentCount}][line_total]" id="lineTotalInput-${currentCount}">
             <input type="hidden" name="line_items[${currentCount}][vat_amount]" id="vatAmountInput-${currentCount}">
         </td>
-        <td class="px-3 py-2 text-center">
+        <td class="px-3 py-2 text-center li-remove">
             <button 
                 type="button" 
                 onclick="removeLine(${currentCount})"

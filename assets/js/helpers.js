@@ -64,6 +64,14 @@ function formatInput(input, decimals = 2) {
     input.value = formatNumber(val, decimals);
 }
 
+// Quantity boxes are whole numbers: no decimals, ever.
+// Rounds fractional input, formats with grouping (parseNumber strips commas back).
+function formatQtyInput(input) {
+    let val = parseNumber(input.value);
+    if (isNaN(val) || val < 0) val = 0;
+    input.value = formatNumber(Math.round(val), 0);
+}
+
 function unformatInput(input) {
     const val = parseNumber(input.value);
     input.value = val === 0 ? '' : val;
