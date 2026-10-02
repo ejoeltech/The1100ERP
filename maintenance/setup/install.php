@@ -470,6 +470,20 @@ function runFinalCheck()
         $response['success'] = true;
         $response['message'] = 'Final check complete';
         $response['entries'] = $entries;
+        // Compulsory gate: cleanup.php refuses without a successful check in
+        // this session (client-side disabling alone is bypassable).
+        $hasErrors = false;
+        foreach ($entries as $e) {
+            if (($e['status'] ?? '') === 'error') {
+                $hasErrors = true;
+                break;
+            }
+        }
+        if (!$hasErrors) {
+            $_SESSION['final_check_ok'] = time();
+        } else {
+            unset($_SESSION['final_check_ok']);
+        }
     } catch (Exception $e) {
         $response['success'] = false;
         $response['message'] = 'Final check failed: ' . $e->getMessage();

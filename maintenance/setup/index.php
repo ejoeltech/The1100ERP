@@ -317,11 +317,12 @@ $requirements = checkRequirements();
                         <input type="password" id="step7Password" autocomplete="current-password"
                             style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;">
                     </div>
-                    <button type="button" id="step7CleanupBtn" class="btn btn-secondary"
-                        style="width: 100%; display: block; background: #c53030; border-color: #c53030; color: white;"
+                    <button type="button" id="step7CleanupBtn" class="btn btn-secondary" disabled
+                        style="width: 100%; display: block; background: #c53030; border-color: #c53030; color: white; opacity: 0.6;"
                         onclick="runStep7Cleanup()">
                         Delete Installer Now
                     </button>
+                    <p id="step7CleanupStatus" style="margin-top: 10px; font-size: 0.9em; color: #742a2a;">Run the database final check above first — this unlocks after a clean check.</p>
                 </div>
 
                 <a href="../../login.php" class="btn btn-secondary"
@@ -347,6 +348,7 @@ $requirements = checkRequirements();
     <script>
         // Server-minted CSRF token for Step-7 AJAX (same session the gate validates).
         window.INSTALL_CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
+        window.step7Checked = false;
         // Step 7: final schema check via the gated install.php action
         // (replaces the deleted run-schema-update.php).
         async function runStep7Check() {
@@ -372,13 +374,26 @@ $requirements = checkRequirements();
                 }
                 if (result.success && result.entries) {
                     let html = '<ul style="list-style:none;padding:0;">';
+                    let hasErrors = false;
                     result.entries.forEach(e => {
+                        if (e.status === 'error') hasErrors = true;
                         const color = e.status === 'ok' ? 'green' : (e.status === 'error' ? 'red' : 'blue');
                         html += '<li style="color:' + color + ';">'
                             + (e.status === 'ok' ? '✓' : (e.status === 'error' ? '✗' : 'ℹ'))
                             + ' ' + e.message.replace(/</g, '&lt;') + '</li>';
                     });
                     report.innerHTML = html + '</ul>';
+                    // Compulsory gate: Step 2 unlocks only on a clean check.
+                    window.step7Checked = !hasErrors;
+                    const delBtn = document.getElementById('step7CleanupBtn');
+                    const delStatus = document.getElementById('step7CleanupStatus');
+                    if (!hasErrors) {
+                        delBtn.disabled = false;
+                        delBtn.style.opacity = '1';
+                        delStatus.textContent = 'Final check passed. You may now delete the installer.';
+                    } else {
+                        delStatus.textContent = 'Final check reported errors — fix them (or re-run) before deleting the installer.';
+                    }
                 } else {
                     report.innerHTML = '<p style="color:red;">Check failed: '
                         + (result.message || 'unknown error').replace(/</g, '&lt;') + '</p>';
@@ -394,12 +409,17 @@ $requirements = checkRequirements();
 
         // Step 7: one-click installer delete (works: installer auto-logs in the new admin)
         async function runStep7Cleanup() {
-            const status = document.getElementById('cleanupStatus');
+            const status = document.getElementById('step7CleanupStatus');
             const btn = document.getElementById('step7CleanupBtn');
             const password = document.getElementById('step7Password').value;
             if (!window.wizard || !window.wizard.installDone) {
                 status.className = 'alert alert-error';
                 status.textContent = 'Complete the installation first (Step 6), then clean up.';
+                return;
+            }
+            if (!window.step7Checked) {
+                status.className = 'alert alert-error';
+                status.textContent = 'Run the database final check above first — it must pass before the installer can be deleted.';
                 return;
             }
             if (!password) {

@@ -75,6 +75,13 @@ if (isset($_POST['confirm']) && $_POST['confirm'] === 'YES') {
         die('Password verification failed.');
     }
 
+    // Compulsory gate: the database final check must have passed in this
+    // session before the installer may be deleted.
+    if (empty($_SESSION['final_check_ok'])) {
+        http_response_code(403);
+        die('Run the database final check first — it must pass before deleting the installer.');
+    }
+
     $log = [];
     // Phase 1: delete everything under maintenance/ except this running file.
     // Also removes the spent install token and attempt log; the installed
