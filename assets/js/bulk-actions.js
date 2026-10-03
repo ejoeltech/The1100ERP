@@ -84,26 +84,10 @@ async function bulkDownloadPDFs() {
     downloadBtn.disabled = true;
 
     try {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '../api/bulk-download-pdf.php';
-        form.target = '_blank';
-
-        const typeInput = document.createElement('input');
-        typeInput.type = 'hidden';
-        typeInput.name = 'document_type';
-        typeInput.value = documentType;
-        form.appendChild(typeInput);
-
-        const idsInput = document.createElement('input');
-        idsInput.type = 'hidden';
-        idsInput.name = 'ids';
-        idsInput.value = JSON.stringify(ids);
-        form.appendChild(idsInput);
-
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+        postApiAction('../api/bulk-download-pdf.php', {
+            document_type: documentType,
+            ids: JSON.stringify(ids)
+        }, '_blank');
 
         setTimeout(() => {
             downloadBtn.innerHTML = originalText;

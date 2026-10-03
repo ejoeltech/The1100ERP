@@ -87,3 +87,33 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+/**
+ * POST helper for state-changing actions. Builds a form carrying the CSRF
+ * token from the page's meta tag (rendered by includes/header.php).
+ * Use for ALL dynamic (JS-built) POSTs — plain form.submit() without the
+ * token is rejected by the server gate.
+ */
+function postApiAction(path, params, target) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = path;
+    if (target) form.target = target;
+    for (const [k, v] of Object.entries(params || {})) {
+        const inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = k;
+        inp.value = v;
+        form.appendChild(inp);
+    }
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) {
+        const t = document.createElement('input');
+        t.type = 'hidden';
+        t.name = 'csrf_token';
+        t.value = meta.getAttribute('content');
+        form.appendChild(t);
+    }
+    document.body.appendChild(form);
+    form.submit();
+}
