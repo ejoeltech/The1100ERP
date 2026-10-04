@@ -184,19 +184,20 @@ include '../includes/header.php';
                     </div>
  
                     <div class="card-actions flex gap-2">
-                        <a href="../api/use-readymade-quote.php?id=<?php echo $template['id']; ?>"
+                        <button type="button"
+                            onclick="postApiAction('../api/use-readymade-quote.php', { id: <?php echo (int)$template['id']; ?> })"
                             class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-center text-sm btn-use">
                             Use Template
-                        </a>
+                        </button>
                         <a href="edit-readymade-quote.php?id=<?php echo $template['id']; ?>"
                             class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-semibold text-sm btn-edit">
                             Edit
                         </a>
-                        <a href="../api/duplicate-readymade-quote.php?id=<?php echo $template['id']; ?>"
-                            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold text-sm btn-dup"
-                            onclick="return confirm('Create a copy of this template?')">
+                        <button type="button"
+                            onclick="if (confirm('Create a copy of this template?')) postApiAction('../api/duplicate-readymade-quote.php', { id: <?php echo (int)$template['id']; ?> })"
+                            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-semibold text-sm btn-dup">
                             Duplicate
-                        </a>
+                        </button>
                         <button
                             class="delete-template-btn px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-semibold text-sm btn-del"
                             data-id="<?php echo $template['id']; ?>"

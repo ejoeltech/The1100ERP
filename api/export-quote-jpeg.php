@@ -28,13 +28,13 @@ try {
     $stmt->execute([$quote_id]);
     $line_items = $stmt->fetchAll();
 
-    // Try Imagick first (best quality)
+    // Try Imagick first: renders the actual PDF (exact screenshot).
     if (class_exists('Imagick')) {
         require_once '../vendor/autoload.php';
 
         ob_start();
-        include '../includes/pdf-template.php';
-        $html = ob_get_clean();
+        $html = include '../includes/pdf-template.php';
+        ob_end_clean();
 
         $mpdf = new \Mpdf\Mpdf(['format' => 'A4', 'margin_left' => 15, 'margin_right' => 15, 'margin_top' => 15, 'margin_bottom' => 15]);
         $mpdf->WriteHTML($html);
@@ -60,158 +60,58 @@ try {
         exit;
     }
 
-    // Fallback to GD library - IMPROVED FORMATTING
-    $width = 2100;  // Increased width for better spacing
-    $height = 2970; // A4 ratio
+    // GD fallback: shared renderer mirroring the PDF template sections
+    // (all items, dynamic height) — same visual language as the PDF.
+    require_once '../includes/jpeg-renderer.php';
 
-    $image = imagecreatetruecolor($width, $height);
-
-    // Enhanced color palette
-    $white = imagecolorallocate($image, 255, 255, 255);
-    $black = imagecolorallocate($image, 0, 0, 0);
-    $blue = imagecolorallocate($image, 37, 99, 235);
-    $darkBlue = imagecolorallocate($image, 29, 78, 216);
-    $gray = imagecolorallocate($image, 75, 85, 99);
-    $lightGray = imagecolorallocate($image, 229, 231, 235);
-    $bgGray = imagecolorallocate($image, 249, 250, 251);
-
-    // Fill background
-    imagefill($image, 0, 0, $white);
-
-    // Fonts
-    $fontPath = __DIR__ . '/../vendor/mpdf/mpdf/ttfonts/DejaVuSans.ttf';
-    $fontBoldPath = __DIR__ . '/../vendor/mpdf/mpdf/ttfonts/DejaVuSans-Bold.ttf';
-
-    $margin = 120;
-    $y = 100;
-
-    // Top blue bar
-    imagefilledrectangle($image, 0, 0, $width, 25, $blue);
-    $y += 60;
-
-    // Company Header (dynamic name from Settings)
-    imagettftext($image, 56, 0, $margin, $y, $darkBlue, $fontBoldPath, defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP');
-    $y += 80;
-
-    // Horizontal line
-    imagefilledrectangle($image, $margin, $y, $width - $margin, $y + 2, $lightGray);
-    $y += 40;
-
-    // Document type in large letters
-    imagettftext($image, 72, 0, $margin, $y, $blue, $fontBoldPath, 'QUOTATION');
-    $y += 100;
-
-    // Quote details box
-    $boxY = $y;
-    imagefilledrectangle($image, $margin, $boxY, $width - $margin, $boxY + 250, $bgGray);
-    imagerectangle($image, $margin, $boxY, $width - $margin, $boxY + 250, $lightGray);
-
-    $y += 50;
-
-    // Left column
-    imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Quote #:');
-    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, $quote['document_number']);
-    $y += 60;
-
-    imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Date:');
-    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, date('d/m/Y', strtotime($quote['quote_date'])));
-    $y += 60;
-
-    imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Customer:');
-    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, substr($quote['customer_name'], 0, 40));
-    $y += 60;
-
-    imagettftext($image, 28, 0, $margin + 40, $y, $gray, $fontBoldPath, 'Salesperson:');
-    imagettftext($image, 28, 0, $margin + 300, $y, $black, $fontPath, $quote['salesperson']);
-
-    $y = $boxY + 280;
-
-    // Document title
-    imagettftext($image, 36, 0, $margin, $y, $black, $fontBoldPath, 'Project: ' . substr($quote['quote_title'], 0, 50));
-    $y += 100;
-
-    // Line items section header
-    imagefilledrectangle($image, $margin, $y, $width - $margin, $y + 60, $darkBlue);
-    imagettftext($image, 26, 0, $margin + 30, $y + 43, $white, $fontBoldPath, 'ITEMS');
-    imagettftext($image, 26, 0, $width - $margin - 300, $y + 43, $white, $fontBoldPath, 'AMOUNT');
-    $y += 80;
-
-    // Line items
-    $itemCount = 0;
-    $maxItems = 10; // Limit items for better formatting
-
+    $items = [];
     foreach ($line_items as $item) {
-        if ($itemCount >= $maxItems) {
-            $remaining = count($line_items) - $maxItems;
-            imagettftext($image, 24, 0, $margin + 40, $y, $gray, $fontPath, "... and $remaining more items");
-            $y += 50;
-            break;
-        }
-
-        // Alternate row background
-        if ($itemCount % 2 == 0) {
-            imagefilledrectangle($image, $margin, $y - 35, $width - $margin, $y + 25, $bgGray);
-        }
-
-        // Item description (truncate if too long)
-        $desc = substr($item['description'], 0, 55) . (strlen($item['description']) > 55 ? '...' : '');
-        imagettftext($image, 24, 0, $margin + 40, $y, $black, $fontPath, $item['quantity'] . ' x ' . $desc);
-
-        // Amount (right aligned)
-        $amount = formatNaira($item['line_total']);
-        imagettftext($image, 24, 0, $width - $margin - 320, $y, $black, $fontBoldPath, $amount);
-
-        $y += 60;
-        $itemCount++;
+        $items[] = [
+            'qty' => $item['quantity'],
+            'desc' => $item['description'],
+            'unit' => formatNaira($item['unit_price']),
+            'total' => formatNaira($item['line_total']),
+        ];
     }
-
-    $y += 40;
-
-    // Summary box
-    imagefilledrectangle($image, $width - $margin - 800, $y, $width - $margin, $y + 320, $bgGray);
-    imagerectangle($image, $width - $margin - 800, $y, $width - $margin, $y + 320, $lightGray);
-
-    $y += 60;
-
-    // Subtotal
-    imagettftext($image, 28, 0, $width - $margin - 750, $y, $gray, $fontPath, 'Subtotal:');
-    imagettftext($image, 28, 0, $width - $margin - 380, $y, $black, $fontBoldPath, formatNaira($quote['subtotal']));
-    $y += 70;
-
-    // VAT
-    imagettftext($image, 28, 0, $width - $margin - 750, $y, $gray, $fontPath, 'VAT (7.5%):');
-    imagettftext($image, 28, 0, $width - $margin - 380, $y, $black, $fontBoldPath, formatNaira($quote['total_vat']));
-    $y += 90;
-
-    // Line
-    imagefilledrectangle($image, $width - $margin - 750, $y - 40, $width - $margin - 50, $y - 38, $lightGray);
-
-    // Grand Total
-    imagettftext($image, 38, 0, $width - $margin - 750, $y, $darkBlue, $fontBoldPath, 'Grand Total:');
-    imagettftext($image, 38, 0, $width - $margin - 380, $y, $blue, $fontBoldPath, formatNaira($quote['grand_total']));
-
-    // Footer section
-    $y = $height - 180;
-    imagefilledrectangle($image, 0, $y - 20, $width, $y - 18, $lightGray);
-
-    imagettftext($image, 20, 0, $margin, $y, $gray, $fontPath, COMPANY_ADDRESS);
-    $y += 45;
-    imagettftext($image, 20, 0, $margin, $y, $gray, $fontPath, 'Phone: ' . COMPANY_PHONE . ' | Email: ' . COMPANY_EMAIL);
-    $y += 45;
-    imagettftext($image, 18, 0, $margin, $y, $gray, $fontPath, 'Visit: ' . COMPANY_WEBSITE);
-
-    // Generated with note
-    $y += 55;
-    imagettftext($image, 16, 0, $margin, $y, $lightGray, $fontPath, 'Generated with GD Library | For complete document use PDF export');
-
-    // Output
-    header('Content-Type: image/jpeg');
-    header('Content-Disposition: attachment; filename="' . $quote['document_number'] . '.jpg"');
-    imagejpeg($image, null, 95);
-    imagedestroy($image);
+    $banks = [];
+    if (function_exists('getBankAccountsForDisplay')) {
+        foreach (getBankAccountsForDisplay() as $b) {
+            $banks[] = [$b['bank_name'] ?? '', $b['account_number'] ?? ''];
+        }
+    }
+    renderDocumentJpeg([
+        'title' => 'QUOTATION',
+        'subtitle' => $quote['quote_title'] ?? '',
+        'contact' => 'Contact Address: ' . COMPANY_ADDRESS . ' Phone: ' . COMPANY_PHONE . ' | Email: ' . COMPANY_EMAIL . ' | Website: ' . COMPANY_WEBSITE,
+        'info_left_label' => 'Quote For:',
+        'customer' => $quote['customer_name'],
+        'info_rows' => [
+            ['Quote Number:', $quote['document_number']],
+            ['Date:', date('d/m/Y', strtotime($quote['quote_date']))],
+            ['Salesperson:', $quote['salesperson']],
+        ],
+        'meta_heads' => ['Delivery Period', 'Validity', 'Ship Date', 'Payment Terms'],
+        'meta_vals' => [
+            $quote['delivery_period'] ?? 'Immediate',
+            '30 Days',
+            (isset($quote['ship_date']) && $quote['ship_date']) ? date('d/m/Y', strtotime($quote['ship_date'])) : '-',
+            $quote['payment_terms'] ?? (defined('DEFAULT_PAYMENT_TERMS') ? DEFAULT_PAYMENT_TERMS : 'Due on Receipt'),
+        ],
+        'items' => $items,
+        'totals' => [
+            ['Subtotal:', formatNaira($quote['subtotal'])],
+            ['VAT:', formatNaira($quote['total_vat'])],
+        ],
+        'grand_label' => 'Total Quote:',
+        'grand' => formatNaira($quote['grand_total']),
+        'thanks' => function_exists('getSetting') ? getSetting('footer_text', 'We look forward to working with you! Thank you') : 'Thank you',
+        'pay_label' => 'MAKE ALL PAYMENTS IN FAVOUR OF',
+        'banks' => $banks,
+        'prepared' => 'Quote prepared by: ' . $quote['salesperson'],
+    ], $quote['document_number'] . '.jpg');
 
 } catch (Exception $e) {
     error_log("Quote JPEG export error: " . $e->getMessage());
-    die('Error generating JPEG: ' . $e->getMessage());
+    die('Error generating JPEG. Check server logs.');
 }
 ?>

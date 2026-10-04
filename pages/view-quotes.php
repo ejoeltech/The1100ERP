@@ -179,6 +179,13 @@ include '../includes/header.php';
 
                                     <span class="text-gray-300">|</span>
                                     <a href="#"
+                                        onclick="if (confirm('Create a copy of quote <?php echo htmlspecialchars($quote['document_number']); ?>?')) postApiAction('../api/duplicate-quote.php', { id: <?php echo (int)$quote['id']; ?> }); return false;"
+                                        class="text-blue-600 hover:text-blue-700 font-semibold text-sm" title="Duplicate Quote">
+                                        Duplicate
+                                    </a>
+
+                                    <span class="text-gray-300">|</span>
+                                    <a href="#"
                                         onclick="deleteQuote(<?php echo $quote['id']; ?>, '<?php echo htmlspecialchars($quote['document_number']); ?>'); return false;"
                                         class="text-red-600 hover:text-red-700 font-semibold text-sm" title="Delete Quote">
                                         Delete
