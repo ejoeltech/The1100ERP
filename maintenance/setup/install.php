@@ -208,8 +208,8 @@ function importSchema()
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
 
-        // Read schema file
-        $schemaFile = dirname(__DIR__, 2) . '/database/install-schema.sql';
+        // Read schema file (ships inside the installer folder)
+        $schemaFile = __DIR__ . '/install-schema.sql';
         if (!file_exists($schemaFile)) {
             throw new Exception('Schema file not found');
         }
