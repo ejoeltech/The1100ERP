@@ -22,6 +22,10 @@ foreach ($f in @('storage\.htaccess', 'logs\.htaccess', 'tmp\.htaccess', 'export
 }
 Remove-Item (Join-Path $Dest 'maintenance\setup\lock') -Force -ErrorAction SilentlyContinue
 
+# Ship the upgrade schema at package root (upload + run via phpMyAdmin to
+# repair schema drift; System Update page is the preferred path).
+Copy-Item (Join-Path $src 'database\upgrade-schema.sql') (Join-Path $Dest 'upgrade-schema.sql') -Force
+
 # Sanity: fail loudly if anything secret or stateful slipped in.
 # (config.sample.php is REQUIRED as the installer template, so it is exempt.)
 $bad = Get-ChildItem -Path $Dest -Recurse -Include *.md, .env*, config.php, restore.php -File |
