@@ -43,6 +43,13 @@ if (!$user || !verifyPassword($password, $user['password'])) {
     exit;
 }
 
+// Compulsory gate (mirrors the wizard): the schema patcher must have run
+// clean in this session before the installer may be deleted.
+if (empty($_SESSION['final_check_ok'])) {
+    echo json_encode(['success' => false, 'message' => 'Run the schema patcher above first — it must complete with no errors before deleting the installer.']);
+    exit;
+}
+
 $dir = dirname(__DIR__, 2) . '/maintenance';
 
 // Safety: only delete the expected folder

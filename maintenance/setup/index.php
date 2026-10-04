@@ -306,6 +306,7 @@ $requirements = checkRequirements();
                         onclick="runStep7Check()">
                         Run Database Final Check
                     </button>
+                    <p style="font-size: 0.85em; color: #4a5568; margin-top: 8px;">Scroll through the full report below. If any line is red, fix the cause (or just run the check again) — the installer cannot be deleted until the check is completely clean.</p>
                     <div id="step7Report" style="margin-top: 12px; max-height: 300px; overflow-y: auto; font-size: 0.85em;"></div>
                 </div>
 
@@ -398,6 +399,7 @@ $requirements = checkRequirements();
                     report.innerHTML = '<p style="color:red;">Check failed: '
                         + (result.message || 'unknown error').replace(/</g, '&lt;') + '</p>';
                 }
+                report.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } catch (e) {
                 report.innerHTML = '<p style="color:red;">Error: ' + e.message.replace(/</g, '&lt;') + '</p>';
             } finally {
@@ -420,6 +422,7 @@ $requirements = checkRequirements();
             if (!window.step7Checked) {
                 status.className = 'alert alert-error';
                 status.textContent = 'Run the database final check above first — it must pass before the installer can be deleted.';
+                status.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 return;
             }
             if (!password) {

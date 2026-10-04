@@ -16,6 +16,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['run'] ?? '') === 'patch') 
     }
     require_once '../includes/schema-patcher.php';
     $results = SchemaPatcher::run($pdo, dirname(__DIR__));
+    // Compulsory gate: a clean run unlocks installer deletion (server-side).
+    $hasErrors = false;
+    foreach ((array)$results as $e) {
+        if (($e['status'] ?? '') === 'error') {
+            $hasErrors = true;
+            break;
+        }
+    }
+    if (!$hasErrors) {
+        $_SESSION['final_check_ok'] = time();
+    } else {
+        unset($_SESSION['final_check_ok']);
+    }
     if (function_exists('logAudit')) {
         logAudit('system_update', 'system', null, ['source' => 'system-update-page']);
     }
@@ -41,10 +54,14 @@ include '../includes/header.php';
         <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-blue-700 font-semibold">
             Run Schema Patcher
         </button>
+        <p class="text-sm text-gray-600 mt-3">Scroll through the full report below. If any line is red, fix the cause and run the patcher again — the installer cannot be deleted until a run is completely clean.</p>
     </form>
 
     <?php if ($results !== null): ?>
-        <div class="mt-6 space-y-1 text-sm">
+        <div id="patcherResults" class="mt-6 space-y-1 text-sm">
+            <script>
+                document.getElementById('patcherResults').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            </script>
             <?php foreach ($results as $e): ?>
                 <?php
                 $color = $e['status'] === 'ok' ? 'text-green-700' : ($e['status'] === 'error' ? 'text-red-700' : 'text-blue-700');
@@ -98,6 +115,7 @@ include '../includes/header.php';
             status.innerHTML = result.success
                 ? '<span class="text-green-600">' + result.message + '</span> Refresh to confirm.'
                 : '<span class="text-red-600">Failed: ' + result.message + '</span>';
+            status.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } catch (e) {
             status.innerHTML = '<span class="text-red-600">Error: ' + e.message + '</span>';
         }
