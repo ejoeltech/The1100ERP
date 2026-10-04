@@ -100,21 +100,23 @@ function setSetting($key, $value) {
     }
 }
 
-// Load basic settings into constants
-define('COMPANY_NAME', getSetting('company_name', 'Your Company Name'));
-define('COMPANY_ADDRESS', getSetting('company_address', ''));
-define('COMPANY_PHONE', getSetting('company_phone', ''));
-define('COMPANY_EMAIL', getSetting('company_email', ''));
-define('COMPANY_WEBSITE', getSetting('company_website', ''));
-define('COMPANY_LOGO', getSetting('company_logo', ''));
-define('VAT_RATE', (float)getSetting('vat_rate', 7.5));
-define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
+// Load basic settings into constants (guarded: some SAPIs/bridges evaluate
+// this loader twice; re-defining is a warning that can precede headers and
+// break redirects/downloads, so second evaluation keeps first values).
+if (!defined('COMPANY_NAME')) define('COMPANY_NAME', getSetting('company_name', 'Your Company Name'));
+if (!defined('COMPANY_ADDRESS')) define('COMPANY_ADDRESS', getSetting('company_address', ''));
+if (!defined('COMPANY_PHONE')) define('COMPANY_PHONE', getSetting('company_phone', ''));
+if (!defined('COMPANY_EMAIL')) define('COMPANY_EMAIL', getSetting('company_email', ''));
+if (!defined('COMPANY_WEBSITE')) define('COMPANY_WEBSITE', getSetting('company_website', ''));
+if (!defined('COMPANY_LOGO')) define('COMPANY_LOGO', getSetting('company_logo', ''));
+if (!defined('VAT_RATE')) define('VAT_RATE', (float)getSetting('vat_rate', 7.5));
+if (!defined('CURRENCY_SYMBOL')) define('CURRENCY_SYMBOL', getSetting('currency_symbol', '₦'));
 
 // Additional Display Settings
-define('THEME_COLOR', getSetting('theme_color', '#0076BE'));
-define('FOOTER_TEXT', getSetting('footer_text', 'We appreciate your business! Thank you'));
-define('PDF_QUALITY', getSetting('pdf_quality', 'high'));
-define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', 'Due on Receipt'));
+if (!defined('THEME_COLOR')) define('THEME_COLOR', getSetting('theme_color', '#0076BE'));
+if (!defined('FOOTER_TEXT')) define('FOOTER_TEXT', getSetting('footer_text', 'We appreciate your business! Thank you'));
+if (!defined('PDF_QUALITY')) define('PDF_QUALITY', getSetting('pdf_quality', 'high'));
+if (!defined('DEFAULT_PAYMENT_TERMS')) define('DEFAULT_PAYMENT_TERMS', getSetting('default_payment_terms', 'Due on Receipt'));
 
 // Bank account helper functions
 function getBankAccountsForDisplay() {

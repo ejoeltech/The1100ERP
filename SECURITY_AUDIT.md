@@ -395,6 +395,7 @@ regardless of purging.
 | WP17-03 | Medium | wizard never created HR tables; slow installs could idle-timeout mid-wizard | Final-check error wall; dead wizard | fixed (HR loop in final check; installer exempt from lifetime/registry kills) |
 | WP18-01 | High | wizard session in default store vs app hardened store → finalize auto-login invisible (login HTML parsed as JSON); Step-7 sent no CSRF token | Fresh installs cannot finish Step 7 | fixed (unified wizard sessions; server-embedded CSRF token; friendly expiry message) |
 | WP19-01 | Low | CSRF checked before method on manual endpoints → direct GETs got confusing 403 JSON | UX + probe clarity | fixed (method-first ordering on 16 endpoints; disclosure removed) |
+| WP27-01 | Low | settings constants re-defined on double-evaluated loader (production warnings) | Warning output before headers breaks redirects/downloads | fixed (all display defines guarded; refresh config.php from sample on deploy) |
 | WP24-01 | High | JS-built POST forms omitted CSRF token (readymade delete, bulk PDF download) → all such deletes 403 | Feature-breaking | fixed (shared postApiAction helper; verified live delete) |
 | WP25-01 | Medium | Use Template / Duplicate dead GET links against POST-only endpoints | Readymade + quote duplication unusable | fixed (postApiAction buttons; verified) |
 | WP25-02 | Low | HTML exports used separate bloated layouts, not the compact PDF design | Inconsistent documents | fixed (exports reuse PDF templates; single source) |
