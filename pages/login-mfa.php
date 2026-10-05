@@ -16,7 +16,7 @@ setSecurityHeaders();
 $pending = $_SESSION['mfa_pending'] ?? null;
 if (empty($pending['user_id']) || empty($pending['at']) || (time() - $pending['at']) > 600) {
     unset($_SESSION['mfa_pending']);
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
         if (!$user) {
             unset($_SESSION['mfa_pending']);
-            header('Location: login.php');
+            header('Location: ../login.php');
             exit;
         }
         if (!empty($_POST['recovery_code'])) {

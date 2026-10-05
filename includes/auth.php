@@ -9,6 +9,42 @@ function isLoggedIn()
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
+/**
+ * Path to login.php relative to the CURRENT request URL.
+ * CWD-independent: derived from SCRIPT_NAME (server-controlled), walking up
+ * the filesystem until the directory holding login.php is found. The old
+ * file_exists() heuristic depended on the process working directory, which
+ * SAPIs are free to set anywhere — that produced redirects like
+ * /erp/pages/login.php (404) when CWD was the docroot.
+ */
+function loginRedirectPath()
+{
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+    $docroot = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+    if ($docroot !== '') {
+        $dir = trim(dirname($script), '/');
+        $parts = $dir === '' ? [] : explode('/', $dir);
+        for ($depth = 0; $depth <= count($parts); $depth++) {
+            $up = array_slice($parts, 0, count($parts) - $depth);
+            $candidate = $docroot . '/' . ($up ? implode('/', $up) . '/' : '') . 'login.php';
+            if (@file_exists($candidate)) {
+                return str_repeat('../', $depth) . 'login.php';
+            }
+        }
+    }
+    // Fallback: legacy CWD heuristic (same behavior as before).
+    if (file_exists('login.php')) {
+        return 'login.php';
+    } elseif (file_exists('../login.php')) {
+        return '../login.php';
+    } elseif (file_exists('../../login.php')) {
+        return '../../login.php';
+    } elseif (file_exists('../../../login.php')) {
+        return '../../../login.php';
+    }
+    return 'login.php';
+}
+
 function requireLogin()
 {
     if (!isLoggedIn()) {
@@ -22,16 +58,7 @@ function requireLogin()
         // From api/payments/delete-payment.php (depth 2), we need ../../login.php.
         // Let's use the helper we already have logic for but make it robust.
 
-        $redirect = 'login.php';
-        if (file_exists('login.php')) {
-            $redirect = 'login.php';
-        } elseif (file_exists('../login.php')) {
-            $redirect = '../login.php';
-        } elseif (file_exists('../../login.php')) {
-            $redirect = '../../login.php';
-        } elseif (file_exists('../../../login.php')) {
-            $redirect = '../../../login.php';
-        }
+        $redirect = loginRedirectPath();
 
         // If this is an API call (AJAX/Fetch), return 401 instead of redirecting
         // This PREVENTS the "Too Many Redirects" loop when Fetch tries to follow login redirects

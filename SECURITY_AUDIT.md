@@ -402,6 +402,7 @@ regardless of purging.
 | WP25-02 | Low | HTML exports used separate bloated layouts, not the compact PDF design | Inconsistent documents | fixed (exports reuse PDF templates; single source) |
 | WP25-03 | Medium | JPEG fallback hand-drew 10 items max, unlike the PDF | Incomplete image exports | fixed (shared GD renderer mirroring PDF sections, all items, dynamic height) |
 | WP26-01 | Low | installer deletable without final check; errors rendered far from buttons | Skipped sync; missed errors | fixed (compulsory clean-check gate both flows + hints + scroll-into-view) |
+| WP29-01 | Medium | login-mfa bare `login.php` redirect + CWD-dependent requireLogin heuristic → `/pages/login.php` 404 on session timeout | Dead session recovery | fixed (depth-correct redirects; SCRIPT_NAME-based path helper, 8/8 unit) |
 | WP23-01 | Medium | installer deletable without running final check; missing status div crashed cleanup JS; duplicate element IDs | Skipped schema sync; dead button | fixed (compulsory clean-check gate client + server) |
 | WP22-01 | High | logo upload fatals (missing GD/finfo, corrupt image) escape Exception-only catch → bare 500 on production | Save Settings unusable with logo | fixed (capability guards + corrupt-image check + Error catch → friendly redirect; save-settings hardened the same way) |
 | WP11-01 | High | restore/patch zips extracted uninspected (zip-slip) | Arbitrary file overwrite as web user | fixed (WP11: pre-extract inspection) |
