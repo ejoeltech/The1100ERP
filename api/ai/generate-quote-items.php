@@ -2,6 +2,7 @@
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-history.php';
 
 header('Content-Type: application/json');
 
@@ -21,9 +22,10 @@ if (empty($text)) {
 }
 
 try {
+    $history = getAiBusinessContext($pdo);
     $prompt = "Generate a detailed quote for a solar installation project described as: \"$text\".
     Context: Nigerian Solar Market.
-    
+    " . ($history !== '' ? "Business history: $history\n" : "") . "
     Output a JSON ARRAY of items. Each item must have:
     - name (e.g., '5kW Hybrid Inverter')
     - description (short technical specs)

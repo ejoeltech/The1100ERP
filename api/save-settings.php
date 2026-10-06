@@ -84,6 +84,8 @@ try {
         'ai_custom_api_key' => $_POST['ai_custom_api_key'] ?? '',
         'ai_custom_base_url' => $_POST['ai_custom_base_url'] ?? '',
         'ai_custom_model' => $_POST['ai_custom_model'] ?? '',
+        // Opt-in: let AI suggestions learn from past quotes/invoices (aggregates only, no customer data).
+        'ai_use_history' => isset($_POST['ai_use_history']) ? '1' : '0',
         // Backward compat (merged: remote single-provider key kept as fallback)
         'groq_api_key' => $_POST['groq_api_key'] ?? $_POST['ai_api_key'] ?? '',
 

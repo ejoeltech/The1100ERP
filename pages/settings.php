@@ -816,7 +816,12 @@ include '../includes/header.php';
                 <div id="ai-test-status" class="text-sm"></div>
                 <span id="ai-test-meta" class="text-xs text-gray-400 ml-auto"></span>
             </div>
-            <p class="text-xs text-amber-600 mt-2">Tip: If Groq says "model does not exist", switch to <b>llama-3.1-8b-instant</b> or try OpenRouter/Gemini.</p>
+            <p class="text-xs text-amber-600 mt-2">Tip: the default model is GPT-OSS 20B (verified). If a custom model says "does not exist", run Test Connection.</p>
+            <label class="flex items-start gap-2 mt-3 p-3 bg-white rounded border border-purple-100 cursor-pointer">
+                <input type="checkbox" name="ai_use_history" value="1" <?php echo getSetting('ai_use_history', '0') === '1' ? 'checked' : ''; ?>
+                    class="mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                <span class="text-xs text-gray-600"><b>Learn from my business data.</b> Quote/proposal suggestions use your most-quoted items and average prices. Aggregates only — no customer names ever leave your server except inside the AI prompt.</span>
+            </label>
 
         </div>
 

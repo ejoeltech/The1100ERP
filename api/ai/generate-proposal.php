@@ -7,6 +7,7 @@
 header('Content-Type: application/json');
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-history.php';
 
 // Check permissions
 if (!isset($_SESSION['user_id'])) {
@@ -55,6 +56,8 @@ try {
 
     // Call Groq API
     // Using a higher max_tokens for a full document
+    $history = getAiBusinessContext($pdo);
+    if ($history !== '') $userPrompt .= "\nBusiness history: $history";
     $proposalHtml = callGroqAPI($userPrompt, $systemPrompt, ['max_tokens' => 2000]);
 
     echo json_encode(['success' => true, 'proposal_html' => $proposalHtml]);
