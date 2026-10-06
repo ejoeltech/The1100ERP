@@ -1026,17 +1026,50 @@ include '../includes/header.php';
                 <!-- Backup -->
                 <div>
                     <h5 class="font-semibold text-gray-800 mb-2">System Backup</h5>
-                    <p class="text-sm text-gray-600 mb-4">Download a backup of your data.</p>
+                    <p class="text-sm text-gray-600 mb-4">Choose what to back up, then download. For partial restores, use the matching file type below or Selective Migration.</p>
 
-                    <div class="mb-4">
+                    <div class="mb-4 grid grid-cols-2 gap-1" id="backupScope">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="settings" checked onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Settings & Banks</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="users" onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Users</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="customers" checked onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Customers</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="inventory" onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Products & Stock</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="financials" checked onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">Quotes, Invoices, Receipts</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="backup_scope" value="hr" onchange="updateBackupLink()"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">HR Records</span>
+                        </label>
+                    </div>
+                    <div class="mb-4 flex items-center gap-4">
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="backupMedia" onchange="updateBackupLink()"
                                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <span class="text-sm text-gray-700">Include Media Files (Images, Uploads)</span>
                         </label>
+                        <button type="button" onclick="setBackupScopeAll()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">Select all</button>
                     </div>
 
-                    <a href="../api/system/backup.php?type=db" id="backupBtn" target="_blank"
+                    <a href="../api/system/backup.php?type=db&scope=settings,customers,financials" id="backupBtn" target="_blank"
                         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold shadow-sm text-sm">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -1046,14 +1079,21 @@ include '../includes/header.php';
                     </a>
 
                     <script>
+                        function setBackupScopeAll() {
+                            document.querySelectorAll('input[name="backup_scope"]').forEach(c => c.checked = true);
+                            updateBackupLink();
+                        }
                         function updateBackupLink() {
                             const btn = document.getElementById('backupBtn');
                             const includeMedia = document.getElementById('backupMedia').checked;
-                            btn.href = '../api/system/backup.php?type=' + (includeMedia ? 'full' : 'db');
-                            btn.innerHTML = includeMedia ?
-                                '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download Full Backup (ZIP)' :
-                                '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download Database Only';
+                            const scopes = Array.from(document.querySelectorAll('input[name="backup_scope"]:checked')).map(c => c.value);
+                            // All six groups ticked (or none) = whole-database dump.
+                            const scopeParam = (scopes.length === 0 || scopes.length === 6) ? 'whole' : scopes.join(',');
+                            btn.href = '../api/system/backup.php?type=' + (includeMedia ? 'full' : 'db') + '&scope=' + encodeURIComponent(scopeParam);
+                            const label = (scopeParam === 'whole' ? 'Whole Database' : scopes.length + ' group' + (scopes.length > 1 ? 's' : '')) + (includeMedia ? ' + Media (ZIP)' : '');
+                            btn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download ' + label;
                         }
+                        updateBackupLink();
                     </script>
                 </div>
 
@@ -1061,7 +1101,7 @@ include '../includes/header.php';
                 <div class="border-l border-blue-200 pl-8">
                     <h5 class="font-semibold text-gray-800 mb-2">Restoration</h5>
                     <p class="text-sm text-gray-600 mb-4">Upload a SQL file to restore your database. <strong>Warning:
-                            This overwrites all data.</strong></p>
+                            This overwrites all data.</strong> For a partial restore (one group only), use Selective Data Migration below with a JSON export instead.</p>
                     <div class="mb-3 mt-2">
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="restoreMedia" checked

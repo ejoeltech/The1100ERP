@@ -11,6 +11,35 @@ if (!in_array($type, ['db', 'full'], true)) {
     die('Invalid backup type.');
 }
 
+// Scoped backup: comma-separated group list, or 'whole' (default).
+// Groups mirror the selective-migration categories so backup and
+// restore/import stay consistent. Only these keys are accepted; table
+// names always come from this internal map, never from user input.
+$scopeMap = [
+    'settings' => ['settings', 'bank_accounts'],
+    'users' => ['users'],
+    'customers' => ['customers'],
+    'inventory' => ['products'],
+    'financials' => ['quotes', 'quote_line_items', 'invoices', 'invoice_line_items', 'receipts', 'payments'],
+    'hr' => ['hr_employees', 'hr_departments', 'hr_designations'],
+];
+$scopeRaw = strtolower(trim((string)($_GET['scope'] ?? 'whole')));
+$scopeTables = [];
+$scopeLabel = 'whole';
+if ($scopeRaw !== '' && $scopeRaw !== 'whole') {
+    $asked = array_unique(array_filter(array_map('trim', explode(',', $scopeRaw))));
+    foreach ($asked as $g) {
+        if (!isset($scopeMap[$g])) {
+            http_response_code(400);
+            die('Invalid backup scope.');
+        }
+        $scopeTables = array_merge($scopeTables, $scopeMap[$g]);
+    }
+    $scopeTables = array_values(array_unique($scopeTables));
+    sort($scopeTables);
+    $scopeLabel = implode('-', $asked);
+}
+
 // Detect OS for command paths
 $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 $dumpCommand = 'mysqldump';
@@ -22,16 +51,22 @@ if ($isWindows) {
 }
 
 // 1. Generate SQL Dump
-$sqlFilename = 'backup_' . DB_NAME . '_' . date('Y-m-d_H-i-s') . '.sql';
+$sqlFilename = 'backup_' . DB_NAME . '_' . $scopeLabel . '_' . date('Y-m-d_H-i-s') . '.sql';
 $sqlPath = sys_get_temp_dir() . '/' . $sqlFilename;
 
+// Scoped dumps list explicit tables (from the internal map above).
+$tableArgs = '';
+foreach ($scopeTables as $t) {
+    $tableArgs .= ' ' . escapeshellarg($t);
+}
 $command = sprintf(
-    '%s --host=%s --user=%s --password=%s --routines %s > %s',
+    '%s --host=%s --user=%s --password=%s --routines %s%s > %s',
     $dumpCommand,
     escapeshellarg(DB_HOST),
     escapeshellarg(DB_USER),
     escapeshellarg(DB_PASS),
     escapeshellarg(DB_NAME),
+    $tableArgs,
     $isWindows ? '"' . $sqlPath . '"' : escapeshellarg($sqlPath)
 );
 
