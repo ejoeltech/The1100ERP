@@ -68,6 +68,10 @@ try {
     // Determine status
     $update_available = ($local_hash !== $remote_hash);
 
+    // Configured updates source (display only; pulls still use git remote).
+    $repo_setting = function_exists('getSetting') ? trim((string)getSetting('github_repo', '')) : '';
+    if ($repo_setting === '') $repo_setting = 'ejoeltech/1100erp';
+
     echo json_encode([
         'success' => true,
         'branch' => $current_branch,
@@ -77,6 +81,8 @@ try {
         'has_local_changes' => $has_local_changes,
         'latest_message' => $latest_msg,
         'last_checked' => date('Y-m-d H:i:s'),
+        'repo' => $repo_setting,
+        'repo_url' => 'https://github.com/' . $repo_setting,
         'debug' => [
             'fetch_output' => $fetch['output']
         ]

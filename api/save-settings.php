@@ -16,6 +16,18 @@ if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOA
 }
 
 try {
+    // GitHub repo (owner/repo or full github.com URL). Invalid input is
+    // rejected before anything is saved; empty resets to the default.
+    $githubRepoRaw = trim((string)($_POST['github_repo'] ?? ''));
+    if ($githubRepoRaw === '') {
+        $githubRepo = '';
+    } elseif (preg_match('#^(?:https?://github\.com/)?([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/?$#', $githubRepoRaw, $gm)) {
+        $githubRepo = $gm[1];
+    } else {
+        header('Location: ../pages/settings.php?error=' . urlencode('Invalid GitHub repository. Use owner/repo or a https://github.com/owner/repo URL.'));
+        exit;
+    }
+
     // Settings to save
     $settings = [
         // Company Info
@@ -84,6 +96,9 @@ try {
         'telegram_chat_id' => $_POST['telegram_chat_id'] ?? '',
         'whatsapp_verify_token' => $_POST['whatsapp_verify_token'] ?? '',
         'whatsapp_app_secret' => $_POST['whatsapp_app_secret'] ?? '',
+
+        // Updates source (validated above; empty = default repo)
+        'github_repo' => $githubRepo,
     ];
 
     // WP1: secret fields render blank (leave-to-keep). An empty post must
