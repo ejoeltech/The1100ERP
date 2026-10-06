@@ -282,6 +282,10 @@ if (function_exists('setSecurityHeaders')) {
                             📱 Two-Factor Auth
                         </a>
                     <?php endif; ?>
+                    <a href="<?php echo $base_path; ?>/pages/about.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        ℹ️ About
+                    </a>
                     <a href="<?php echo $base_path; ?>/logout.php"
                         class="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-semibold">
                         🚪 Logout
@@ -602,6 +606,10 @@ if (function_exists('setSecurityHeaders')) {
                                         📱 Two-Factor Auth
                                     </a>
                                 <?php endif; ?>
+                                <a href="<?php echo $base_path; ?>/pages/about.php"
+                                    class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                                    ℹ️ About
+                                </a>
                                 <hr class="my-1">
                                 <a href="<?php echo $base_path; ?>/logout.php"
                                     class="block px-4 py-2 text-red-600 hover:bg-red-50 rounded-b-lg font-semibold">
