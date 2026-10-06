@@ -18,17 +18,16 @@ function getAiProviders() {
             'label' => 'Groq',
             'base_url' => 'https://api.groq.com/openai/v1/chat/completions',
             'docs' => 'https://console.groq.com/keys',
-            'free_note' => 'Free 14k req/day - updated Apr 2026',
+            'free_note' => 'Production models - verified Oct 2026',
             'models' => [
-                'groq/compound-mini' => 'Groq Compound Mini (Free, Recommended)',
-                'groq/compound' => 'Groq Compound',
-                'openai/gpt-oss-20b' => 'GPT-OSS 20B',
-                'openai/gpt-oss-120b' => 'GPT-OSS 120B',
-                'qwen/qwen3.8-27b' => 'Qwen 3 27B',
-                'allam-2-7b' => 'ALLaM 2 7B',
+                'openai/gpt-oss-20b' => 'GPT-OSS 20B (Fast, Recommended)',
+                'openai/gpt-oss-120b' => 'GPT-OSS 120B (Flagship)',
+                'llama-3.3-70b-versatile' => 'Llama 3.3 70B Versatile',
+                'llama-3.1-8b-instant' => 'Llama 3.1 8B Instant',
+                'qwen/qwen3.8-27b' => 'Qwen 3 27B (Preview)',
                 'meta-llama/llama-prompt-guard-2-86m' => 'Prompt Guard 86M (guard)',
             ],
-            'default_model' => 'groq/compound-mini',
+            'default_model' => 'openai/gpt-oss-20b',
         ],
         'openrouter' => [
             'name' => 'OpenRouter (Free Models)',
@@ -128,7 +127,9 @@ function getAiProviderConfig($providerId = null) {
     if (!empty($envKey) && $providerId === 'groq' && empty($apiKey)) $apiKey = $envKey;
 
     $model = getSetting('ai_model', '');
-    $deprecated = ['llama-3.1-8b-instant','llama-3.3-70b-versatile','mixtral-8x7b-32768','gemma2-9b-it'];
+    // Retired IDs (Groq Compound beta, old Mistral/Gemma aliases): fall back
+    // to the provider default instead of calling a dead model.
+    $deprecated = ['groq/compound-mini','groq/compound','allam-2-7b','mixtral-8x7b-32768','gemma2-9b-it'];
     if (empty($model) || in_array($model, $deprecated, true)) $model = $provider['default_model'];
 
     $baseUrl = getSetting('ai_base_url', '');
