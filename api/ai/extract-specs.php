@@ -2,6 +2,7 @@
 define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -57,8 +58,8 @@ Return ONLY valid JSON with these fields (use null if not found):
     \"input_voltage\": number
 }";
 
-    $response = callGroqAPI($prompt, 'json');
-    return extractJSON($response) ?: [];
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    return aiCallJson($prompt, 'You extract technical specifications and output strict JSON.', ['max_tokens' => 1200, 'temperature' => 0.1]);
 }
 
 function extractPanelSpecs($description, $count)
@@ -75,8 +76,8 @@ Return ONLY valid JSON with these fields (use null if not found):
     \"imp\": number
 }";
 
-    $response = callGroqAPI($prompt, 'json');
-    return extractJSON($response) ?: [];
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    return aiCallJson($prompt, 'You extract technical specifications and output strict JSON.', ['max_tokens' => 1200, 'temperature' => 0.1]);
 }
 
 function extractBatterySpecs($description, $count)
@@ -93,34 +94,8 @@ Return ONLY valid JSON with these fields (use null if not found):
     \"type\": \"lithium\" or \"lead_acid\"
 }";
 
-    $response = callGroqAPI($prompt, 'json');
-    return extractJSON($response) ?: [];
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    return aiCallJson($prompt, 'You extract technical specifications and output strict JSON.', ['max_tokens' => 1200, 'temperature' => 0.1]);
 }
 
-function extractJSON($response)
-{
-    // First, try direct parsing
-    $data = json_decode($response, true);
-    if ($data !== null) {
-        return $data;
-    }
-
-    // If that fails, try to extract from markdown code blocks
-    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    // Try to find any JSON object in the response
-    if (preg_match('/(\{.*\})/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    return null;
-}
 ?>

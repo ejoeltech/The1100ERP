@@ -9,6 +9,7 @@ define('ALLOW_PUBLIC', true);
 require_once '../../includes/db.php';
 require_once '../../includes/groq-config.php';
 require_once '../../includes/ai-rate-limiter.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -175,38 +176,10 @@ Return ONLY valid JSON with NO markdown formatting:
     \"warnings\": [\"warning 1\", \"warning 2\"]
 }";
 
-    $response = callGroqAPI($prompt, 'json');
-    $recommendation = extractJSON($response);
-
-    if (!$recommendation) {
-        error_log("Failed to parse recommendation: " . substr($response, 0, 500));
-        throw new Exception("Failed to generate recommendation");
-    }
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    $recommendation = aiCallJson($prompt, 'You are a solar system designer. Output strict JSON.', ['max_tokens' => 4000]);
 
     return $recommendation;
 }
 
-function extractJSON($response)
-{
-    $data = json_decode($response, true);
-    if ($data !== null) {
-        return $data;
-    }
-
-    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    if (preg_match('/(\{.*\})/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    return null;
-}
 ?>

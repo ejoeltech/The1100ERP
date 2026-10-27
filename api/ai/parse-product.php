@@ -2,6 +2,7 @@
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -29,20 +30,11 @@ try {
     
     Output JSON ONLY.";
 
-    $aiResponse = callGroqAPI($prompt, "You are a data extraction assistant. Output strict JSON.");
+    // Small object, but reasoning models can burn the budget before emitting.
+    $data = aiCallJson($prompt, "You are a data extraction assistant. Output strict JSON.", ['max_tokens' => 1200, 'temperature' => 0.1]);
 
-    // Clean up Markdown Code Blocks
-    $jsonStr = $aiResponse;
-    if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[1];
-    } elseif (preg_match('/\{.*\}/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[0];
-    }
-
-    $data = json_decode($jsonStr, true);
-
-    if (!$data) {
-        throw new Exception("Failed to parse AI response: " . $aiResponse);
+    if (!is_array($data) || $data === []) {
+        throw new Exception("Failed to parse AI response");
     }
 
     echo json_encode(['success' => true, 'data' => $data]);

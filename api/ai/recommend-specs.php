@@ -7,6 +7,7 @@
 header('Content-Type: application/json');
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 // Check permissions
 if (!isset($_SESSION['user_id'])) {
@@ -58,21 +59,9 @@ try {
     
     Recommend the system specs.";
 
-    // Call Groq API
-    $response = callGroqAPI($userPrompt, $systemPrompt, ['max_tokens' => 500, 'temperature' => 0.3]);
-
-    // Extract JSON from response (in case of markdown blocks)
-    if (preg_match('/\{.*\}/s', $response, $matches)) {
-        $jsonStr = $matches[0];
-    } else {
-        $jsonStr = $response;
-    }
-
-    $recommendation = json_decode($jsonStr, true);
-
-    if (!$recommendation) {
-        throw new Exception("Failed to parse AI recommendation: $response");
-    }
+    // Reasoning models can burn a small budget before emitting content, so
+    // aiCallJson() retries with a larger allowance and normalises fences.
+    $recommendation = aiCallJson($userPrompt, $systemPrompt, ['max_tokens' => 1500, 'temperature' => 0.3]);
 
     echo json_encode(['success' => true, 'recommendation' => $recommendation]);
 

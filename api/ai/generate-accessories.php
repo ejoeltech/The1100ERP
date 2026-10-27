@@ -2,6 +2,7 @@
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -35,20 +36,8 @@ try {
 
     JSON ONLY.";
 
-    $aiResponse = callGroqAPI($prompt, "You are a field-service inventory expert for Nigerian solar/electrical businesses. Output strict JSON array.");
-
-    $jsonStr = $aiResponse;
-    if (preg_match('/```(?:json)?\s*(\[.*\])\s*```/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[1];
-    } elseif (preg_match('/\[.*\]/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[0];
-    }
-
-    $items = json_decode($jsonStr, true);
-
-    if (!$items) {
-        throw new Exception("Failed to parse AI response. Raw: " . $aiResponse);
-    }
+    // 10-15 items x 8 fields overruns the 2048 default; allow room + retry.
+    $items = aiCallJson($prompt, "You are a field-service inventory expert for Nigerian solar/electrical businesses. Output strict JSON array.", ['max_tokens' => 4000]);
 
     echo json_encode(['success' => true, 'data' => $items]);
 

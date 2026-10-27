@@ -2,6 +2,7 @@
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -59,18 +60,10 @@ try {
     // 2. Call AI
     $aiResponse = callGroqAPI($message, $systemPrompt, ['temperature' => 0.2, 'response_format' => ['type' => 'json_object']]);
 
-    // Clean up Markdown Code Blocks
-    $cleanJson = $aiResponse;
-    if (preg_match('/```(?:json)?\s*(\{.*\})\s*```/s', $aiResponse, $matches)) {
-        $cleanJson = $matches[1];
-    } elseif (preg_match('/\{.*\}/s', $aiResponse, $matches)) {
-        $cleanJson = $matches[0];
-    }
+    // 3. Parse Response (fences/prose tolerated by the shared extractor)
+    $parsed = aiExtractJson($aiResponse);
 
-    // 3. Parse Response
-    $parsed = json_decode($cleanJson, true);
-
-    if (!$parsed) {
+    if ($parsed === null) {
         // Fallback for non-JSON response
         $responsePayload = [
             'type' => 'text',

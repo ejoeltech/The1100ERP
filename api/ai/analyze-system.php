@@ -2,6 +2,7 @@
 define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -94,41 +95,10 @@ JSON Structure:
     \"installation_notes\": [\"note 1\", \"note 2\"]
 }";
 
-    $response = callGroqAPI($prompt, 'json');
-    $analysis = extractJSON($response);
-
-    if (!$analysis) {
-        error_log("Failed to parse AI response: " . substr($response, 0, 500));
-        throw new Exception("AI returned invalid response");
-    }
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    $analysis = aiCallJson($prompt, 'You are a professional solar system engineer. Output strict JSON.', ['max_tokens' => 4000]);
 
     return $analysis;
 }
 
-function extractJSON($response)
-{
-    // First, try direct parsing
-    $data = json_decode($response, true);
-    if ($data !== null) {
-        return $data;
-    }
-
-    // If that fails, try to extract from markdown code blocks
-    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    // Try to find any JSON object in the response
-    if (preg_match('/(\{.*\})/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    return null;
-}
 ?>

@@ -133,8 +133,25 @@ include '../../includes/header.php';
         document.getElementById('aiModal').classList.add('hidden');
     }
 
+    // Fill a field by name without assuming it exists. Missing or renamed
+    // fields must never abort the rest of the autofill.
+    function aiSetField(name, value) {
+        if (value === null || value === undefined || value === '') return false;
+        const form = document.getElementById('productForm');
+        if (!form) return false;
+        const field = form.querySelector('[name="' + name + '"]');
+        if (!field) {
+            console.warn('AI autofill: no field named "' + name + '"');
+            return false;
+        }
+        field.value = value;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+    }
+
     async function runAiAutofill() {
-        const input = document.getElementById('aiInput').value;
+        const input = document.getElementById('aiInput').value.trim();
         if (!input) return;
 
         const btn = document.getElementById('aiBtn');
@@ -149,25 +166,32 @@ include '../../includes/header.php';
                 body: JSON.stringify({ text: input })
             });
 
-            const res = await response.json();
+            let res;
+            try {
+                res = await response.json();
+            } catch (parseErr) {
+                throw new Error('Server returned an invalid response (HTTP ' + response.status + ').');
+            }
 
-            if (res.success) {
-                const data = res.data;
-                const form = document.querySelector('form');
+            if (!response.ok || res.success === false || res.error) {
+                throw new Error(res.error || res.message || ('Request failed (HTTP ' + response.status + ').'));
+            }
 
-                if (data.name) form.querySelector('[name="product_name"]').value = data.name;
-                if (data.description) form.querySelector('[name="description"]').value = data.description;
-                if (data.price_ngn) form.querySelector('[name="unit_price"]').value = data.price_ngn;
-                if (data.category) form.querySelector('[name="category"]').value = data.category;
+            const data = res.data || {};
+            const filled = [
+                aiSetField('product_name', data.name),
+                aiSetField('description', data.description),
+                aiSetField('unit_price', data.price_ngn),
+                aiSetField('category', data.category),
+                aiSetField('product_code', data.product_code)
+            ].filter(Boolean).length;
 
-                // Auto generate code if missing? allow user to edit
-
-                closeAiModal();
-            } else {
-                alert('AI Error: ' + res.error);
+            closeAiModal();
+            if (filled === 0) {
+                alert('The AI could not find any usable product details in that text. Please add more detail and try again.');
             }
         } catch (err) {
-            alert('Network Error: ' + err.message);
+            alert('AI Error: ' + err.message);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;

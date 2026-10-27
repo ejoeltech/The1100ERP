@@ -3,6 +3,7 @@ require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
 require_once '../../includes/ai-history.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -36,21 +37,8 @@ try {
     
     JSON ONLY.";
 
-    $aiResponse = callGroqAPI($prompt, "You are a Solar Project Estimator. Output strict JSON array.");
-
-    // Clean up Markdown Code Blocks
-    $jsonStr = $aiResponse;
-    if (preg_match('/```(?:json)?\s*(\[.*\])\s*```/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[1];
-    } elseif (preg_match('/\[.*\]/s', $aiResponse, $matches)) {
-        $jsonStr = $matches[0];
-    }
-
-    $items = json_decode($jsonStr, true);
-
-    if (!$items) {
-        throw new Exception("Failed to parse AI response: " . $aiResponse);
-    }
+    // Long itemised arrays need headroom; aiCallJson retries if truncated.
+    $items = aiCallJson($prompt, "You are a Solar Project Estimator. Output strict JSON array.", ['max_tokens' => 4000]);
 
     // Optional: Match against existing DB products to get real IDs?
     // For now, we return free text which the user can edit/save as new product if needed.

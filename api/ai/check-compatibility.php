@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
+require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
@@ -97,16 +98,8 @@ function handleBasicMode($pdo, $input)
         \"recommendation\": \"string\"
     }";
 
-    // Call Groq
-    $response = callGroqAPI($prompt, 'json');
-
-    // Extract JSON from response (handles markdown wrapping)
-    $analysis = extractJSON($response);
-
-    if (!$analysis) {
-        error_log("System Designer - Failed to parse AI response: " . substr($response, 0, 500));
-        throw new Exception("AI returned invalid response. Please check Groq API configuration.");
-    }
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    $analysis = aiCallJson($prompt, 'You are a solar system compatibility analyst. Output strict JSON.', ['max_tokens' => 3000]);
 
     echo json_encode(['success' => true, 'analysis' => $analysis]);
 }
@@ -215,47 +208,10 @@ JSON Structure:
     \"installation_notes\": [\"array of critical safety notes\"]
 }";
 
-    // Call Groq
-    $response = callGroqAPI($prompt, 'json');
-
-    // Extract JSON from response (handles markdown wrapping)
-    $analysis = extractJSON($response);
-
-    if (!$analysis) {
-        error_log("System Designer Advanced - Failed to parse AI response: " . substr($response, 0, 500));
-        throw new Exception("AI returned invalid response. Please check Groq API configuration.");
-    }
+    // aiCallJson: normalises fences/prose/truncation and retries bigger.
+    $analysis = aiCallJson($prompt, 'You are a solar system compatibility analyst. Output strict JSON.', ['max_tokens' => 4000]);
 
     echo json_encode(['success' => true, 'mode' => 'advanced', 'analysis' => $analysis]);
 }
 
-/**
- * Extract JSON from AI response, handling markdown code blocks
- */
-function extractJSON($response)
-{
-    // First, try direct parsing
-    $data = json_decode($response, true);
-    if ($data !== null) {
-        return $data;
-    }
-
-    // If that fails, try to extract from markdown code blocks
-    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    // Try to find any JSON object in the response
-    if (preg_match('/(\{.*\})/s', $response, $matches)) {
-        $data = json_decode($matches[1], true);
-        if ($data !== null) {
-            return $data;
-        }
-    }
-
-    return null;
-}
 ?>
