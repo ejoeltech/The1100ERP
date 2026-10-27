@@ -739,7 +739,22 @@ include '../includes/header.php';
             $currentProvider = getSetting('ai_provider', 'groq');
             $currentModel = getSetting('ai_model', '');
             $currentBaseUrl = getSetting('ai_base_url', '');
-            $currentApiKey = htmlspecialchars(getSetting('ai_api_key', getSetting('groq_api_key', '')));
+            // Diagnose the key actually used at call time: ai_api_key wins,
+            // groq_api_key is the legacy fallback. Show source + fingerprint
+            // (never the secret) so a stale revoked key is obvious.
+            $effectiveKey = trim((string)getSetting('ai_api_key', ''));
+            $keySource = 'ai_api_key';
+            if ($effectiveKey === '') {
+                $effectiveKey = trim((string)getSetting('groq_api_key', ''));
+                $keySource = 'groq_api_key';
+            }
+            $keyFingerprint = '';
+            if ($effectiveKey !== '') {
+                $keyFingerprint = strlen($effectiveKey) >= 12
+                    ? substr($effectiveKey, 0, 4) . '••••' . substr($effectiveKey, -4)
+                    : '(too short: ' . strlen($effectiveKey) . ' chars)';
+            }
+            $currentApiKey = htmlspecialchars($effectiveKey);
             if (empty($currentModel) && isset($providers[$currentProvider])) $currentModel = $providers[$currentProvider]['default_model'];
             if (empty($currentBaseUrl) && isset($providers[$currentProvider])) $currentBaseUrl = $providers[$currentProvider]['base_url'];
             ?>
@@ -792,7 +807,7 @@ include '../includes/header.php';
                     Legacy Groq key auto-migrated. <a id="provider-docs-link" href="#" target="_blank" class="text-primary hover:underline">Get free key</a>
                 </p>
                 <input type="hidden" name="groq_api_key" id="groq_api_key" value="">
-                <p class="text-xs text-gray-500 mt-1">API key: <?php echo $currentApiKey !== '' ? '<span class="text-green-700 font-semibold">● saved</span> (leave blank to keep)' : '<span class="text-gray-400">not set</span>'; ?></p>
+                <p class="text-xs text-gray-500 mt-1">API key: <?php echo $currentApiKey !== '' ? '<span class="text-green-700 font-semibold">● saved</span> (leave blank to keep)' : '<span class="text-gray-400">not set</span>'; ?><?php if ($keyFingerprint !== ''): ?> <span class="font-mono text-gray-500"><?php echo htmlspecialchars($keyFingerprint); ?></span> <span class="text-gray-400">from <code><?php echo htmlspecialchars($keySource); ?></code></span><?php endif; ?></p>
             </div>
 
             <div id="custom-url-group" class="mb-4 hidden">

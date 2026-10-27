@@ -115,16 +115,18 @@ function getAiProviderConfig($providerId = null) {
     $provider = $providers[$providerId];
     $provider['id'] = $providerId;
 
-    // Resolve credentials: prefer new ai_* keys, fallback to legacy groq_api_key
-    $apiKey = getSetting('ai_api_key', '');
-    if (empty($apiKey)) $apiKey = getSetting('groq_api_key', '');
+    // Resolve credentials: prefer new ai_* keys, fallback to legacy groq_api_key.
+    // Trim: a pasted key with a trailing space/newline is a 401 from Groq.
+    $apiKey = trim((string)getSetting('ai_api_key', ''));
+    if ($apiKey === '') $apiKey = trim((string)getSetting('groq_api_key', ''));
     // Provider-specific override for custom use
     if ($providerId === 'custom') {
-        $apiKey = getSetting('ai_custom_api_key', $apiKey);
+        $customKey = trim((string)getSetting('ai_custom_api_key', ''));
+        if ($customKey !== '') $apiKey = $customKey;
     }
     // Allow env override
-    $envKey = getenv('GROQ_API_KEY');
-    if (!empty($envKey) && $providerId === 'groq' && empty($apiKey)) $apiKey = $envKey;
+    $envKey = trim((string)getenv('GROQ_API_KEY'));
+    if ($envKey !== '' && $providerId === 'groq' && $apiKey === '') $apiKey = $envKey;
 
     $model = getSetting('ai_model', '');
     // Retired IDs (Groq Compound beta, old Mistral/Gemma aliases): fall back

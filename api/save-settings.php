@@ -16,6 +16,13 @@ if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOA
 }
 
 try {
+    // One canonical AI key: whichever field carried a new value is written to
+    // BOTH storage names, so a stale duplicate (e.g. an old revoked key left in
+    // ai_api_key while a new one went to groq_api_key) can never take priority.
+    $postedAiKey = trim((string)($_POST['ai_api_key'] ?? ''));
+    $postedGroqKey = trim((string)($_POST['groq_api_key'] ?? ''));
+    $newAiKey = $postedAiKey !== '' ? $postedAiKey : $postedGroqKey;
+
     // GitHub repo (owner/repo or full github.com URL). Invalid input is
     // rejected before anything is saved; empty resets to the default.
     $githubRepoRaw = trim((string)($_POST['github_repo'] ?? ''));
@@ -78,7 +85,7 @@ try {
 
         // AI Integrations (multi-provider)
         'ai_provider' => $_POST['ai_provider'] ?? 'groq',
-        'ai_api_key' => $_POST['ai_api_key'] ?? '',
+        'ai_api_key' => $newAiKey,
         'ai_model' => $_POST['ai_model'] ?? '',
         'ai_base_url' => $_POST['ai_base_url'] ?? '',
         'ai_custom_api_key' => $_POST['ai_custom_api_key'] ?? '',
@@ -86,8 +93,8 @@ try {
         'ai_custom_model' => $_POST['ai_custom_model'] ?? '',
         // Opt-in: let AI suggestions learn from past quotes/invoices (aggregates only, no customer data).
         'ai_use_history' => isset($_POST['ai_use_history']) ? '1' : '0',
-        // Backward compat (merged: remote single-provider key kept as fallback)
-        'groq_api_key' => $_POST['groq_api_key'] ?? $_POST['ai_api_key'] ?? '',
+        // Backward compat: kept in lockstep with ai_api_key above.
+        'groq_api_key' => $newAiKey,
 
         // Leads & Follow-up
         'lead_followup_enabled' => isset($_POST['lead_followup_enabled']) ? '1' : '0',
