@@ -59,7 +59,7 @@ $html = '
     <meta charset="UTF-8">
     <style>
         body {
-            font-family: "Inter", sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-size: 11px;
             color: #000;
             line-height: 1.4;

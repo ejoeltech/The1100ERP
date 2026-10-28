@@ -72,7 +72,7 @@ try {
         'margin_right' => 15,
         'margin_top' => 15,
         'margin_bottom' => 15,
-        'default_font' => 'Inter'
+        'default_font' => 'dejavusans'
     ]);
     $mpdf->WriteHTML($html);
     $mpdf->Output($filename, \Mpdf\Output\Destination::DOWNLOAD);
