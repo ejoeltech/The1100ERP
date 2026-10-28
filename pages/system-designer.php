@@ -266,31 +266,66 @@ $b = hexdec(substr($hex, 4, 2));
         border-color: var(--theme-primary);
     }
 
-    /* Results Display */
-    .result-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        border-left: 4px solid var(--theme-primary);
+    /* Results Display - compact and responsive */
+    .results-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: start;
     }
 
-    .result-header {
+    @media (min-width: 900px) {
+        .results-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    .result-card {
+        background: white;
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border-left: 3px solid var(--theme-primary);
+        min-width: 0;
+    }
+
+    .result-card.span-all {
+        grid-column: 1 / -1;
+    }
+
+    .result-card.danger {
+        border-left-color: #ef4444;
+        background: #fef2f2;
+    }
+
+    .result-head {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        gap: 0.75rem;
+    }
+
+    .result-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.25;
+    }
+
+    .result-subtitle {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.1rem;
     }
 
     .result-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.15rem;
+        flex-shrink: 0;
     }
 
     .result-icon.success {
@@ -299,6 +334,112 @@ $b = hexdec(substr($hex, 4, 2));
 
     .result-icon.warning {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .panel-options {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    }
+
+    .panel-option {
+        border: 1px solid #e5e7eb;
+        border-left-width: 4px;
+        border-radius: 10px;
+        padding: 0.6rem 0.7rem;
+        background: #fff;
+        min-width: 0;
+    }
+
+    .fact-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .fact-chip {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.3rem;
+        background: #fff;
+        border: 1px solid #e9d5ff;
+        border-radius: 999px;
+        padding: 0.1rem 0.55rem;
+        font-size: 0.7rem;
+        color: #6b21a8;
+        white-space: nowrap;
+    }
+
+    .fact-chip strong {
+        font-weight: 700;
+        color: #4c1d95;
+    }
+
+    .details-toggle {
+        display: inline-block;
+        margin-top: 0.3rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+    }
+
+    .details-toggle:hover {
+        color: #374151;
+    }
+
+    /* Compact typography for the AI summary block */
+    .result-summary {
+        font-size: 0.8125rem;
+        line-height: 1.5;
+        color: #374151;
+    }
+
+    .result-summary :is(h2, h3, h4) {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0.6rem 0 0.25rem;
+    }
+
+    .result-summary > :first-child {
+        margin-top: 0;
+    }
+
+    .result-summary p {
+        margin: 0.25rem 0;
+    }
+
+    .result-summary ul,
+    .result-summary ol {
+        margin: 0.25rem 0 0.4rem 1.1rem;
+        padding-left: 0.25rem;
+    }
+
+    .result-summary ul {
+        list-style: disc;
+    }
+
+    .result-summary ol {
+        list-style: decimal;
+    }
+
+    .result-summary li {
+        margin: 0.1rem 0;
+    }
+
+    .result-summary table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+        margin: 0.35rem 0;
+    }
+
+    .result-summary th,
+    .result-summary td {
+        border: 1px solid #e5e7eb;
+        padding: 0.25rem 0.4rem;
+        text-align: left;
     }
 
     .error-message {
@@ -670,10 +811,10 @@ $b = hexdec(substr($hex, 4, 2));
     const PANEL_FIELDS = ['panel_power', 'panel_voc', 'panel_isc'];
 
     const OPTION_COLORS = [
-        { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-900' },
-        { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-900' },
-        { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-900' },
-        { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-900' }
+        { accent: 'border-l-blue-400', text: 'text-blue-900' },
+        { accent: 'border-l-green-400', text: 'text-green-900' },
+        { accent: 'border-l-purple-400', text: 'text-purple-900' },
+        { accent: 'border-l-orange-400', text: 'text-orange-900' }
     ];
 
     let selectedMode = null;
@@ -1232,87 +1373,98 @@ $b = hexdec(substr($hex, 4, 2));
         return checked.value === 'hybrid' ? 'Hybrid Inverter' : 'Charge Controller';
     }
 
-    function renderArrangement(arrangement) {
+    function renderArrangement(arrangement, extraClass) {
         if (!arrangement) {
             return '';
         }
 
+        const wrapper = 'result-card ' + (extraClass || 'span-all');
+
         if (typeof arrangement === 'string') {
             return `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">&#128295; Panel Arrangement</h4>
-                <div class="bg-purple-50 p-4 rounded-lg">
-                    <p class="text-sm text-gray-700">${esc(arrangement)}</p>
-                </div>
+            <div class="${wrapper}">
+                <h4 class="font-bold text-base mb-2">&#128295; Panel Arrangement</h4>
+                <p class="text-sm text-gray-700">${esc(arrangement)}</p>
             </div>`;
         }
 
         const facts = [
             ['Strings', arrangement.strings],
-            ['Panels per string', arrangement.panels_per_string],
+            ['Panels/string', arrangement.panels_per_string],
             ['Total VOC', arrangement.total_voc],
             ['Total current', arrangement.total_current]
         ].filter((fact) => fact[1] !== undefined && fact[1] !== null && fact[1] !== '');
 
-        const factsHtml = facts.length
-            ? '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">' + facts.map((fact) => `
-                    <div class="bg-white bg-opacity-70 rounded-lg p-3">
-                        <p class="text-xs text-purple-700 font-semibold">${esc(fact[0])}</p>
-                        <p class="text-lg font-bold text-purple-900">${esc(fact[1])}</p>
-                    </div>`).join('') + '</div>'
-            : '';
+        const chips = facts.map((fact) =>
+            `<span class="fact-chip">${esc(fact[0])} <strong>${esc(fact[1])}</strong></span>`
+        ).join('');
 
         return `
-        <div class="result-card">
-            <h4 class="font-bold text-lg mb-3">&#128295; Panel Arrangement</h4>
-            <div class="bg-purple-50 p-4 rounded-lg">
-                <p class="font-semibold text-purple-900">${esc(arrangement.configuration)}</p>
-                ${arrangement.explanation ? '<p class="text-sm text-gray-600 mt-2">' + esc(arrangement.explanation) + '</p>' : ''}
-                ${factsHtml}
-            </div>
+        <div class="${wrapper}">
+            <h4 class="font-bold text-base mb-2">&#128295; Panel Arrangement</h4>
+            <p class="text-sm font-semibold text-purple-900 leading-snug">${esc(arrangement.configuration)}</p>
+            ${chips ? '<div class="fact-chips mt-2">' + chips + '</div>' : ''}
+            ${arrangement.explanation
+                ? `<details><summary class="details-toggle">Why this arrangement</summary>
+                     <p class="text-xs text-gray-600 mt-1 leading-relaxed">${esc(arrangement.explanation)}</p>
+                   </details>`
+                : ''}
         </div>`;
     }
 
-    function renderBreaker(breaker) {
+    function renderBreaker(breaker, extraClass) {
         if (!breaker) {
             return '';
         }
         const isString = typeof breaker === 'string';
+        const rating = isString ? breaker : breaker.rating;
+        const explanation = !isString && breaker.explanation ? breaker.explanation : '';
+
         return `
-        <div class="result-card">
-            <h4 class="font-bold text-lg mb-3">&#9889; DC Circuit Breaker</h4>
-            <div class="bg-yellow-50 p-4 rounded-lg">
-                <p class="font-semibold text-yellow-900">Recommended: ${esc(isString ? breaker : breaker.rating)}</p>
-                ${!isString && breaker.explanation ? '<p class="text-sm text-gray-600 mt-2">' + esc(breaker.explanation) + '</p>' : ''}
-            </div>
+        <div class="result-card ${extraClass || ''}">
+            <h4 class="font-bold text-base mb-2">&#9889; DC Breaker</h4>
+            <p class="text-xl font-bold text-yellow-900 leading-tight">${esc(rating)}</p>
+            ${explanation
+                ? `<details><summary class="details-toggle">Calculation details</summary>
+                     <p class="text-xs text-gray-600 mt-1 leading-relaxed">${esc(explanation)}</p>
+                   </details>`
+                : ''}
         </div>`;
     }
 
-    function renderWiring(wiring) {
+    function renderWiring(wiring, extraClass) {
         if (!wiring) {
             return '';
         }
+
+        const wrapper = 'result-card ' + (extraClass || '');
+
         if (typeof wiring === 'string') {
             return `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">&#128268; Wire Sizing</h4>
+            <div class="${wrapper}">
+                <h4 class="font-bold text-base mb-2">&#128268; Wire Sizing</h4>
                 <p class="text-sm text-gray-700">${esc(wiring)}</p>
             </div>`;
         }
+
         return `
-        <div class="result-card">
-            <h4 class="font-bold text-lg mb-3">&#128268; Wire Sizing</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-green-50 p-4 rounded-lg">
-                    <p class="text-sm text-green-600 font-semibold">PV to Controller</p>
-                    <p class="text-xl font-bold text-green-900">${esc(wiring.pv_wire)}</p>
+        <div class="${wrapper}">
+            <h4 class="font-bold text-base mb-2">&#128268; Wire Sizing</h4>
+            <dl class="text-xs space-y-1">
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt class="text-gray-500">PV to controller</dt>
+                    <dd class="font-bold text-green-900 text-right break-words ml-auto">${esc(wiring.pv_wire)}</dd>
                 </div>
-                <div class="bg-blue-50 p-4 rounded-lg">
-                    <p class="text-sm text-blue-600 font-semibold">Battery to Inverter</p>
-                    <p class="text-xl font-bold text-blue-900">${esc(wiring.battery_wire)}</p>
+                <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                    <dt class="text-gray-500">Battery to inverter</dt>
+                    <dd class="font-bold text-blue-900 text-right break-words ml-auto">${esc(wiring.battery_wire)}</dd>
                 </div>
-            </div>
-            ${wiring.explanation ? '<p class="text-sm text-gray-600 mt-3">' + esc(wiring.explanation) + '</p>' : ''}
+            </dl>
+            ${wiring.explanation
+                ? `<details><summary class="details-toggle">Why these sizes</summary>
+                     <p class="text-xs text-gray-600 mt-1 leading-relaxed">${esc(wiring.explanation)}</p>
+                   </details>`
+                : ''}
         </div>`;
     }
 
@@ -1324,88 +1476,103 @@ $b = hexdec(substr($hex, 4, 2));
 
         const parts = [];
 
-        parts.push(`
-        <div class="result-card">
-            <div class="result-header">
-                <div class="result-icon success">&#10003;</div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">Recommendation Generated</h3>
-                    <p class="text-gray-600">${esc(MODE_INFO[selectedMode] ? MODE_INFO[selectedMode].title : 'Design')} &middot; ${esc(currentSystemTypeLabel())}</p>
-                </div>
-            </div>
-        </div>`);
-
-        if (rec.safe === false) {
-            parts.push(`
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg" role="alert">
-                <h4 class="font-bold text-red-800 mb-1">&#9888;&#65039; Configuration flagged as unsafe</h4>
-                <p class="text-sm text-red-700">Review the warnings below before installing this array. The suggested arrangement may exceed a controller limit.</p>
-            </div>`);
-        }
-
         const panelOptions = Array.isArray(rec.panel_recommendations)
             ? rec.panel_recommendations.filter((option) => option && typeof option === 'object')
             : [];
 
+        const capacity = rec.total_capacity
+            || (panelOptions[0] && panelOptions[0].total_capacity)
+            || '';
+
+        parts.push(`
+        <div class="result-card span-all result-head">
+            <div class="result-icon success">&#10003;</div>
+            <div class="min-w-0 flex-1">
+                <h3 class="result-title">Recommendation ready</h3>
+                <p class="result-subtitle">${esc(MODE_INFO[selectedMode] ? MODE_INFO[selectedMode].title : 'Design')} &middot; ${esc(currentSystemTypeLabel())}</p>
+            </div>
+            ${capacity ? `<span class="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-full whitespace-nowrap">${esc(capacity)}</span>` : ''}
+        </div>`);
+
+        if (rec.safe === false) {
+            parts.push(`
+            <div class="result-card span-all danger" role="alert">
+                <p class="text-sm font-bold text-red-800">&#9888;&#65039; Configuration flagged as unsafe</p>
+                <p class="text-xs text-red-700 mt-1">Review the warnings below before installing this array. The suggested arrangement may exceed a controller limit.</p>
+            </div>`);
+        }
+
         if (panelOptions.length > 0) {
-            const gridCols = Math.min(panelOptions.length, 4);
             const cards = panelOptions.map((option, idx) => {
                 const color = OPTION_COLORS[idx % OPTION_COLORS.length];
                 const maxPanels = option.max_panels_display
                     ? String(option.max_panels_display)
                     : (option.max_panels !== undefined && option.max_panels !== null
-                        ? option.max_panels + ' ' + (option.panel_size || '')
+                        ? option.max_panels + (option.panel_size ? ' \u00d7 ' + option.panel_size : '')
                         : '');
+                const current = option.isc || option.imp;
+                const specs = [
+                    option.voc ? 'VOC ' + option.voc : '',
+                    current ? 'ISC ' + current : ''
+                ].filter(Boolean).join(' \u00b7 ');
+
                 return `
-                <div class="${color.bg} p-4 rounded-lg border-2 ${color.border}">
-                    <p class="text-sm font-semibold ${color.text}">Option ${idx + 1}</p>
-                    <p class="text-2xl font-bold ${color.text} mb-2">${esc(option.panel_size)}</p>
-                    <div class="text-xs text-gray-600 space-y-1 mb-3">
-                        <p><strong>VOC:</strong> ${esc(option.voc)}</p>
-                        <p><strong>ISC:</strong> ${esc(option.isc || option.imp)}</p>
+                <div class="panel-option ${color.accent}">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <p class="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Option ${idx + 1}</p>
+                            <p class="text-lg font-bold ${color.text} leading-tight">${esc(option.panel_size)}</p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="text-xs font-bold ${color.text} leading-snug">${esc(maxPanels.trim())}</p>
+                            <p class="text-[11px] text-gray-500">${esc(option.total_capacity)}</p>
+                        </div>
                     </div>
-                    <div class="bg-white bg-opacity-60 p-2 rounded">
-                        <p class="text-sm font-bold ${color.text}">${esc(maxPanels.trim())}</p>
-                        <p class="text-xs text-gray-600 mt-1"><strong>Total:</strong> ${esc(option.total_capacity)}</p>
-                        <p class="text-xs text-gray-600 mt-2">${esc(option.arrangement)}</p>
-                    </div>
+                    ${specs ? `<p class="text-[11px] text-gray-600 mt-1">${esc(specs)}</p>` : ''}
+                    ${option.arrangement ? `<p class="text-[11px] text-gray-500 mt-0.5 sm:truncate" title="${esc(option.arrangement)}">${esc(option.arrangement)}</p>` : ''}
                 </div>`;
             }).join('');
 
             parts.push(`
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">&#128161; Panel Options</h4>
-                <p class="text-sm text-gray-600 mb-4">Based on your controller specifications, here are recommended panel options:</p>
-                <div class="grid grid-cols-1 md:grid-cols-${gridCols} gap-4">${cards}</div>
+            <div class="result-card span-all">
+                <div class="flex items-baseline justify-between gap-2 mb-2">
+                    <h4 class="font-bold text-base">&#128161; Panel Options</h4>
+                    <span class="text-[11px] text-gray-400">${panelOptions.length} options</span>
+                </div>
+                <div class="panel-options">${cards}</div>
             </div>`);
         }
 
-        if (selectedMode === 1 && rec.max_panels && panelOptions.length === 0) {
+        const showMaxCard = selectedMode === 1 && rec.max_panels && panelOptions.length === 0;
+
+        if (showMaxCard) {
             parts.push(`
             <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">&#128202; Maximum Configuration</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <p class="text-sm text-blue-600 font-semibold">Maximum Panels</p>
-                        <p class="text-2xl font-bold text-blue-900">${esc(rec.max_panels)}</p>
+                <h4 class="font-bold text-base mb-2">&#128202; Maximum Configuration</h4>
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="text-[11px] text-gray-500">Panels</p>
+                        <p class="text-base font-bold text-blue-900 leading-tight">${esc(rec.max_panels)}</p>
                     </div>
-                    <div class="bg-green-50 p-4 rounded-lg">
-                        <p class="text-sm text-green-600 font-semibold">Total Capacity</p>
-                        <p class="text-2xl font-bold text-green-900">${esc(rec.total_capacity || 'N/A')}</p>
+                    <div class="text-right">
+                        <p class="text-[11px] text-gray-500">Capacity</p>
+                        <p class="text-base font-bold text-green-700 leading-tight">${esc(rec.total_capacity || 'N/A')}</p>
                     </div>
                 </div>
             </div>`);
         }
 
-        parts.push(renderArrangement(rec.arrangement));
-        parts.push(renderBreaker(rec.breaker));
-        parts.push(renderWiring(rec.wiring));
+        parts.push(renderArrangement(rec.arrangement, showMaxCard ? '' : 'span-all'));
+
+        const pairClass = (rec.breaker && rec.wiring) ? '' : 'span-all';
+        parts.push(renderBreaker(rec.breaker, pairClass));
+        parts.push(renderWiring(rec.wiring, pairClass));
 
         if (rec.summary) {
             parts.push(`
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">&#128203; Summary</h4>
-                <div class="prose prose-sm max-w-none">${sanitizeAiHtml(rec.summary)}</div>
+            <div class="result-card span-all">
+                <h4 class="font-bold text-base mb-2">&#128203; Summary</h4>
+                <div class="result-summary">${sanitizeAiHtml(rec.summary)}</div>
             </div>`);
         }
 
@@ -1416,24 +1583,24 @@ $b = hexdec(substr($hex, 4, 2));
 
         if (cleanWarnings.length > 0) {
             parts.push(`
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg" role="alert">
-                <h4 class="font-bold text-red-800 mb-2">&#9888;&#65039; Important Warnings</h4>
-                <ul class="list-disc list-inside text-red-700 space-y-1">
+            <div class="result-card span-all danger" role="alert">
+                <p class="text-sm font-bold text-red-800">&#9888;&#65039; Important Warnings</p>
+                <ul class="list-disc list-inside text-xs text-red-700 mt-1 space-y-0.5">
                     ${cleanWarnings.map((warning) => '<li>' + esc(warning) + '</li>').join('')}
                 </ul>
             </div>`);
         }
 
         parts.push(`
-        <div class="result-card bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h4 class="font-bold text-lg text-blue-900 mb-2">&#128196; Export Recommendation</h4>
-                    <p class="text-sm text-blue-700">Download a professional PDF report to share with your client or installer</p>
+        <div class="result-card span-all" style="background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%); border-left-color: #3b82f6;">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-bold text-blue-900">Export this recommendation</p>
+                    <p class="text-[11px] text-blue-700 hidden sm:block">Share the PDF with your client or installer.</p>
                 </div>
                 <button type="button" onclick="downloadPDF(this)"
-                    class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 whitespace-nowrap">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Download PDF
@@ -1441,7 +1608,7 @@ $b = hexdec(substr($hex, 4, 2));
             </div>
         </div>`);
 
-        container.innerHTML = parts.filter(Boolean).join('');
+        container.innerHTML = '<div class="results-grid">' + parts.filter(Boolean).join('') + '</div>';
         container.classList.remove('hidden');
         container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
