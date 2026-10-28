@@ -1,96 +1,98 @@
 <?php
 /**
- * API: Get GitHub Update Status
- * Checks for remote updates and local changes.
+ * API: update status.
+ *
+ * Primary signal is the app version vs. the latest GitHub release, so this
+ * works on zip-deployed copies that have no .git directory. Git metadata is
+ * included only when the server has a real working copy (dev/staging).
  */
 include '../../includes/session-check.php';
 require_once '../../config.php';
+require_once '../../includes/version.php';
+require_once '../../includes/updates.php';
 
-// Check permission (requirePermission exits on failure; returns void on success)
+// requirePermission exits on failure; returns void on success.
 requirePermission('manage_settings');
 
 header('Content-Type: application/json');
 
-function run_git($cmd) {
-    $cwd = realpath(__DIR__ . '/../../');
-    // Scope dubious-ownership trust to the app root only.
-    putenv('GIT_CONFIG_COUNT=1');
-    putenv('GIT_CONFIG_KEY_0=safe.directory');
-    putenv('GIT_CONFIG_VALUE_0=' . $cwd);
-    // Absolute git path: the service account's PATH may not include it.
-    // Resolve via `where`, else the common install location, else PATH.
+$repo = function_exists('getSetting') ? trim((string)getSetting('github_repo', '')) : '';
+if ($repo === '') $repo = APP_REPO_DEFAULT;
+
+$root = realpath(__DIR__ . '/../../');
+
+/**
+ * Run a git command inside the app root. Returns trim(stdout) or ''.
+ * Never fetches: the release/tag API is the source of truth and avoids
+ * blocking on credentials or network.
+ */
+function updateRunGit($root, $args)
+{
+    if (!$root || !is_dir($root . DIRECTORY_SEPARATOR . '.git') || !function_exists('exec')) {
+        return '';
+    }
+
     $git = 'git';
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-        $found = trim((string)shell_exec('where git 2>NUL'));
+    if (stripos(PHP_OS, 'WIN') === 0) {
+        $found = trim((string)@shell_exec('where git 2>NUL'));
         $first = strtok($found, "\r\n");
-        if ($first !== '' && $first !== false && stripos($first, 'git.exe') !== false) {
+        if ($first !== false && $first !== '' && stripos($first, 'git.exe') !== false) {
             $git = '"' . $first . '"';
         } elseif (file_exists('C:\\Program Files\\Git\\cmd\\git.exe')) {
             $git = '"C:\\Program Files\\Git\\cmd\\git.exe"';
         }
-    } elseif (trim((string)shell_exec('command -v git')) === '') {
-        throw new Exception('git binary not found on server.');
     }
-    // Callers pass full "git ..." commands; strip to avoid `git git`.
-    $cmd = preg_replace('/^\s*git\s+/', '', $cmd);
-    $full_cmd = "cd /d \"$cwd\" && $git $cmd 2>&1";
-    exec($full_cmd, $output, $return_var);
-    return [
-        'output' => implode("\n", $output),
-        'return_code' => $return_var
-    ];
+
+    $cmd = $git . ' -C ' . escapeshellarg($root) . ' ' . $args . ' 2>&1';
+    $output = [];
+    $rc = 0;
+    @exec($cmd, $output, $rc);
+    if ($rc !== 0) return '';
+    return trim(implode("\n", $output));
 }
 
 try {
-    // 1. Fetch from remote
-    $fetch = run_git("git fetch origin main");
-    
-    // 2. Get current branch
-    $branch = run_git("git branch --show-current");
-    $current_branch = trim($branch['output']);
+    $status = appUpdateStatus($repo, APP_VERSION);
 
-    // 3. Get current commit
-    $local_commit = run_git("git rev-parse --short HEAD");
-    $local_hash = trim($local_commit['output']);
+    // Optional git metadata (only exists in a cloned working copy).
+    $branch = updateRunGit($root, 'branch --show-current');
+    if ($branch === '') $branch = updateRunGit($root, 'rev-parse --abbrev-ref HEAD');
+    if ($branch === 'HEAD') $branch = '';
 
-    // 4. Get remote commit
-    $remote_commit = run_git("git rev-parse --short origin/$current_branch");
-    $remote_hash = trim($remote_commit['output']);
+    $localCommit = updateRunGit($root, 'rev-parse --short HEAD');
+    $remoteCommit = '';
+    if ($branch !== '') {
+        $remoteCommit = updateRunGit($root, 'rev-parse --short ' . escapeshellarg('origin/' . $branch));
+    }
+    $localChanges = $branch !== '' && updateRunGit($root, 'status --short') !== '';
+    $hasGit = $branch !== '';
 
-    // 5. Check for local changes
-    $status = run_git("git status --short");
-    $has_local_changes = !empty(trim($status['output']));
+    $latestMessage = $status['release_name'] !== '' ? $status['release_name'] : ('v' . $status['latest_version']);
+    if ($status['source'] === 'release' && $status['published_at'] !== '') {
+        $ts = strtotime($status['published_at']);
+        if ($ts) $latestMessage .= ' (released ' . date('Y-m-d', $ts) . ')';
+    } elseif ($status['source'] === 'tag') {
+        $latestMessage .= ' (tag only — no GitHub release published yet)';
+    }
 
-    // 6. Get commit message of latest remote
-    $log = run_git("git log -1 --format=\"%s (%cr)\" origin/$current_branch");
-    $latest_msg = trim($log['output']);
-
-    // Determine status
-    $update_available = ($local_hash !== $remote_hash);
-
-    // Configured updates source (display only; pulls still use git remote).
-    $repo_setting = function_exists('getSetting') ? trim((string)getSetting('github_repo', '')) : '';
-    if ($repo_setting === '') $repo_setting = 'ejoeltech/1100erp';
-
-    echo json_encode([
-        'success' => true,
-        'branch' => $current_branch,
-        'local_commit' => $local_hash,
-        'remote_commit' => $remote_hash,
-        'update_available' => $update_available,
-        'has_local_changes' => $has_local_changes,
-        'latest_message' => $latest_msg,
+    echo json_encode(array_merge($status, [
+        'branch' => $hasGit ? $branch : '',
+        'local_commit' => $localCommit,
+        'remote_commit' => $remoteCommit,
+        'has_local_changes' => $localChanges,
+        'can_git_pull' => $hasGit,
+        'latest_message' => $latestMessage,
         'last_checked' => date('Y-m-d H:i:s'),
-        'repo' => $repo_setting,
-        'repo_url' => 'https://github.com/' . $repo_setting,
-        'debug' => [
-            'fetch_output' => $fetch['output']
-        ]
-    ]);
+        'repo_url' => 'https://github.com/' . $repo,
+    ]));
 
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'error' => 'System error: ' . $e->getMessage()
+        'error' => $e->getMessage(),
+        'repo' => $repo,
+        'local_version' => APP_VERSION,
+        'repo_url' => 'https://github.com/' . $repo,
+        'last_checked' => date('Y-m-d H:i:s'),
     ]);
 }

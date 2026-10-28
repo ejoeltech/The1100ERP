@@ -51,6 +51,7 @@ include '../includes/header.php';
 async function aboutCheckUpdates() {
     const btn = document.getElementById('about-check-btn');
     const out = document.getElementById('about-update-result');
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     btn.disabled = true;
     btn.textContent = 'Checking...';
     out.innerHTML = '<span class="text-gray-500">Contacting update source...</span>';
@@ -58,11 +59,27 @@ async function aboutCheckUpdates() {
         const res = await fetch('../api/system/git-status.php');
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Check failed');
-        out.innerHTML = data.update_available
-            ? '<span class="text-amber-700 font-semibold">Update available:</span> <span class="font-mono">' + data.local_commit + ' → ' + data.remote_commit + '</span> <span class="text-gray-500">(' + (data.latest_message || '') + ')</span>'
-            : '<span class="text-green-700 font-semibold">You are up to date</span> <span class="font-mono text-gray-500">(' + data.local_commit + ')</span>';
+
+        const local = 'v' + esc(data.local_version);
+        const latest = data.latest_version ? 'v' + esc(data.latest_version) : '';
+        const link = data.latest_url
+            ? ' <a class="text-primary hover:underline" target="_blank" rel="noopener" href="' + esc(data.latest_url) + '">release notes</a>'
+            : '';
+
+        let html;
+        if (data.update_available) {
+            html = '<span class="text-amber-700 font-semibold">Update available:</span> <span class="font-mono">' + local + ' → ' + latest + '</span>' + link;
+        } else if (latest) {
+            html = '<span class="text-green-700 font-semibold">You are up to date</span> <span class="font-mono text-gray-500">(' + local + ' · latest ' + latest + ')</span>' + link;
+        } else {
+            html = '<span class="text-green-700 font-semibold">You are up to date</span> <span class="font-mono text-gray-500">(' + local + ')</span>';
+        }
+        if (data.warning) {
+            html += '<div class="text-amber-700 mt-1">' + esc(data.warning) + '</div>';
+        }
+        out.innerHTML = html;
     } catch (e) {
-        out.innerHTML = '<span class="text-red-600">Check failed: ' + e.message + '</span>';
+        out.innerHTML = '<span class="text-red-600">Check failed: ' + esc(e.message) + '</span>';
     } finally {
         btn.disabled = false;
         btn.textContent = 'Check for updates';

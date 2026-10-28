@@ -2000,16 +2000,17 @@ include '../includes/header.php';
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    branchMsg.innerText = `Branch: ${data.branch}`;
-                    localHash.innerText = data.local_commit;
-                    remoteHash.innerText = data.remote_commit;
+                    branchMsg.innerText = 'Branch: ' + (data.branch || 'zip deploy') + (data.local_version ? ' · v' + data.local_version : '');
+                    localHash.innerText = data.local_commit || '—';
+                    remoteHash.innerText = data.remote_commit || '—';
                     lastChecked.innerText = data.last_checked;
                     latestMsg.innerText = data.latest_message;
 
                     if (data.update_available) {
                         badge.innerText = 'Update Available';
                         badge.className = 'px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full uppercase tracking-wider';
-                        pullBtn.classList.remove('hidden');
+                        // Pull only exists in a real git working copy; zip deploys update via patch upload.
+                        pullBtn.classList.toggle('hidden', !data.can_git_pull);
                     } else {
                         badge.innerText = 'Up to Date';
                         badge.className = 'px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full uppercase tracking-wider';
