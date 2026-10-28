@@ -1120,8 +1120,12 @@ include '../includes/header.php';
                 <!-- Restore -->
                 <div class="border-l border-blue-200 pl-8">
                     <h5 class="font-semibold text-gray-800 mb-2">Restoration</h5>
-                    <p class="text-sm text-gray-600 mb-4">Upload a SQL file to restore your database. <strong>Warning:
-                            This overwrites all data.</strong> For a partial restore (one group only), use Selective Data Migration below with a JSON export instead.</p>
+                    <p class="text-sm text-gray-600 mb-4">Upload a <code>.sql</code> dump, or a <strong>full backup</strong>
+                        <code>.zip</code> created by Download Full Backup (it must contain <code>database.sql</code>).
+                        <strong>Warning: This overwrites all data.</strong> For a partial restore (one group only), use
+                        Selective Data Migration below with a JSON export instead.</p>
+                    <p class="text-xs text-amber-700 mb-3">Code update packages from Developer Tools go to
+                        <strong>System Updates → Apply Update Patch</strong> below — not here.</p>
                     <div class="mb-3 mt-2">
                         <label class="flex items-center space-x-2">
                             <input type="checkbox" id="restoreMedia" checked
@@ -1136,7 +1140,7 @@ include '../includes/header.php';
                                 file:text-sm file:font-semibold
                                 file:bg-blue-100 file:text-blue-700
                                 hover:file:bg-blue-200">
-                        <button type="button" onclick="restoreDatabase()"
+                        <button type="button" onclick="restoreDatabase(this)"
                             class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-sm">
                             Restore
                         </button>
@@ -1172,7 +1176,7 @@ include '../includes/header.php';
                             file:text-sm file:font-semibold
                             file:bg-green-100 file:text-green-700
                             hover:file:bg-green-200">
-                    <button type="button" onclick="applyPatch()"
+                    <button type="button" onclick="applyPatch(this)"
                         class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold whitespace-nowrap">
                         Apply Update
                     </button>
@@ -1515,10 +1519,31 @@ include '../includes/header.php';
     </div>
 
     <script>
-        function restoreDatabase() {
+        // A non-JSON response (HTML error page, WAF block, fatal) must produce a
+        // readable message instead of "Unexpected token '<'".
+        async function readJsonResponse(res) {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Server returned an HTML error page (HTTP ' + res.status + ') instead of JSON. Check the server error log.');
+            }
+        }
+
+        function restoreDatabase(btn) {
             const fileInput = document.getElementById('restoreFile');
-            if (!fileInput.files[0]) {
-                alert('Please select a SQL file first.');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a .sql dump or a full-backup .zip first.');
+                return;
+            }
+
+            const name = file.name.toLowerCase();
+            if (name.indexOf('update_package') === 0 || name.indexOf('patch') !== -1) {
+                alert('That is a code update package, not a database backup.\n\nApply it under System Updates \u2192 Apply Update Patch.');
+                return;
+            }
+            if (name.slice(-4) === '.zip' && !confirm('This ZIP must be a FULL BACKUP containing database.sql (created by Download Full Backup).\n\nUpdate packages are rejected here. Continue?')) {
                 return;
             }
             if (!confirm('CRITICAL WARNING: This will DELETE existing data and import the selected file. Are you absolutely sure?')) {
@@ -1526,10 +1551,9 @@ include '../includes/header.php';
             }
 
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('file', file);
             formData.append('include_media', document.getElementById('restoreMedia').checked ? '1' : '0');
 
-            const btn = event.target;
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Restoring...';
             btn.disabled = true;
@@ -1538,7 +1562,7 @@ include '../includes/header.php';
                 method: 'POST',
                 body: formData
             })
-                .then(res => res.json())
+                .then(readJsonResponse)
                 .then(data => {
                     if (data.success) {
                         alert('Database restored successfully! The page will now reload.');
@@ -1550,24 +1574,29 @@ include '../includes/header.php';
                     }
                 })
                 .catch(err => {
-                    alert('Upload failed: ' + err.message);
+                    alert('Restore failed: ' + err.message);
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 });
         }
 
-        function applyPatch() {
+        function applyPatch(btn) {
             const fileInput = document.getElementById('patchFile');
-            if (!fileInput.files[0]) {
+            const file = fileInput.files[0];
+            if (!file) {
                 alert('Please select a ZIP file first.');
+                return;
+            }
+            if (file.name.toLowerCase().slice(-4) !== '.zip') {
+                alert('Update packages must be .zip files generated by Developer Tools → Generate Patch.');
                 return;
             }
 
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('file', file);
 
-            const btn = event.target;
             const statusDiv = document.getElementById('patch-status');
+            const originalText = btn.innerHTML;
             btn.innerHTML = 'Applying...';
             btn.disabled = true;
             statusDiv.innerHTML = 'Uploading and extracting...';
@@ -1576,9 +1605,9 @@ include '../includes/header.php';
                 method: 'POST',
                 body: formData
             })
-                .then(res => res.json())
+                .then(readJsonResponse)
                 .then(data => {
-                    btn.innerHTML = 'Apply Update';
+                    btn.innerHTML = originalText;
                     btn.disabled = false;
                     if (data.success) {
                         statusDiv.innerHTML = '<span class="text-green-600">' + data.message + '</span>';
@@ -1588,7 +1617,7 @@ include '../includes/header.php';
                     }
                 })
                 .catch(err => {
-                    btn.innerHTML = 'Apply Update';
+                    btn.innerHTML = originalText;
                     btn.disabled = false;
                     statusDiv.innerHTML = '<span class="text-red-600">Request failed: ' + err.message + '</span>';
                 });
