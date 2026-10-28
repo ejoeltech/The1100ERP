@@ -341,6 +341,12 @@ $b = hexdec(substr($hex, 4, 2));
         box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
     }
 
+    /* The page header is sticky; keep scrolled-to blocks clear of it. */
+    #resultsArea,
+    #errorDisplay {
+        scroll-margin-top: 5rem;
+    }
+
     .mode-card:focus-visible {
         outline: 3px solid var(--theme-primary);
         outline-offset: 4px;
