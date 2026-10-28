@@ -6,6 +6,52 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
 
 $theme_color = defined('THEME_COLOR') ? THEME_COLOR : '#2563eb';
 
+// Values come from the operator's form. Render "N/A" rather than "N/A W",
+// and keep every value escaped.
+$specValue = function ($value, $unit = '') {
+    if ($value === null || $value === '' || $value === 'N/A') {
+        return 'N/A';
+    }
+    $text = htmlspecialchars((string) $value);
+    return $unit !== '' ? $text . ' ' . $unit : $text;
+};
+
+$metaRows = [
+    ['Design Mode', htmlspecialchars($data['mode_label'] ?? '')],
+    ['System Type', htmlspecialchars($data['system_type_label'] ?? '')],
+    ['Inverter Capacity', $specValue($data['inverter_capacity'] ?? null, 'W')],
+    ['Battery Voltage', $specValue($data['battery_voltage'] ?? null, 'V')],
+    ['Controller Capacity', $specValue($data['controller_capacity'] ?? null, 'W')],
+    ['Max Solar Voltage', $specValue($data['max_voltage'] ?? null, 'V')],
+    ['Max Solar Current', $specValue($data['max_current'] ?? null, 'A')],
+];
+
+if (!empty($data['panel_power'])) {
+    $metaRows[] = ['Solar Panel', $specValue($data['panel_power'], 'W')];
+    $metaRows[] = [
+        'Panel VOC / ISC',
+        $specValue($data['panel_voc'] ?? null, 'V') . ' / ' . $specValue($data['panel_isc'] ?? null, 'A')
+    ];
+}
+if (!empty($data['panel_count'])) {
+    $metaRows[] = ['Number of Panels', $specValue($data['panel_count'])];
+}
+
+$metaRowsHtml = '';
+for ($i = 0; $i < count($metaRows); $i += 2) {
+    $metaRowsHtml .= '<tr>';
+    for ($col = 0; $col < 2; $col++) {
+        $row = $metaRows[$i + $col] ?? null;
+        if ($row === null) {
+            $metaRowsHtml .= '<td style="border: none; width: 50%;"></td>';
+            continue;
+        }
+        $metaRowsHtml .= '<td style="border: none; width: 50%;"><span class="label">'
+            . $row[0] . ':</span> ' . $row[1] . '</td>';
+    }
+    $metaRowsHtml .= '</tr>';
+}
+
 $html = '
 <!DOCTYPE html>
 <html>
@@ -154,16 +200,7 @@ $html = '
 
     <!-- System Information -->
     <div class="meta-info">
-        <table style="border: none;">
-            <tr>
-                <td style="border: none; width: 50%;"><span class="label">Design Mode:</span> ' . htmlspecialchars($data['mode_label']) . '</td>
-                <td style="border: none; width: 50%;"><span class="label">System Type:</span> ' . htmlspecialchars($data['system_type_label']) . '</td>
-            </tr>
-            <tr>
-                <td style="border: none;"><span class="label">Inverter Capacity:</span> ' . htmlspecialchars($data['inverter_capacity']) . ' W</td>
-                <td style="border: none;"><span class="label">Battery Voltage:</span> ' . htmlspecialchars($data['battery_voltage']) . ' V</td>
-            </tr>
-        </table>
+        <table style="border: none;">' . $metaRowsHtml . '</table>
     </div>
 
     ';

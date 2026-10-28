@@ -335,6 +335,17 @@ $b = hexdec(substr($hex, 4, 2));
         text-align: center;
     }
 
+    /* Validation + accessibility */
+    .input-error {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
+    }
+
+    .mode-card:focus-visible {
+        outline: 3px solid var(--theme-primary);
+        outline-offset: 4px;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .radio-option {
@@ -371,7 +382,8 @@ $b = hexdec(substr($hex, 4, 2));
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Select Design Mode</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Mode 1 -->
-                    <div class="mode-card" onclick="selectMode(1)">
+                    <div class="mode-card" data-mode="1" role="button" tabindex="0"
+                        aria-label="Select Design Planner mode" onclick="selectMode(1, this)">
                         <div class="check-icon">✓</div>
                         <div class="text-6xl mb-4 text-center">📋</div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Design Planner</h3>
@@ -384,7 +396,8 @@ $b = hexdec(substr($hex, 4, 2));
                     </div>
 
                     <!-- Mode 2 -->
-                    <div class="mode-card" onclick="selectMode(2)">
+                    <div class="mode-card" data-mode="2" role="button" tabindex="0"
+                        aria-label="Select Design Implementation mode" onclick="selectMode(2, this)">
                         <div class="check-icon">✓</div>
                         <div class="text-6xl mb-4 text-center">🔧</div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Design Implementation</h3>
@@ -409,7 +422,10 @@ $b = hexdec(substr($hex, 4, 2));
                     Change Mode
                 </button>
 
-                <form id="systemForm" onsubmit="generateRecommendation(event)">
+                <div id="modeBanner" role="status" aria-live="polite"
+                    class="mb-4 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-4 py-2"></div>
+
+                <form id="systemForm" onsubmit="generateRecommendation(event)" novalidate>
                     <!-- System Type Selection -->
                     <div class="form-section">
                         <div class="section-header">
@@ -603,432 +619,931 @@ $b = hexdec(substr($hex, 4, 2));
                 </form>
 
                 <!-- Error Display -->
-                <div id="errorDisplay" class="hidden error-message"></div>
+                <div id="errorDisplay" class="hidden error-message" role="alert" aria-live="polite"></div>
 
                 <!-- Results Area -->
-                <div id="resultsArea" class="hidden mt-8"></div>
+                <div id="resultsArea" class="hidden mt-8" aria-live="polite"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    let selectedMode = null;
+    'use strict';
 
-    // Load saved form data from localStorage
-    function loadFormData() {
-        const saved = localStorage.getItem('systemDesignerData');
-        if (saved) {
-            try {
-                const data = JSON.parse(saved);
-                // Restore form values
-                Object.keys(data).forEach(key => {
-                    const el = document.getElementById(key);
-                    if (el) {
-                        if (el.type === 'radio') {
-                            if (el.value === data[key]) el.checked = true;
-                        } else {
-                            el.value = data[key];
-                        }
+    const STORAGE_KEY = 'systemDesignerData';
+
+    const MODE_INFO = {
+        1: {
+            title: 'Design Planner',
+            hint: 'Panel specifications are optional. Leave them blank to receive panel size recommendations.'
+        },
+        2: {
+            title: 'Design Implementation',
+            hint: 'Panel power, VOC, ISC and the number of panels you already own are all required.'
+        }
+    };
+
+    const REQUIRED_FIELDS = {
+        hybrid: [
+            'hybrid_inv_capacity',
+            'hybrid_controller_capacity',
+            'hybrid_nominal_voltage',
+            'hybrid_max_voltage',
+            'hybrid_max_current',
+            'hybrid_battery_voltage'
+        ],
+        controller: [
+            'controller_inv_capacity',
+            'controller_capacity',
+            'controller_battery_voltage',
+            'controller_max_voltage'
+        ]
+    };
+
+    const PANEL_FIELDS = ['panel_power', 'panel_voc', 'panel_isc'];
+
+    const OPTION_COLORS = [
+        { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-900' },
+        { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-900' },
+        { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-900' },
+        { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-900' }
+    ];
+
+    let selectedMode = null;
+    let lastRecommendation = null;
+    let lastFormData = null;
+
+    /* ------------------------------------------------------------------ *
+     * Helpers
+     * ------------------------------------------------------------------ */
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    // Every AI-provided value passes through here before it reaches innerHTML.
+    function esc(value) {
+        return String(value === null || value === undefined ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // `summary` is documented as HTML. Keep a small formatting whitelist and
+    // drop everything else (scripts, styles, iframes, event handlers, URLs) so
+    // a prompt-injected AI response cannot execute script in the page.
+    const ALLOWED_TAGS = new Set([
+        'P', 'BR', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI',
+        'H2', 'H3', 'H4', 'H5', 'H6', 'SPAN', 'DIV', 'TABLE', 'THEAD', 'TBODY',
+        'TR', 'TH', 'TD', 'HR', 'SMALL', 'CODE'
+    ]);
+    const ALLOWED_ATTRS = new Set(['class']);
+    const DROP_WITH_CONTENT = new Set([
+        'SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'NOSCRIPT',
+        'TEMPLATE', 'SVG', 'MATH', 'LINK', 'META', 'BASE'
+    ]);
+
+    function sanitizeAiHtml(html) {
+        const source = String(html === null || html === undefined ? '' : html);
+        if (!source.trim()) {
+            return '';
+        }
+
+        const doc = new DOMParser().parseFromString(
+            '<div id="ai-root">' + source + '</div>',
+            'text/html'
+        );
+        const root = doc.getElementById('ai-root');
+        if (!root) {
+            return '';
+        }
+
+        const clean = (node) => {
+            Array.from(node.childNodes).forEach((child) => {
+                if (child.nodeType === 3) {
+                    return; // text
+                }
+                if (child.nodeType !== 1) {
+                    child.remove();
+                    return;
+                }
+
+                if (DROP_WITH_CONTENT.has(child.tagName)) {
+                    child.remove();
+                    return;
+                }
+
+                if (!ALLOWED_TAGS.has(child.tagName)) {
+                    child.replaceWith(doc.createTextNode(child.textContent || ''));
+                    return;
+                }
+
+                Array.from(child.attributes).forEach((attr) => {
+                    if (!ALLOWED_ATTRS.has(attr.name.toLowerCase())) {
+                        child.removeAttribute(attr.name);
                     }
                 });
-            } catch (e) {
-                console.error('Error loading saved data:', e);
-            }
+
+                clean(child);
+            });
+        };
+
+        clean(root);
+        return root.innerHTML;
+    }
+
+    function setBusy(busy) {
+        const overlay = el('loadingOverlay');
+        if (overlay) {
+            overlay.classList.toggle('active', busy);
+            overlay.setAttribute('aria-hidden', busy ? 'false' : 'true');
+        }
+        document
+            .querySelectorAll('#systemForm input, #systemForm select, #systemForm button')
+            .forEach((node) => {
+                node.disabled = busy;
+            });
+        const form = el('systemForm');
+        if (form) {
+            form.setAttribute('aria-busy', busy ? 'true' : 'false');
         }
     }
 
-    // Save form data to localStorage
-    function saveFormData() {
-        const form = document.getElementById('systemForm');
-        if (!form) return;
+    async function readJsonResponse(response) {
+        const text = await response.text();
+        if (!text.trim()) {
+            throw new Error('The server returned an empty response (HTTP ' + response.status + ').');
+        }
+        try {
+            return JSON.parse(text);
+        } catch (error) {
+            throw new Error(
+                'The server returned an unexpected response (HTTP ' + response.status +
+                ') instead of JSON. Check the server error log.'
+            );
+        }
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Form persistence
+     * ------------------------------------------------------------------ */
+
+    function collectFormData() {
+        const form = el('systemForm');
+        if (!form) {
+            return {};
+        }
 
         const data = {};
-        const inputs = form.querySelectorAll('input, select');
-        inputs.forEach(input => {
+        form.querySelectorAll('input, select, textarea').forEach((input) => {
             if (input.type === 'radio') {
-                if (input.checked) data[input.name] = input.value;
-            } else {
+                if (input.checked) {
+                    data[input.name] = input.value;
+                }
+                return;
+            }
+            if (input.type === 'checkbox') {
+                data[input.id] = input.checked;
+                return;
+            }
+            if (input.id) {
                 data[input.id] = input.value;
             }
         });
-
-        localStorage.setItem('systemDesignerData', JSON.stringify(data));
+        return data;
     }
 
-    // Auto-save on input changes
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('systemForm');
-        if (form) {
-            form.addEventListener('input', saveFormData);
+    function saveFormData() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormData()));
+        } catch (error) {
+            // Private browsing / storage disabled: persistence is optional.
         }
-    });
+    }
 
-    function selectMode(mode) {
-        selectedMode = mode;
+    function loadFormData() {
+        let data = null;
+        try {
+            data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        } catch (error) {
+            data = null;
+        }
+        if (!data || typeof data !== 'object') {
+            return;
+        }
 
-        // Update UI
-        document.querySelectorAll('.mode-card').forEach(card => card.classList.remove('selected'));
-        event.currentTarget.classList.add('selected');
+        const form = el('systemForm');
+        if (!form) {
+            return;
+        }
 
-        // Show forms after short delay
-        setTimeout(() => {
-            document.getElementById('modeSelection').classList.add('hidden');
-            document.getElementById('designForms').classList.remove('hidden');
-
-            // Show/hide panel count based on mode
-            if (mode === 2) {
-                document.getElementById('panelCountGroup').style.display = 'block';
-                document.getElementById('panelOptionalNote').style.display = 'none';
-                // Make panel specs required in Mode 2
-                document.getElementById('panel_power').setAttribute('required', 'required');
-                document.getElementById('panel_voc').setAttribute('required', 'required');
-                document.getElementById('panel_isc').setAttribute('required', 'required');
-                document.getElementById('panel_power_required').style.display = 'inline';
-                document.getElementById('panel_voc_required').style.display = 'inline';
-                document.getElementById('panel_isc_required').style.display = 'inline';
-                document.getElementById('panel_power_hint').innerHTML = 'Per panel <span class="example">(e.g., 550)</span>';
-            } else {
-                document.getElementById('panelCountGroup').style.display = 'none';
-                document.getElementById('panelOptionalNote').style.display = 'block';
-                // Make panel specs optional in Mode 1
-                document.getElementById('panel_power').removeAttribute('required');
-                document.getElementById('panel_voc').removeAttribute('required');
-                document.getElementById('panel_isc').removeAttribute('required');
-                document.getElementById('panel_power_required').style.display = 'none';
-                document.getElementById('panel_voc_required').style.display = 'none';
-                document.getElementById('panel_isc_required').style.display = 'none';
-                document.getElementById('panel_power_hint').innerHTML = 'Leave blank to get panel recommendations';
+        form.querySelectorAll('input, select, textarea').forEach((input) => {
+            if (input.type === 'radio') {
+                if (Object.prototype.hasOwnProperty.call(data, input.name)) {
+                    input.checked = String(input.value) === String(data[input.name]);
+                }
+                return;
             }
+            if (input.id && Object.prototype.hasOwnProperty.call(data, input.id)) {
+                input.value = data[input.id];
+            }
+        });
+    }
 
-            // Load any saved data
-            loadFormData();
+    /* ------------------------------------------------------------------ *
+     * Mode selection
+     * ------------------------------------------------------------------ */
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 200);
+    function selectMode(mode, card) {
+        selectedMode = Number(mode);
+
+        document.querySelectorAll('.mode-card').forEach((node) => {
+            const isSelected = node === card || Number(node.dataset.mode) === selectedMode;
+            node.classList.toggle('selected', isSelected);
+            node.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+
+        const banner = el('modeBanner');
+        if (banner) {
+            const info = MODE_INFO[selectedMode];
+            banner.textContent = info ? info.title + ' - ' + info.hint : '';
+        }
+
+        el('modeSelection').classList.add('hidden');
+        el('designForms').classList.remove('hidden');
+
+        applyModeRequirements();
+        hideError();
+        clearResult();
+
+        loadFormData();
+        toggleSystemType();
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function applyModeRequirements() {
+        const isImplementation = selectedMode === 2;
+
+        el('panelCountGroup').style.display = isImplementation ? '' : 'none';
+        el('panelOptionalNote').style.display = isImplementation ? 'none' : 'block';
+
+        PANEL_FIELDS.forEach((id) => {
+            const input = el(id);
+            const required = el(id + '_required');
+            if (input) {
+                if (isImplementation) {
+                    input.setAttribute('required', 'required');
+                    input.setAttribute('aria-required', 'true');
+                } else {
+                    input.removeAttribute('required');
+                    input.removeAttribute('aria-required');
+                    clearFieldError(input);
+                }
+            }
+            if (required) {
+                required.style.display = isImplementation ? 'inline' : 'none';
+            }
+        });
+
+        const hint = el('panel_power_hint');
+        if (hint) {
+            hint.innerHTML = isImplementation
+                ? 'Per panel <span class="example">(e.g., 550)</span>'
+                : 'Leave blank to get panel recommendations';
+        }
     }
 
     function backToModeSelection() {
-        document.getElementById('designForms').classList.add('hidden');
-        document.getElementById('modeSelection').classList.remove('hidden');
-        document.querySelectorAll('.mode-card').forEach(card => card.classList.remove('selected'));
-        document.getElementById('resultsArea').classList.add('hidden');
-        document.getElementById('errorDisplay').classList.add('hidden');
         selectedMode = null;
+        lastRecommendation = null;
+        lastFormData = null;
+
+        el('designForms').classList.add('hidden');
+        el('modeSelection').classList.remove('hidden');
+
+        document.querySelectorAll('.mode-card').forEach((card) => {
+            card.classList.remove('selected');
+            card.setAttribute('aria-pressed', 'false');
+        });
+
+        clearResult();
+        hideError();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function toggleSystemType() {
-        const systemType = document.querySelector('input[name="system_type"]:checked')?.value;
+        const checked = document.querySelector('input[name="system_type"]:checked');
+        const systemType = checked ? checked.value : null;
 
-        if (systemType === 'hybrid') {
-            document.getElementById('hybridParams').classList.remove('hidden');
-            document.getElementById('controllerParams').classList.add('hidden');
-            document.getElementById('panelParams').classList.remove('hidden');
+        el('hybridParams').classList.toggle('hidden', systemType !== 'hybrid');
+        el('controllerParams').classList.toggle('hidden', systemType !== 'controller');
+        el('panelParams').classList.toggle('hidden', systemType === null);
 
-            // Set hybrid fields as required
-            document.getElementById('hybrid_inv_capacity').setAttribute('required', 'required');
-            document.getElementById('hybrid_controller_capacity').setAttribute('required', 'required');
-            document.getElementById('hybrid_nominal_voltage').setAttribute('required', 'required');
-            document.getElementById('hybrid_max_voltage').setAttribute('required', 'required');
-            document.getElementById('hybrid_max_current').setAttribute('required', 'required');
-            document.getElementById('hybrid_battery_voltage').setAttribute('required', 'required');
-
-            // Remove controller requirements
-            document.getElementById('controller_inv_capacity').removeAttribute('required');
-            document.getElementById('controller_capacity').removeAttribute('required');
-            document.getElementById('controller_battery_voltage').removeAttribute('required');
-            document.getElementById('controller_max_voltage').removeAttribute('required');
-        } else if (systemType === 'controller') {
-            document.getElementById('hybridParams').classList.add('hidden');
-            document.getElementById('controllerParams').classList.remove('hidden');
-            document.getElementById('panelParams').classList.remove('hidden');
-
-            // Set controller fields as required
-            document.getElementById('controller_inv_capacity').setAttribute('required', 'required');
-            document.getElementById('controller_capacity').setAttribute('required', 'required');
-            document.getElementById('controller_battery_voltage').setAttribute('required', 'required');
-            document.getElementById('controller_max_voltage').setAttribute('required', 'required');
-
-            // Remove hybrid requirements
-            document.getElementById('hybrid_inv_capacity').removeAttribute('required');
-            document.getElementById('hybrid_controller_capacity').removeAttribute('required');
-            document.getElementById('hybrid_nominal_voltage').removeAttribute('required');
-            document.getElementById('hybrid_max_voltage').removeAttribute('required');
-            document.getElementById('hybrid_max_current').removeAttribute('required');
-            document.getElementById('hybrid_battery_voltage').removeAttribute('required');
-        }
+        Object.keys(REQUIRED_FIELDS).forEach((type) => {
+            const active = type === systemType;
+            REQUIRED_FIELDS[type].forEach((id) => {
+                const input = el(id);
+                if (!input) {
+                    return;
+                }
+                if (active) {
+                    input.setAttribute('required', 'required');
+                    input.setAttribute('aria-required', 'true');
+                } else {
+                    input.removeAttribute('required');
+                    input.removeAttribute('aria-required');
+                    clearFieldError(input);
+                }
+            });
+        });
     }
 
+    /* ------------------------------------------------------------------ *
+     * Validation + errors
+     * ------------------------------------------------------------------ */
+
     function showError(message) {
-        const errorDiv = document.getElementById('errorDisplay');
+        const errorDiv = el('errorDisplay');
+        if (!errorDiv) {
+            return;
+        }
         errorDiv.textContent = message;
         errorDiv.classList.remove('hidden');
         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function hideError() {
-        document.getElementById('errorDisplay').classList.add('hidden');
+        const errorDiv = el('errorDisplay');
+        if (errorDiv) {
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+        }
+    }
+
+    function clearFieldError(input) {
+        if (input) {
+            input.classList.remove('input-error');
+            input.removeAttribute('aria-invalid');
+        }
+    }
+
+    function clearAllFieldErrors() {
+        document.querySelectorAll('#systemForm .input-error').forEach((input) => {
+            input.classList.remove('input-error');
+            input.removeAttribute('aria-invalid');
+        });
+    }
+
+    function markFieldError(input, message) {
+        if (input) {
+            input.classList.add('input-error');
+            input.setAttribute('aria-invalid', 'true');
+            input.focus({ preventScroll: true });
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showError(message);
+    }
+
+    function labelFor(input) {
+        if (!input) {
+            return 'this field';
+        }
+        const group = input.closest('.input-group');
+        const label = group ? group.querySelector('.input-label') : null;
+        if (!label) {
+            return 'this field';
+        }
+        const clone = label.cloneNode(true);
+        clone.querySelectorAll('.hint, .required, .example').forEach((node) => node.remove());
+        const text = clone.textContent.replace(/\s+/g, ' ').trim();
+        return text || 'this field';
+    }
+
+    function positiveNumber(input) {
+        const raw = String(input.value || '').trim();
+        if (raw === '') {
+            return { ok: false, message: 'Please fill in ' + labelFor(input) + '.' };
+        }
+        const value = Number(raw);
+        if (!isFinite(value) || value <= 0) {
+            return { ok: false, message: labelFor(input) + ' must be greater than zero.' };
+        }
+        return { ok: true, value: value };
+    }
+
+    function validateForm() {
+        const systemTypeField = document.querySelector('input[name="system_type"]:checked');
+        if (!systemTypeField) {
+            return {
+                ok: false,
+                field: el('type_hybrid'),
+                message: 'Please choose a system type: hybrid inverter or charge controller.'
+            };
+        }
+
+        const systemType = systemTypeField.value;
+        const required = REQUIRED_FIELDS[systemType] || [];
+
+        for (let i = 0; i < required.length; i++) {
+            const input = el(required[i]);
+            if (!input) {
+                continue;
+            }
+            const check = positiveNumber(input);
+            if (!check.ok) {
+                return { ok: false, field: input, message: check.message };
+            }
+        }
+
+        const panelInputs = PANEL_FIELDS.map(el).filter(Boolean);
+        const filled = panelInputs.filter((input) => String(input.value || '').trim() !== '');
+
+        if (filled.length > 0 && filled.length < panelInputs.length) {
+            const missing = panelInputs.find((input) => String(input.value || '').trim() === '');
+            return {
+                ok: false,
+                field: missing,
+                message: 'Enter all three panel specifications (power, VOC and ISC), or leave all three blank.'
+            };
+        }
+
+        if (selectedMode === 2 && filled.length === 0) {
+            return {
+                ok: false,
+                field: panelInputs[0],
+                message: 'Implementation mode needs the solar panel specifications.'
+            };
+        }
+
+        for (let i = 0; i < filled.length; i++) {
+            const check = positiveNumber(filled[i]);
+            if (!check.ok) {
+                return { ok: false, field: filled[i], message: check.message };
+            }
+        }
+
+        if (selectedMode === 2) {
+            const countInput = el('panel_count');
+            const raw = String(countInput.value || '').trim();
+            if (raw === '') {
+                return { ok: false, field: countInput, message: 'Enter how many panels you have.' };
+            }
+            const count = Number(raw);
+            if (!Number.isInteger(count) || count < 1 || count > 1000) {
+                return {
+                    ok: false,
+                    field: countInput,
+                    message: 'Number of panels must be a whole number between 1 and 1000.'
+                };
+            }
+        }
+
+        return { ok: true };
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Request + render
+     * ------------------------------------------------------------------ */
+
+    function buildRequestData() {
+        const formData = collectFormData();
+        const systemType = formData.system_type;
+
+        const data = {
+            mode: selectedMode,
+            system_type: systemType,
+            has_panel_specs: false
+        };
+
+        if (systemType === 'hybrid') {
+            data.inverter_capacity = formData.hybrid_inv_capacity;
+            data.controller_capacity = formData.hybrid_controller_capacity;
+            data.nominal_voltage = formData.hybrid_nominal_voltage;
+            data.max_voltage = formData.hybrid_max_voltage;
+            data.voltage_range = formData.hybrid_voltage_range;
+            data.max_current = formData.hybrid_max_current;
+            data.battery_voltage = formData.hybrid_battery_voltage;
+        } else {
+            data.inverter_capacity = formData.controller_inv_capacity;
+            data.controller_capacity = formData.controller_capacity;
+            data.battery_voltage = formData.controller_battery_voltage;
+            data.max_voltage = formData.controller_max_voltage;
+        }
+
+        const hasPanelSpecs = PANEL_FIELDS.every((id) => String(formData[id] || '').trim() !== '');
+        if (hasPanelSpecs) {
+            data.panel_power = formData.panel_power;
+            data.panel_voc = formData.panel_voc;
+            data.panel_isc = formData.panel_isc;
+            data.has_panel_specs = true;
+        }
+
+        if (selectedMode === 2) {
+            data.panel_count = Number(formData.panel_count);
+        }
+
+        return data;
     }
 
     async function generateRecommendation(event) {
         event.preventDefault();
         hideError();
+        clearAllFieldErrors();
 
-        // Collect data
-        const systemType = document.querySelector('input[name="system_type"]:checked')?.value;
-
-        const data = {
-            mode: selectedMode,
-            system_type: systemType
-        };
-
-        // Collect parameters based on system type
-        if (systemType === 'hybrid') {
-            data.inverter_capacity = document.getElementById('hybrid_inv_capacity').value;
-            data.controller_capacity = document.getElementById('hybrid_controller_capacity').value;
-            data.nominal_voltage = document.getElementById('hybrid_nominal_voltage').value;
-            data.max_voltage = document.getElementById('hybrid_max_voltage').value;
-            data.voltage_range = document.getElementById('hybrid_voltage_range').value;
-            data.max_current = document.getElementById('hybrid_max_current').value;
-            data.battery_voltage = document.getElementById('hybrid_battery_voltage').value;
-        } else {
-            data.inverter_capacity = document.getElementById('controller_inv_capacity').value;
-            data.controller_capacity = document.getElementById('controller_capacity').value;
-            data.battery_voltage = document.getElementById('controller_battery_voltage').value;
-            data.max_voltage = document.getElementById('controller_max_voltage').value;
-        }
-
-        // Panel parameters (handle optional in Mode 1)
-        const panelPower = document.getElementById('panel_power').value;
-        const panelVoc = document.getElementById('panel_voc').value;
-        const panelIsc = document.getElementById('panel_isc').value;
-
-        if (panelPower && panelVoc && panelIsc) {
-            // User provided panel specs
-            data.panel_power = panelPower;
-            data.panel_voc = panelVoc;
-            data.panel_isc = panelIsc;
-            data.has_panel_specs = true;
-        } else if (selectedMode === 2) {
-            // Mode 2 requires panel specs
-            showError('Please provide solar panel specifications for implementation mode');
+        if (!selectedMode) {
+            showError('Please choose a design mode first.');
             return;
-        } else {
-            // Mode 1 without panel specs - request recommendations
-            data.has_panel_specs = false;
         }
 
-        if (selectedMode === 2) {
-            data.panel_count = document.getElementById('panel_count').value;
-            if (!data.panel_count) {
-                showError('Please enter the number of panels you have');
-                return;
-            }
+        const validation = validateForm();
+        if (!validation.ok) {
+            markFieldError(validation.field, validation.message);
+            return;
         }
 
-        // Determine endpoint based on mode
-        const endpoint = selectedMode === 1 ? '../api/ai/design-planner.php' : '../api/ai/design-implementation.php';
+        const payload = buildRequestData();
+        // Same shape the PDF endpoint expects (mode, system_type, capacities...).
+        lastFormData = payload;
 
-        // Show loading overlay
-        document.getElementById('loadingOverlay').classList.add('active');
+        const endpoint = selectedMode === 1
+            ? '../api/ai/design-planner.php'
+            : '../api/ai/design-implementation.php';
 
-        // Disable form
-        const formElements = document.querySelectorAll('#systemForm input, #systemForm button');
-        formElements.forEach(el => el.disabled = true);
+        clearResult();
+        setBusy(true);
 
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
 
-            const result = await response.json();
+            const result = await readJsonResponse(response);
 
-            if (result.success) {
-                displayRecommendation(result.recommendation);
-                hideError();
-            } else {
-                showError(result.message || 'Failed to generate recommendation. Please check your inputs and try again.');
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || ('The service returned HTTP ' + response.status + '.'));
             }
-        } catch (e) {
-            console.error('Error:', e);
-            showError('Network error: Unable to connect to the recommendation service. Please check your connection and try again.');
-        } finally {
-            // Hide loading overlay
-            document.getElementById('loadingOverlay').classList.remove('active');
+            if (!result.recommendation || typeof result.recommendation !== 'object') {
+                throw new Error('The recommendation service returned an unexpected response. Please try again.');
+            }
 
-            // Re-enable form
-            formElements.forEach(el => el.disabled = false);
+            lastRecommendation = result.recommendation;
+            displayRecommendation(result.recommendation);
+        } catch (error) {
+            console.error('Recommendation error:', error);
+            lastRecommendation = null;
+            showError(
+                error && error.message
+                    ? error.message
+                    : 'Unable to generate a recommendation. Please check your inputs and try again.'
+            );
+        } finally {
+            setBusy(false);
         }
     }
 
-    function displayRecommendation(rec) {
-        const container = document.getElementById('resultsArea');
+    function clearResult() {
+        const container = el('resultsArea');
+        if (container) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+        }
+    }
 
-        let html = `
-        <div class="result-card">
-            <div class="result-header">
-                <div class="result-icon success">✓</div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-900">Recommendation Generated</h3>
-                    <p class="text-gray-600">Based on your system parameters</p>
-                </div>
-            </div>
-        </div>
-    `;
+    function currentSystemTypeLabel() {
+        const checked = document.querySelector('input[name="system_type"]:checked');
+        if (!checked) {
+            return 'System';
+        }
+        return checked.value === 'hybrid' ? 'Hybrid Inverter' : 'Charge Controller';
+    }
 
-        // Panel recommendations (Mode 1 without specs provided)
-        if (rec.panel_recommendations && rec.panel_recommendations.length > 0) {
-            const gridCols = Math.min(rec.panel_recommendations.length, 4);
-            html += `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">💡 Panel Options</h4>
-                <p class="text-sm text-gray-600 mb-4">Based on your controller specifications, here are recommended panel options:</p>
-                <div class="grid grid-cols-1 md:grid-cols-${gridCols} gap-4">
-        `;
-
-            const colors = [
-                { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-900' },
-                { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-900' },
-                { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-900' },
-                { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-900' }
-            ];
-
-            rec.panel_recommendations.forEach((option, idx) => {
-                const color = colors[idx % 4];
-                html += `
-                <div class="${color.bg} p-4 rounded-lg border-2 ${color.border}">
-                    <p class="text-sm font-semibold ${color.text}">Option ${idx + 1}</p>
-                    <p class="text-2xl font-bold ${color.text} mb-2">${option.panel_size}</p>
-                    <div class="text-xs text-gray-600 space-y-1 mb-3">
-                        <p><strong>VOC:</strong> ${option.voc}</p>
-                        <p><strong>ISC:</strong> ${option.imp || option.isc}</p>
-                    </div>
-                    <div class="bg-white bg-opacity-60 p-2 rounded">
-                        <p class="text-sm font-bold ${color.text}">${option.max_panels_display || (option.max_panels + '× ' + option.panel_size)}</p>
-                        <p class="text-xs text-gray-600 mt-1"><strong>Total:</strong> ${option.total_capacity}</p>
-                        <p class="text-xs text-gray-600 mt-2">${option.arrangement}</p>
-                    </div>
-                </div>
-            `;
-            });
-
-            html += `</div></div>`;
+    function renderArrangement(arrangement) {
+        if (!arrangement) {
+            return '';
         }
 
-        // Mode 1 specific: Max panels (when user provided specs)
-        if (selectedMode === 1 && rec.max_panels && !rec.panel_recommendations) {
-            html += `
+        if (typeof arrangement === 'string') {
+            return `
             <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">📊 Maximum Configuration</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <h4 class="font-bold text-lg mb-3">&#128295; Panel Arrangement</h4>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-700">${esc(arrangement)}</p>
+                </div>
+            </div>`;
+        }
+
+        const facts = [
+            ['Strings', arrangement.strings],
+            ['Panels per string', arrangement.panels_per_string],
+            ['Total VOC', arrangement.total_voc],
+            ['Total current', arrangement.total_current]
+        ].filter((fact) => fact[1] !== undefined && fact[1] !== null && fact[1] !== '');
+
+        const factsHtml = facts.length
+            ? '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">' + facts.map((fact) => `
+                    <div class="bg-white bg-opacity-70 rounded-lg p-3">
+                        <p class="text-xs text-purple-700 font-semibold">${esc(fact[0])}</p>
+                        <p class="text-lg font-bold text-purple-900">${esc(fact[1])}</p>
+                    </div>`).join('') + '</div>'
+            : '';
+
+        return `
+        <div class="result-card">
+            <h4 class="font-bold text-lg mb-3">&#128295; Panel Arrangement</h4>
+            <div class="bg-purple-50 p-4 rounded-lg">
+                <p class="font-semibold text-purple-900">${esc(arrangement.configuration)}</p>
+                ${arrangement.explanation ? '<p class="text-sm text-gray-600 mt-2">' + esc(arrangement.explanation) + '</p>' : ''}
+                ${factsHtml}
+            </div>
+        </div>`;
+    }
+
+    function renderBreaker(breaker) {
+        if (!breaker) {
+            return '';
+        }
+        const isString = typeof breaker === 'string';
+        return `
+        <div class="result-card">
+            <h4 class="font-bold text-lg mb-3">&#9889; DC Circuit Breaker</h4>
+            <div class="bg-yellow-50 p-4 rounded-lg">
+                <p class="font-semibold text-yellow-900">Recommended: ${esc(isString ? breaker : breaker.rating)}</p>
+                ${!isString && breaker.explanation ? '<p class="text-sm text-gray-600 mt-2">' + esc(breaker.explanation) + '</p>' : ''}
+            </div>
+        </div>`;
+    }
+
+    function renderWiring(wiring) {
+        if (!wiring) {
+            return '';
+        }
+        if (typeof wiring === 'string') {
+            return `
+            <div class="result-card">
+                <h4 class="font-bold text-lg mb-3">&#128268; Wire Sizing</h4>
+                <p class="text-sm text-gray-700">${esc(wiring)}</p>
+            </div>`;
+        }
+        return `
+        <div class="result-card">
+            <h4 class="font-bold text-lg mb-3">&#128268; Wire Sizing</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <p class="text-sm text-green-600 font-semibold">PV to Controller</p>
+                    <p class="text-xl font-bold text-green-900">${esc(wiring.pv_wire)}</p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <p class="text-sm text-blue-600 font-semibold">Battery to Inverter</p>
+                    <p class="text-xl font-bold text-blue-900">${esc(wiring.battery_wire)}</p>
+                </div>
+            </div>
+            ${wiring.explanation ? '<p class="text-sm text-gray-600 mt-3">' + esc(wiring.explanation) + '</p>' : ''}
+        </div>`;
+    }
+
+    function displayRecommendation(rec) {
+        const container = el('resultsArea');
+        if (!container) {
+            return;
+        }
+
+        const parts = [];
+
+        parts.push(`
+        <div class="result-card">
+            <div class="result-header">
+                <div class="result-icon success">&#10003;</div>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900">Recommendation Generated</h3>
+                    <p class="text-gray-600">${esc(MODE_INFO[selectedMode] ? MODE_INFO[selectedMode].title : 'Design')} &middot; ${esc(currentSystemTypeLabel())}</p>
+                </div>
+            </div>
+        </div>`);
+
+        if (rec.safe === false) {
+            parts.push(`
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg" role="alert">
+                <h4 class="font-bold text-red-800 mb-1">&#9888;&#65039; Configuration flagged as unsafe</h4>
+                <p class="text-sm text-red-700">Review the warnings below before installing this array. The suggested arrangement may exceed a controller limit.</p>
+            </div>`);
+        }
+
+        const panelOptions = Array.isArray(rec.panel_recommendations)
+            ? rec.panel_recommendations.filter((option) => option && typeof option === 'object')
+            : [];
+
+        if (panelOptions.length > 0) {
+            const gridCols = Math.min(panelOptions.length, 4);
+            const cards = panelOptions.map((option, idx) => {
+                const color = OPTION_COLORS[idx % OPTION_COLORS.length];
+                const maxPanels = option.max_panels_display
+                    ? String(option.max_panels_display)
+                    : (option.max_panels !== undefined && option.max_panels !== null
+                        ? option.max_panels + ' ' + (option.panel_size || '')
+                        : '');
+                return `
+                <div class="${color.bg} p-4 rounded-lg border-2 ${color.border}">
+                    <p class="text-sm font-semibold ${color.text}">Option ${idx + 1}</p>
+                    <p class="text-2xl font-bold ${color.text} mb-2">${esc(option.panel_size)}</p>
+                    <div class="text-xs text-gray-600 space-y-1 mb-3">
+                        <p><strong>VOC:</strong> ${esc(option.voc)}</p>
+                        <p><strong>ISC:</strong> ${esc(option.isc || option.imp)}</p>
+                    </div>
+                    <div class="bg-white bg-opacity-60 p-2 rounded">
+                        <p class="text-sm font-bold ${color.text}">${esc(maxPanels.trim())}</p>
+                        <p class="text-xs text-gray-600 mt-1"><strong>Total:</strong> ${esc(option.total_capacity)}</p>
+                        <p class="text-xs text-gray-600 mt-2">${esc(option.arrangement)}</p>
+                    </div>
+                </div>`;
+            }).join('');
+
+            parts.push(`
+            <div class="result-card">
+                <h4 class="font-bold text-lg mb-3">&#128161; Panel Options</h4>
+                <p class="text-sm text-gray-600 mb-4">Based on your controller specifications, here are recommended panel options:</p>
+                <div class="grid grid-cols-1 md:grid-cols-${gridCols} gap-4">${cards}</div>
+            </div>`);
+        }
+
+        if (selectedMode === 1 && rec.max_panels && panelOptions.length === 0) {
+            parts.push(`
+            <div class="result-card">
+                <h4 class="font-bold text-lg mb-3">&#128202; Maximum Configuration</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-blue-50 p-4 rounded-lg">
-                        <p class="text-sm text-blue-600 font-semibold">Configuration</p>
-                        <p class="text-2xl font-bold text-blue-900">${rec.max_panels}</p>
+                        <p class="text-sm text-blue-600 font-semibold">Maximum Panels</p>
+                        <p class="text-2xl font-bold text-blue-900">${esc(rec.max_panels)}</p>
                     </div>
                     <div class="bg-green-50 p-4 rounded-lg">
                         <p class="text-sm text-green-600 font-semibold">Total Capacity</p>
-                        <p class="text-2xl font-bold text-green-900">${rec.total_capacity}</p>
+                        <p class="text-2xl font-bold text-green-900">${esc(rec.total_capacity || 'N/A')}</p>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`);
         }
 
-        // Panel arrangement
-        if (rec.arrangement) {
-            html += `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">🔧 Panel Arrangement</h4>
-                <div class="bg-purple-50 p-4 rounded-lg mb-3">
-                    <p class="font-semibold text-purple-900">${rec.arrangement.configuration}</p>
-                    <p class="text-sm text-gray-600 mt-2">${rec.arrangement.explanation}</p>
-                </div>
-            </div>
-        `;
-        }
+        parts.push(renderArrangement(rec.arrangement));
+        parts.push(renderBreaker(rec.breaker));
+        parts.push(renderWiring(rec.wiring));
 
-        // Breaker capacity
-        if (rec.breaker) {
-            html += `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">⚡ DC Circuit Breaker</h4>
-                <div class="bg-yellow-50 p-4 rounded-lg">
-                    <p class="font-semibold text-yellow-900">Recommended: ${rec.breaker.rating}</p>
-                    <p class="text-sm text-gray-600 mt-2">${rec.breaker.explanation}</p>
-                </div>
-            </div>
-        `;
-        }
-
-        // Wire sizing
-        if (rec.wiring) {
-            html += `
-            <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">🔌 Wire Sizing</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-green-50 p-4 rounded-lg">
-                        <p class="text-sm text-green-600 font-semibold">PV to Controller</p>
-                        <p class="text-xl font-bold text-green-900">${rec.wiring.pv_wire}</p>
-                    </div>
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <p class="text-sm text-blue-600 font-semibold">Battery to Inverter</p>
-                        <p class="text-xl font-bold text-blue-900">${rec.wiring.battery_wire}</p>
-                    </div>
-                </div>
-                <p class="text-sm text-gray-600 mt-3">${rec.wiring.explanation}</p>
-            </div>
-        `;
-        }
-
-        // Summary
         if (rec.summary) {
-            html += `
+            parts.push(`
             <div class="result-card">
-                <h4 class="font-bold text-lg mb-3">📋 Summary</h4>
-                <div class="prose prose-sm max-w-none">
-                    ${rec.summary}
-                </div>
-            </div>
-        `;
+                <h4 class="font-bold text-lg mb-3">&#128203; Summary</h4>
+                <div class="prose prose-sm max-w-none">${sanitizeAiHtml(rec.summary)}</div>
+            </div>`);
         }
 
-        // PDF Download Button
-        html += `
+        const warnings = Array.isArray(rec.warnings)
+            ? rec.warnings
+            : (typeof rec.warnings === 'string' && rec.warnings.trim() !== '' ? [rec.warnings] : []);
+        const cleanWarnings = warnings.filter((warning) => String(warning || '').trim() !== '');
+
+        if (cleanWarnings.length > 0) {
+            parts.push(`
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg" role="alert">
+                <h4 class="font-bold text-red-800 mb-2">&#9888;&#65039; Important Warnings</h4>
+                <ul class="list-disc list-inside text-red-700 space-y-1">
+                    ${cleanWarnings.map((warning) => '<li>' + esc(warning) + '</li>').join('')}
+                </ul>
+            </div>`);
+        }
+
+        parts.push(`
         <div class="result-card bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h4 class="font-bold text-lg text-blue-900 mb-2">📄 Export Recommendation</h4>
+                    <h4 class="font-bold text-lg text-blue-900 mb-2">&#128196; Export Recommendation</h4>
                     <p class="text-sm text-blue-700">Download a professional PDF report to share with your client or installer</p>
                 </div>
-                <button onclick="downloadPDF()" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                <button type="button" onclick="downloadPDF(this)"
+                    class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 whitespace-nowrap">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Download PDF
                 </button>
             </div>
-        </div>
-    `;
+        </div>`);
+
+        container.innerHTML = parts.filter(Boolean).join('');
+        container.classList.remove('hidden');
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // Warnings
-    if (rec.warnings && rec.warnings.length > 0) {
-        html += `
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
-                <h4 class="font-bold text-red-800 mb-2">⚠️ Important Warnings</h4>
-                <ul class="list-disc list-inside text-red-700 space-y-1">
-                    ${rec.warnings.map(w => `<li>${w}</li>`).join('')}
-                </ul>
-            </div>
-        `;
+    async function downloadPDF(btn) {
+        if (!lastRecommendation) {
+            showError('Generate a recommendation before exporting a PDF.');
+            return;
+        }
+
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = 'Preparing PDF...';
+        }
+
+        try {
+            const response = await fetch('../api/ai/export-recommendation-pdf.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/pdf'
+                },
+                body: JSON.stringify({
+                    recommendation: lastRecommendation,
+                    form_data: lastFormData || { mode: selectedMode, system_type: currentSystemTypeLabel() }
+                })
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!response.ok || contentType.indexOf('application/pdf') === -1) {
+                const text = await response.text();
+                const detail = text && text.length <= 200 ? text.trim() : '';
+                throw new Error(
+                    detail || ('PDF export failed (HTTP ' + response.status + '). Check the server error log.')
+                );
+            }
+
+            const buffer = await response.arrayBuffer();
+            const signature = String.fromCharCode.apply(
+                null,
+                new Uint8Array(buffer.slice(0, 5))
+            );
+
+            // A PHP fatal can still be served with the PDF content type.
+            if (signature !== '%PDF-') {
+                const text = new TextDecoder('utf-8').decode(new Uint8Array(buffer.slice(0, 300)));
+                throw new Error(
+                    text.trim() || 'The server did not return a valid PDF. Check the server error log.'
+                );
+            }
+
+            const blob = new Blob([buffer], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            link.href = url;
+            link.download = 'Solar_Recommendation_' + stamp + '.pdf';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } catch (error) {
+            console.error('PDF export error:', error);
+            showError(
+                error && error.message
+                    ? error.message
+                    : 'Could not export the recommendation as a PDF.'
+            );
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     }
 
-    container.innerHTML = html;
-    container.classList.remove('hidden');
-    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
+    /* ------------------------------------------------------------------ *
+     * Wiring
+     * ------------------------------------------------------------------ */
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = el('systemForm');
+        if (form) {
+            form.addEventListener('input', saveFormData);
+            form.addEventListener('change', saveFormData);
+        }
+
+        document.querySelectorAll('.mode-card').forEach((card) => {
+            card.setAttribute('aria-pressed', 'false');
+            card.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+                    event.preventDefault();
+                    selectMode(card.dataset.mode, card);
+                }
+            });
+        });
+
+        // Mark only the fields that are actually required for the current
+        // mode; the markup defaults to "hybrid" requirements.
+        if (!selectedMode) {
+            document.querySelectorAll('#systemForm [required]').forEach((input) => {
+                if (input.name !== 'system_type') {
+                    input.removeAttribute('required');
+                }
+            });
+        }
+    });
 </script>
 
 <?php include '../includes/footer.php'; ?>

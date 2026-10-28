@@ -49,8 +49,11 @@ try {
     // Panel info if provided
     if (!empty($formData['panel_power'])) {
         $data['panel_power'] = $formData['panel_power'];
-        $data['panel_voc'] = $formData['panel_voc'];
-        $data['panel_isc'] = $formData['panel_isc'];
+        $data['panel_voc'] = $formData['panel_voc'] ?? 'N/A';
+        $data['panel_isc'] = $formData['panel_isc'] ?? 'N/A';
+    }
+    if (!empty($formData['panel_count'])) {
+        $data['panel_count'] = $formData['panel_count'];
     }
 
     // Load the PDF template
