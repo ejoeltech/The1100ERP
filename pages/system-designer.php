@@ -38,6 +38,17 @@ $b = hexdec(substr($hex, 4, 2));
         padding: 2rem 0;
     }
 
+    /* The ERP shell wraps page content in a centred <main>; let the designer
+       keep its full-width gradient background under the shared nav. */
+    main:has(> .designer-container) {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    main:has(> .designer-container) .designer-container {
+        min-height: calc(100vh - 5rem);
+    }
+
     /* Glass Card Effect */
     .glass-card {
         background: rgba(255, 255, 255, 0.95);
