@@ -433,6 +433,47 @@ class SchemaPatcher
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
         $exec($sql, "Create 'items' table");
 
+        // 1.5b Equipment datasheet catalog (System Designer autocomplete).
+        $sql = "CREATE TABLE IF NOT EXISTS `equipment_datasheets` (
+    `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+    `category` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `brand` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `model` varchar(160) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `capacity_w` decimal(10,2) DEFAULT NULL,
+    `controller_capacity_w` decimal(10,2) DEFAULT NULL,
+    `nominal_voltage` decimal(8,2) DEFAULT NULL,
+    `max_voltage` decimal(8,2) DEFAULT NULL,
+    `voltage_range` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `max_current` decimal(8,2) DEFAULT NULL,
+    `battery_voltage` decimal(8,2) DEFAULT NULL,
+    `power_w` decimal(8,2) DEFAULT NULL,
+    `voc` decimal(8,2) DEFAULT NULL,
+    `isc` decimal(8,2) DEFAULT NULL,
+    `vmp` decimal(8,2) DEFAULT NULL,
+    `imp` decimal(8,2) DEFAULT NULL,
+    `efficiency` decimal(6,2) DEFAULT NULL,
+    `capacity_ah` decimal(10,2) DEFAULT NULL,
+    `capacity_kwh` decimal(10,2) DEFAULT NULL,
+    `chemistry` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `max_charge_current` decimal(8,2) DEFAULT NULL,
+    `max_discharge_current` decimal(8,2) DEFAULT NULL,
+    `cycles` int(11) DEFAULT NULL,
+    `notes` text COLLATE utf8mb4_unicode_ci,
+    `source_url` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'published',
+    `created_by` int(11) DEFAULT NULL,
+    `updated_by` int(11) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    PRIMARY KEY (`id`),
+    KEY `idx_ed_category` (`category`),
+    KEY `idx_ed_brand` (`brand`),
+    KEY `idx_ed_model` (`model`),
+    KEY `idx_ed_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        $exec($sql, "Create 'equipment_datasheets' table");
+
         // 1.6 Internal Accessories Store (tools/consumables owned by the business, not for sale)
         $sql = "CREATE TABLE IF NOT EXISTS `accessories` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

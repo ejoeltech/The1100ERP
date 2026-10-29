@@ -31,6 +31,7 @@ $publicAllowList = [
     'api/ai/design-implementation.php',
     'api/ai/design-planner.php',
     'api/ai/export-recommendation-pdf.php',
+    'api/designer/datasheets.php',
     'pages/roi-calculator.php',
     'pages/system-designer.php',
     'modules/hr/pages/signup-form.php', // onboarding-code session, not login

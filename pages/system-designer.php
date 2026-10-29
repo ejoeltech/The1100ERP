@@ -186,6 +186,110 @@ $b = hexdec(substr($hex, 4, 2));
         opacity: 0.6;
     }
 
+    /* Datasheet search + autofill */
+    .datasheet-picker {
+        margin-bottom: 1.25rem;
+        padding: 0.75rem 0.85rem;
+        border: 1px dashed #c7d2fe;
+        border-radius: 12px;
+        background: #f8faff;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .datasheet-picker .input-label {
+        margin-bottom: 0.35rem;
+    }
+
+    .datasheet-search {
+        position: relative;
+    }
+
+    .datasheet-results {
+        position: absolute;
+        z-index: 40;
+        left: 0;
+        right: 0;
+        top: calc(100% + 0.25rem);
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+        max-height: 260px;
+        overflow-y: auto;
+    }
+
+    .datasheet-result {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 0.7rem;
+        border: 0;
+        border-bottom: 1px solid #f1f5f9;
+        background: #fff;
+        cursor: pointer;
+    }
+
+    .datasheet-result:last-child {
+        border-bottom: 0;
+    }
+
+    .datasheet-result:hover,
+    .datasheet-result:focus {
+        background: #eff6ff;
+        outline: none;
+    }
+
+    .datasheet-result .ds-name {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1e3a8a;
+        line-height: 1.25;
+    }
+
+    .datasheet-result .ds-specs {
+        display: block;
+        font-size: 0.7rem;
+        color: #64748b;
+        margin-top: 0.1rem;
+    }
+
+    .datasheet-empty {
+        padding: 0.6rem 0.7rem;
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    .datasheet-loaded {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+        font-size: 0.7rem;
+        color: #047857;
+    }
+
+    .datasheet-loaded strong {
+        color: #064e3b;
+    }
+
+    .datasheet-clear {
+        border: 0;
+        background: transparent;
+        color: #6b7280;
+        font-size: 0.68rem;
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .datasheet-picker.is-loaded {
+        border-style: solid;
+        border-color: #a7f3d0;
+        background: #f0fdf4;
+    }
+
     /* Radio Button Groups */
     .radio-group {
         display: flex;
@@ -599,6 +703,20 @@ $b = hexdec(substr($hex, 4, 2));
                             <div class="section-icon">🔋</div>
                             <div class="section-title">Hybrid Inverter Parameters</div>
                         </div>
+                        <div class="datasheet-picker" data-datasheet-picker data-category="inverter">
+                            <label class="input-label" for="dsSearch_inverter">
+                                Load from datasheet
+                                <span class="hint">Search the catalog by brand or model; the fields below fill automatically</span>
+                            </label>
+                            <div class="datasheet-search">
+                                <input type="search" id="dsSearch_inverter" class="enhanced-input"
+                                    placeholder="e.g. Victron MultiPlus-II 48/5000" autocomplete="off"
+                                    data-datasheet-input data-no-persist aria-autocomplete="list" aria-expanded="false">
+                                <div class="datasheet-results hidden" data-datasheet-results role="listbox"
+                                    aria-label="Inverter datasheet results"></div>
+                            </div>
+                            <p class="datasheet-loaded hidden" data-datasheet-loaded role="status" aria-live="polite"></p>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="input-group">
                                 <label class="input-label">
@@ -667,6 +785,20 @@ $b = hexdec(substr($hex, 4, 2));
                             <div class="section-icon">☀️</div>
                             <div class="section-title">Charge Controller Parameters</div>
                         </div>
+                        <div class="datasheet-picker" data-datasheet-picker data-category="controller">
+                            <label class="input-label" for="dsSearch_controller">
+                                Load from datasheet
+                                <span class="hint">Search the catalog by brand or model; the fields below fill automatically</span>
+                            </label>
+                            <div class="datasheet-search">
+                                <input type="search" id="dsSearch_controller" class="enhanced-input"
+                                    placeholder="e.g. Victron SmartSolar MPPT 150/70" autocomplete="off"
+                                    data-datasheet-input data-no-persist aria-autocomplete="list" aria-expanded="false">
+                                <div class="datasheet-results hidden" data-datasheet-results role="listbox"
+                                    aria-label="Charge controller datasheet results"></div>
+                            </div>
+                            <p class="datasheet-loaded hidden" data-datasheet-loaded role="status" aria-live="polite"></p>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="input-group">
                                 <label class="input-label">
@@ -703,11 +835,93 @@ $b = hexdec(substr($hex, 4, 2));
                         </div>
                     </div>
 
+                    <!-- Battery Bank Parameters -->
+                    <div id="batteryParams" class="form-section hidden">
+                        <div class="section-header">
+                            <div class="section-icon">🔋</div>
+                            <div class="section-title">Battery Bank <span class="text-sm font-normal text-gray-500">(optional)</span></div>
+                        </div>
+                        <div class="datasheet-picker" data-datasheet-picker data-category="battery">
+                            <label class="input-label" for="dsSearch_battery">
+                                Load from datasheet
+                                <span class="hint">Search a battery model to fill the bank details and terminal voltage</span>
+                            </label>
+                            <div class="datasheet-search">
+                                <input type="search" id="dsSearch_battery" class="enhanced-input"
+                                    placeholder="e.g. Pylontech US5000" autocomplete="off"
+                                    data-datasheet-input data-no-persist aria-autocomplete="list" aria-expanded="false">
+                                <div class="datasheet-results hidden" data-datasheet-results role="listbox"
+                                    aria-label="Battery datasheet results"></div>
+                            </div>
+                            <p class="datasheet-loaded hidden" data-datasheet-loaded role="status" aria-live="polite"></p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="input-group">
+                                <label class="input-label" for="battery_capacity_kwh">
+                                    Bank Capacity (kWh)
+                                    <span class="hint">Total usable energy <span class="example">(e.g., 4.8)</span></span>
+                                </label>
+                                <input type="number" id="battery_capacity_kwh" class="enhanced-input" placeholder="4.8"
+                                    min="0" step="0.1">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="battery_quantity">
+                                    Number of Batteries
+                                    <span class="hint">Units in the bank <span class="example">(e.g., 1)</span></span>
+                                </label>
+                                <input type="number" id="battery_quantity" class="enhanced-input" placeholder="1" min="1"
+                                    max="200" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="battery_chemistry">
+                                    Chemistry
+                                    <span class="hint">Battery technology</span>
+                                </label>
+                                <select id="battery_chemistry" class="enhanced-select">
+                                    <option value="">Not specified</option>
+                                    <option value="lithium">Lithium (LiFePO4 / NMC)</option>
+                                    <option value="lead_acid">Lead-acid (AGM / GEL / flooded)</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="battery_max_charge_current">
+                                    Max Charge Current (A)
+                                    <span class="hint">Per battery or bank <span class="example">(e.g., 50)</span></span>
+                                </label>
+                                <input type="number" id="battery_max_charge_current" class="enhanced-input"
+                                    placeholder="50" min="0" step="0.1">
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="battery_max_discharge_current">
+                                    Max Discharge Current (A)
+                                    <span class="hint">Per battery or bank <span class="example">(e.g., 100)</span></span>
+                                </label>
+                                <input type="number" id="battery_max_discharge_current" class="enhanced-input"
+                                    placeholder="100" min="0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Solar Panel Parameters -->
                     <div id="panelParams" class="form-section hidden">
                         <div class="section-header">
                             <div class="section-icon">🌞</div>
                             <div class="section-title">Solar Panel Specifications</div>
+                        </div>
+                        <div class="datasheet-picker" data-datasheet-picker data-category="panel">
+                            <label class="input-label" for="dsSearch_panel">
+                                Load from datasheet
+                                <span class="hint">Search a panel model to fill power, VOC and ISC</span>
+                            </label>
+                            <div class="datasheet-search">
+                                <input type="search" id="dsSearch_panel" class="enhanced-input"
+                                    placeholder="e.g. Jinko Tiger Neo 620W" autocomplete="off"
+                                    data-datasheet-input data-no-persist aria-autocomplete="list" aria-expanded="false">
+                                <div class="datasheet-results hidden" data-datasheet-results role="listbox"
+                                    aria-label="Solar panel datasheet results"></div>
+                            </div>
+                            <p class="datasheet-loaded hidden" data-datasheet-loaded role="status" aria-live="polite"></p>
                         </div>
                         <div id="panelOptionalNote" class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4"
                             style="display: none;">
@@ -946,6 +1160,9 @@ $b = hexdec(substr($hex, 4, 2));
 
         const data = {};
         form.querySelectorAll('input, select, textarea').forEach((input) => {
+            if (input.hasAttribute('data-no-persist')) {
+                return;
+            }
             if (input.type === 'radio') {
                 if (input.checked) {
                     data[input.name] = input.value;
@@ -988,6 +1205,9 @@ $b = hexdec(substr($hex, 4, 2));
         }
 
         form.querySelectorAll('input, select, textarea').forEach((input) => {
+            if (input.hasAttribute('data-no-persist')) {
+                return;
+            }
             if (input.type === 'radio') {
                 if (Object.prototype.hasOwnProperty.call(data, input.name)) {
                     input.checked = String(input.value) === String(data[input.name]);
@@ -997,6 +1217,303 @@ $b = hexdec(substr($hex, 4, 2));
             if (input.id && Object.prototype.hasOwnProperty.call(data, input.id)) {
                 input.value = data[input.id];
             }
+        });
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Datasheet autofill
+     * ------------------------------------------------------------------ */
+
+    const DATASHEET_FIELDS = {
+        inverter: {
+            capacity_w: 'hybrid_inv_capacity',
+            controller_capacity_w: 'hybrid_controller_capacity',
+            nominal_voltage: 'hybrid_nominal_voltage',
+            max_voltage: 'hybrid_max_voltage',
+            voltage_range: 'hybrid_voltage_range',
+            max_current: 'hybrid_max_current',
+            battery_voltage: 'hybrid_battery_voltage'
+        },
+        controller: {
+            capacity_w: 'controller_inv_capacity',
+            controller_capacity_w: 'controller_capacity',
+            battery_voltage: 'controller_battery_voltage',
+            max_voltage: 'controller_max_voltage'
+        },
+        panel: {
+            power_w: 'panel_power',
+            voc: 'panel_voc',
+            isc: 'panel_isc'
+        }
+    };
+
+    const DATASHEET_SUMMARY = {
+        inverter: [['capacity_w', 'W'], ['controller_capacity_w', 'W PV'], ['max_voltage', 'V max'], ['battery_voltage', 'V battery']],
+        controller: [['controller_capacity_w', 'W'], ['max_voltage', 'V max'], ['battery_voltage', 'V battery']],
+        battery: [['battery_voltage', 'V'], ['capacity_ah', 'Ah'], ['capacity_kwh', 'kWh'], ['chemistry', '']],
+        panel: [['power_w', 'W'], ['voc', 'V VOC'], ['isc', 'A ISC'], ['efficiency', '%']]
+    };
+
+    function setFieldValue(id, value) {
+        const input = el(id);
+        if (!input) {
+            return false;
+        }
+        input.value = value;
+        clearFieldError(input);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+    }
+
+    function datasheetChemistry(value) {
+        const text = String(value || '').toLowerCase();
+        if (text === '') {
+            return '';
+        }
+        if (text.indexOf('lith') !== -1 || text.indexOf('lifepo') !== -1 || text.indexOf('nmc') !== -1) {
+            return 'lithium';
+        }
+        if (text.indexOf('lead') !== -1 || text.indexOf('agm') !== -1 || text.indexOf('gel') !== -1 || text.indexOf('flood') !== -1) {
+            return 'lead_acid';
+        }
+        return 'other';
+    }
+
+    function datasheetSummary(category, specs) {
+        const fields = DATASHEET_SUMMARY[category] || [];
+        return fields
+            .filter((field) => specs[field[0]] !== undefined && specs[field[0]] !== null && specs[field[0]] !== '')
+            .map((field) => {
+                const value = specs[field[0]];
+                return field[1] ? value + ' ' + field[1] : String(value);
+            })
+            .join(' \u00b7 ');
+    }
+
+    function applyDatasheet(picker, category, result) {
+        const specs = result.specs || {};
+        let filled = 0;
+
+        if (category === 'battery') {
+            const checked = document.querySelector('input[name="system_type"]:checked');
+            const voltageField = checked && checked.value === 'controller'
+                ? 'controller_battery_voltage'
+                : 'hybrid_battery_voltage';
+
+            if (specs.battery_voltage !== undefined && specs.battery_voltage !== null) {
+                if (setFieldValue(voltageField, specs.battery_voltage)) {
+                    filled++;
+                }
+            }
+
+            let kwh = specs.capacity_kwh;
+            if ((kwh === undefined || kwh === null)
+                && specs.capacity_ah !== undefined && specs.capacity_ah !== null
+                && specs.battery_voltage !== undefined && specs.battery_voltage !== null) {
+                kwh = Math.round((Number(specs.capacity_ah) * Number(specs.battery_voltage) / 1000) * 100) / 100;
+            }
+            if (kwh !== undefined && kwh !== null) {
+                if (setFieldValue('battery_capacity_kwh', kwh)) {
+                    filled++;
+                }
+            }
+            if (specs.chemistry) {
+                if (setFieldValue('battery_chemistry', datasheetChemistry(specs.chemistry))) {
+                    filled++;
+                }
+            }
+            if (specs.max_charge_current !== undefined && specs.max_charge_current !== null) {
+                if (setFieldValue('battery_max_charge_current', specs.max_charge_current)) {
+                    filled++;
+                }
+            }
+            if (specs.max_discharge_current !== undefined && specs.max_discharge_current !== null) {
+                if (setFieldValue('battery_max_discharge_current', specs.max_discharge_current)) {
+                    filled++;
+                }
+            }
+            const quantity = el('battery_quantity');
+            if (quantity && String(quantity.value || '').trim() === '') {
+                quantity.value = '1';
+                quantity.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } else {
+            Object.keys(DATASHEET_FIELDS[category] || {}).forEach((key) => {
+                if (specs[key] === undefined || specs[key] === null || specs[key] === '') {
+                    return;
+                }
+                if (setFieldValue(DATASHEET_FIELDS[category][key], specs[key])) {
+                    filled++;
+                }
+            });
+        }
+
+        const badge = picker.querySelector('[data-datasheet-loaded]');
+        const input = picker.querySelector('[data-datasheet-input]');
+        if (badge) {
+            badge.innerHTML = 'Loaded: <strong>' + esc(result.name) + '</strong>' +
+                '<span>' + filled + ' field' + (filled === 1 ? '' : 's') + ' filled</span>' +
+                '<button type="button" class="datasheet-clear" data-datasheet-clear>Clear selection</button>';
+            badge.classList.remove('hidden');
+        }
+        picker.classList.add('is-loaded');
+        if (input) {
+            input.value = result.name;
+        }
+        saveFormData();
+        clearAllFieldErrors();
+    }
+
+    function initDatasheetPickers() {
+        document.querySelectorAll('[data-datasheet-picker]').forEach((picker) => {
+            const input = picker.querySelector('[data-datasheet-input]');
+            const results = picker.querySelector('[data-datasheet-results]');
+            if (!input || !results) {
+                return;
+            }
+
+            const category = picker.dataset.category;
+            let debounceTimer = null;
+            let requestController = null;
+            let currentResults = [];
+
+            const close = () => {
+                results.classList.add('hidden');
+                input.setAttribute('aria-expanded', 'false');
+            };
+
+            const select = (result) => {
+                if (!result) {
+                    return;
+                }
+                applyDatasheet(picker, category, result);
+                close();
+            };
+
+            const render = (list) => {
+                currentResults = list;
+                if (!list.length) {
+                    results.innerHTML = '<div class="datasheet-empty">No matching datasheets. Enter the specs manually or add the model in the catalog.</div>';
+                    results.classList.remove('hidden');
+                    input.setAttribute('aria-expanded', 'true');
+                    return;
+                }
+
+                results.innerHTML = list.map((result, index) => {
+                    const summary = datasheetSummary(category, result.specs || {});
+                    return `<button type="button" class="datasheet-result" role="option" data-datasheet-index="${index}">
+                        <span class="ds-name">${esc(result.name)}</span>
+                        ${summary ? `<span class="ds-specs">${esc(summary)}</span>` : ''}
+                    </button>`;
+                }).join('');
+                results.classList.remove('hidden');
+                input.setAttribute('aria-expanded', 'true');
+            };
+
+            const search = async (query) => {
+                if (requestController) {
+                    requestController.abort();
+                }
+                requestController = new AbortController();
+                results.innerHTML = '<div class="datasheet-empty">Searching catalog...</div>';
+                results.classList.remove('hidden');
+                input.setAttribute('aria-expanded', 'true');
+
+                try {
+                    const url = '../api/designer/datasheets.php?category=' + encodeURIComponent(category)
+                        + '&q=' + encodeURIComponent(query);
+                    const response = await fetch(url, {
+                        signal: requestController.signal,
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await readJsonResponse(response);
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'The catalog is unavailable.');
+                    }
+                    render(Array.isArray(data.results) ? data.results : []);
+                } catch (error) {
+                    if (error && error.name === 'AbortError') {
+                        return;
+                    }
+                    results.innerHTML = '<div class="datasheet-empty">Could not reach the equipment catalog. Enter the values manually.</div>';
+                }
+            };
+
+            input.addEventListener('input', () => {
+                if (debounceTimer) {
+                    window.clearTimeout(debounceTimer);
+                }
+                const query = input.value.trim();
+                debounceTimer = window.setTimeout(() => search(query), 220);
+            });
+
+            input.addEventListener('focus', () => {
+                if (!input.value.trim()) {
+                    search('');
+                }
+            });
+
+            input.addEventListener('keydown', (event) => {
+                const options = Array.from(results.querySelectorAll('.datasheet-result'));
+                if (event.key === 'Escape') {
+                    close();
+                    return;
+                }
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    if (!options.length) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const currentIndex = options.indexOf(document.activeElement);
+                    let nextIndex = event.key === 'ArrowDown' ? currentIndex + 1 : currentIndex - 1;
+                    if (currentIndex === -1) {
+                        nextIndex = event.key === 'ArrowDown' ? 0 : options.length - 1;
+                    }
+                    nextIndex = Math.max(0, Math.min(options.length - 1, nextIndex));
+                    options[nextIndex].focus();
+                    return;
+                }
+                if (event.key === 'Enter') {
+                    if (results.classList.contains('hidden')) {
+                        event.preventDefault();
+                        search(input.value.trim());
+                        return;
+                    }
+                    const target = options.includes(document.activeElement) ? document.activeElement : options[0];
+                    if (target) {
+                        event.preventDefault();
+                        target.click();
+                    }
+                }
+            });
+
+            results.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-datasheet-index]');
+                if (!button) {
+                    return;
+                }
+                select(currentResults[Number(button.dataset.datasheetIndex)]);
+            });
+
+            picker.addEventListener('click', (event) => {
+                if (event.target.matches('[data-datasheet-clear]')) {
+                    const badge = picker.querySelector('[data-datasheet-loaded]');
+                    if (badge) {
+                        badge.classList.add('hidden');
+                        badge.innerHTML = '';
+                    }
+                    picker.classList.remove('is-loaded');
+                    input.value = '';
+                    input.focus();
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!picker.contains(event.target)) {
+                    close();
+                }
+            });
         });
     }
 
@@ -1088,6 +1605,7 @@ $b = hexdec(substr($hex, 4, 2));
 
         el('hybridParams').classList.toggle('hidden', systemType !== 'hybrid');
         el('controllerParams').classList.toggle('hidden', systemType !== 'controller');
+        el('batteryParams').classList.toggle('hidden', systemType === null);
         el('panelParams').classList.toggle('hidden', systemType === null);
 
         Object.keys(REQUIRED_FIELDS).forEach((type) => {
@@ -1288,6 +1806,20 @@ $b = hexdec(substr($hex, 4, 2));
             data.panel_isc = formData.panel_isc;
             data.has_panel_specs = true;
         }
+
+        const batteryKeys = [
+            'battery_capacity_kwh',
+            'battery_chemistry',
+            'battery_quantity',
+            'battery_max_charge_current',
+            'battery_max_discharge_current'
+        ];
+        batteryKeys.forEach((key) => {
+            const value = formData[key];
+            if (value !== undefined && String(value).trim() !== '') {
+                data[key] = value;
+            }
+        });
 
         if (selectedMode === 2) {
             data.panel_count = Number(formData.panel_count);
@@ -1696,6 +2228,8 @@ $b = hexdec(substr($hex, 4, 2));
             form.addEventListener('input', saveFormData);
             form.addEventListener('change', saveFormData);
         }
+
+        initDatasheetPickers();
 
         document.querySelectorAll('.mode-card').forEach((card) => {
             card.setAttribute('aria-pressed', 'false');

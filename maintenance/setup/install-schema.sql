@@ -103,6 +103,46 @@ CREATE TABLE IF NOT EXISTS items (
     FOREIGN KEY (category_id) REFERENCES item_categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Equipment datasheet catalog used by the public System Designer for
+-- search-and-autofill. Managed from Inventory > Equipment Datasheets.
+CREATE TABLE IF NOT EXISTS equipment_datasheets (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category VARCHAR(20) NOT NULL,
+    brand VARCHAR(120) NOT NULL,
+    model VARCHAR(160) NOT NULL,
+    title VARCHAR(255) DEFAULT NULL,
+    capacity_w DECIMAL(10,2) DEFAULT NULL,
+    controller_capacity_w DECIMAL(10,2) DEFAULT NULL,
+    nominal_voltage DECIMAL(8,2) DEFAULT NULL,
+    max_voltage DECIMAL(8,2) DEFAULT NULL,
+    voltage_range VARCHAR(60) DEFAULT NULL,
+    max_current DECIMAL(8,2) DEFAULT NULL,
+    battery_voltage DECIMAL(8,2) DEFAULT NULL,
+    power_w DECIMAL(8,2) DEFAULT NULL,
+    voc DECIMAL(8,2) DEFAULT NULL,
+    isc DECIMAL(8,2) DEFAULT NULL,
+    vmp DECIMAL(8,2) DEFAULT NULL,
+    imp DECIMAL(8,2) DEFAULT NULL,
+    efficiency DECIMAL(6,2) DEFAULT NULL,
+    capacity_ah DECIMAL(10,2) DEFAULT NULL,
+    capacity_kwh DECIMAL(10,2) DEFAULT NULL,
+    chemistry VARCHAR(40) DEFAULT NULL,
+    max_charge_current DECIMAL(8,2) DEFAULT NULL,
+    max_discharge_current DECIMAL(8,2) DEFAULT NULL,
+    cycles INT DEFAULT NULL,
+    notes TEXT,
+    source_url VARCHAR(500) DEFAULT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'published',
+    created_by INT DEFAULT NULL,
+    updated_by INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ed_category (category),
+    INDEX idx_ed_brand (brand),
+    INDEX idx_ed_model (model),
+    INDEX idx_ed_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Customers table
 CREATE TABLE IF NOT EXISTS customers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

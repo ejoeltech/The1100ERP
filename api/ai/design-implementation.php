@@ -115,10 +115,28 @@ function generateImplementationRecommendation($data)
         'isc_a' => $data['panel_isc'] ?? 0,
     ];
 
+    $batteryBank = [];
+    foreach (['capacity_kwh', 'chemistry', 'quantity', 'max_charge_current', 'max_discharge_current'] as $key) {
+        $value = $data['battery_' . $key] ?? null;
+        if ($value !== null && $value !== '') {
+            $batteryBank[$key] = $value;
+        }
+    }
+    if ($batteryBank) {
+        $systemSpecs['battery_bank'] = $batteryBank;
+    }
+
+    $batteryGuidance = $batteryBank
+        ? "Battery bank details are provided. Validate the maximum charge/discharge currents, size the battery bank protection and battery-to-inverter cable, and warn about C-rate or chemistry limits."
+        : "No detailed battery bank was supplied; use only the stated battery voltage.";
+
     $prompt = "You are a Professional Solar Installation Engineer. The installer has already purchased {$panelCount} solar panels and needs installation guidance.
 
 System Specifications:
 " . json_encode($systemSpecs, JSON_PRETTY_PRINT) . "
+
+Battery Bank Guidance:
+$batteryGuidance
 
 Your Tasks:
 1. Recommend the OPTIMAL arrangement for the {$panelCount} panels available

@@ -114,6 +114,21 @@ function generatePlannerRecommendation($data)
         'has_specs' => $data['has_panel_specs'] ?? false,
     ];
 
+    $batteryBank = [];
+    foreach (['capacity_kwh', 'chemistry', 'quantity', 'max_charge_current', 'max_discharge_current'] as $key) {
+        $value = $data['battery_' . $key] ?? null;
+        if ($value !== null && $value !== '') {
+            $batteryBank[$key] = $value;
+        }
+    }
+    if ($batteryBank) {
+        $systemSpecs['battery_bank'] = $batteryBank;
+    }
+
+    $batteryGuidance = $batteryBank
+        ? "A battery bank is specified. Check the maximum charge and discharge currents against the controller and inverter limits, size the battery bank protection and battery-to-inverter cable, and warn about C-rate or chemistry limits."
+        : "No detailed battery bank was supplied; use only the stated battery voltage.";
+
     $panelGuidance = $systemSpecs['panel']['has_specs']
         ? "Use the provided panel specifications. IMPORTANT: In max_panels field, include panel wattage like '12× 550W Panels' or 'Max 550W Panels: 12'."
         : "The user wants panel recommendations. Suggest 2-4 different panel options ranging from 100W to 720W, with STRONG PREFERENCE for panels in the 400W-650W range (most common and cost-effective). Provide specific recommendations (e.g., 450W, 550W, 600W, 650W) showing max panels for each. MUST include max_panels_display field like 'Max 450W Panels: 10' or '10× 450W Panels'.";
@@ -125,6 +140,9 @@ System Specifications:
 
 Panel Recommendations Guidance:
 $panelGuidance
+
+Battery Bank Guidance:
+$batteryGuidance
 
 Your Tasks:
 1. " . ($systemSpecs['panel']['has_specs'] ? "Calculate the MAXIMUM number of solar panels that can be safely connected. In max_panels field, specify like '12× 550W Panels' or 'Max 550W Panels: 12'" : "Recommend 2-4 different panel size options (preferring 400W-650W range) with max panels for each") . "
