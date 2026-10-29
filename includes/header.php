@@ -125,6 +125,10 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         📦 Products
                     </a>
+                    <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        Datasheet Catalog
+                    </a>
                     <a href="<?php echo $base_path; ?>/pages/customers/manage-customers.php"
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         👥 Customers
@@ -366,6 +370,11 @@ if (function_exists('setSecurityHeaders')) {
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">Products</div>
                                     <div class="text-xs text-gray-500">Manage catalog</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">Datasheet Catalog</div>
+                                    <div class="text-xs text-gray-500">Inverter, battery &amp; panel specs</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/pages/customers/manage-customers.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
