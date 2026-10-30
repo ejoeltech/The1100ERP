@@ -2,6 +2,7 @@
 <div class="card">
   <h2>Live Preview — Front</h2>
   <div class="dx-front t1" id="dxFront">
+    <img class="dx-signature" id="dSignature" data-el="dSign" alt="HR signature" style="display:none">
     <div class="dx-top" data-el="dTop"></div>
     <div class="dx-head">
       <img id="dLogo" data-el="dLogo" src="<?= htmlspecialchars($companyLogo) ?>" alt="company logo">
@@ -17,6 +18,7 @@
     </div>
   </div>
   <div class="corp-card" id="cardCorp" style="display:none">
+    <img class="dx-signature" id="cSignature" data-el="cSign" alt="HR signature" style="display:none">
     <div class="corp-logo-wrap"><img id="cLogo" data-el="cLogo" src="<?= htmlspecialchars($companyLogo) ?>" alt="company logo"></div>
     <div class="corp-photo-wrap"><img class="corp-photo" id="cPhoto" data-el="cPhoto" src="https://ui-avatars.com/api/?name=Staff&size=196&background=0e4b8f&color=fff" alt="staff photo"></div>
     <div class="corp-name" id="cName" data-el="cName">EMPLOYEE NAME</div>
@@ -38,6 +40,7 @@
 <div class="card">
   <h2>Live Preview — Back</h2>
   <div class="dx-back t1" id="dxBack">
+    <img class="dx-signature" id="bSignature" data-el="dSignB" alt="HR signature" style="display:none">
     <div class="dx-b-top" data-el="dBTop"></div>
     <div class="dx-b-head">
       <img id="dLogoB" data-el="dLogoB" src="<?= htmlspecialchars($companyLogo) ?>" alt="company logo">

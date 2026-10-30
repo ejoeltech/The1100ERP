@@ -60,6 +60,9 @@ window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
       <div><label>Sample photo (preview)</label><input id="photoFile" type="file" accept="image/*"></div>
       <div><label>Company logo (saved)</label><input id="logoFile" type="file" accept="image/*"></div>
     </div>
+    <label>HR signature (shown behind every card)</label>
+    <input id="signatureFile" type="file" accept="image/*">
+    <p style="color:var(--mut);font-size:12px;margin:4px 0 0">Upload a scanned signature. It is layered behind the front, back and corporate card on all templates — drag or resize it under “Customize Layout”.</p>
     <?php include 'idmaker-designer.php'; ?>
     <!-- sample data for preview -->
     <input type="hidden" id="org_name" value="<?= htmlspecialchars($companyName) ?>">

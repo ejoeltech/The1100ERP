@@ -699,6 +699,21 @@ class SchemaPatcher
         $addCol('hr_payroll', 'approved_by', 'INT(10) UNSIGNED DEFAULT NULL');
         $addCol('hr_payroll', 'approved_at', 'TIMESTAMP NULL DEFAULT NULL');
         $addCol('hr_payroll', 'paid_at', 'TIMESTAMP NULL DEFAULT NULL');
+        // v11: HR signature image rendered behind every ID card design. These
+        // tables are created by the HR installer, so only patch copies that
+        // already have them; an app that never opened the maker stays clean.
+        foreach (['hr_id_cards', 'hr_id_templates', 'hr_id_template_defaults'] as $idTable) {
+            try {
+                $hasTable = $pdo->query("SHOW TABLES LIKE '$idTable'")->fetchColumn();
+            } catch (Exception $e) {
+                $hasTable = false;
+            }
+            if ($hasTable) {
+                $addCol($idTable, 'signature_path', "VARCHAR(255) NOT NULL DEFAULT ''");
+            } else {
+                $add('info', 'columns', "Skipped $idTable.signature_path (ID card tables not installed).");
+            }
+        }
         $exec("CREATE TABLE IF NOT EXISTS `hr_payroll_items` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
     `employee_id` int(11) unsigned NOT NULL,

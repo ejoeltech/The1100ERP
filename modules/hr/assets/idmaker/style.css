@@ -207,6 +207,13 @@ svg[data-el]{display:block}
 .dx-bar svg[data-el]{margin:0 auto}
 /* Resize handle (single global handle positioned over selected element) */
 .rz-handle{position:absolute;width:16px;height:16px;border-radius:50%;background:#14b8a6;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);cursor:nwse-resize;z-index:9999;touch-action:none;display:none}
+
+/* HR signature layer — one image painted behind every card design (all
+   templates, front, back and corporate). The maker can drag/resize it and
+   the position is saved with the template layout. */
+.dx-front,.dx-back,.corp-card{isolation:isolate}
+img.dx-signature{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:150px;max-width:82%;height:auto;object-fit:contain;z-index:0;opacity:.9;pointer-events:auto;cursor:move;touch-action:none}
+.dx-front > *:not(.dx-signature),.dx-back > *:not(.dx-signature),.corp-card > *:not(.dx-signature){position:relative;z-index:1}
 @media print{
   [data-el].el-sel{outline:none !important}
   .rz-handle{display:none !important}

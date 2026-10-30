@@ -29,6 +29,7 @@ foreach ($employees as $e) {
         'phone' => $e['phone'] ?? '',
         'email' => $e['email'] ?? '',
         'photo' => $e['passport_path'] ?? '',
+        'signature' => $e['signature_path'] ?? '',
         'join_date' => $e['join_date'] ?? '',
         'employment_status' => $e['employment_status'] ?? '',
     ];
@@ -106,6 +107,9 @@ window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
       <div><label>Photo upload</label><input id="photoFile" type="file" accept="image/*"></div>
       <div><label>Logo override (optional)</label><input id="logoFile" type="file" accept="image/*"></div>
     </div>
+    <label>HR signature (optional — shown behind the card)</label>
+    <input id="signatureFile" type="file" accept="image/*">
+    <p style="color:var(--mut);font-size:12px;margin:4px 0 0">Leave blank to use the selected employee’s HR signature, or the template default.</p>
     <?php include 'idmaker-designer.php'; ?>
     <div class="btns">
       <button class="ghost" onclick="randomId()">Random ID</button>
@@ -141,6 +145,13 @@ function loadErpEmployee(id) {
     photoData = e.photo;
     const dp = document.getElementById('dPhoto'); if (dp) dp.src = photoData;
     const cp = document.getElementById('cPhoto'); if (cp) cp.src = photoData;
+  }
+  if (e.signature) {
+    signaturePath = e.signature;
+    signatureData = assetUrl(e.signature);
+  } else {
+    signaturePath = presetSignature || '';
+    signatureData = assetUrl(signaturePath);
   }
   document.getElementById('org_name').value = window.ERP_COMPANY.name;
   document.getElementById('org_address').value = window.ERP_COMPANY.address;

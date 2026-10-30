@@ -118,7 +118,7 @@ async function fetchErpStaff() {
     HR = (r.staff || []).map(s => ({
       name: s.name || '', id: s.staff_id || '', title: s.title || '',
       dept: s.dept || '', phone: s.phone || '', email: s.email || '',
-      photo: s.photo || '', employee_id: s.employee_id || ''
+      photo: s.photo || '', signature: s.signature || '', employee_id: s.employee_id || ''
     }));
     renderHRTable();
   } catch (e) { alert('ERP staff fetch failed: ' + e.message); }

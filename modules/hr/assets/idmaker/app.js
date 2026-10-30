@@ -1,6 +1,10 @@
 const $ = id => document.getElementById(id);
 const F = ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','layout','color1','color2'];
 let photoData = '', logoData = '', editingId = 0;
+// HR signature shown behind every card. signaturePath is the saved relative
+// path (sent back to the API); signatureData is what the preview displays
+// (could be a freshly picked data URL before saving).
+let signatureData = '', signaturePath = '', presetSignature = '';
 
 // ---- Fully-customizable layout engine ----
 // Every draggable card piece has a data-el key. layout stores per-element
@@ -37,13 +41,21 @@ const EL = {
   cId:{label:'Corporate staff ID', kind:'f', min:10, max:24, def:14},
   cQr:{label:'Corporate QR code', kind:'w', min:40, max:140, def:92, square:true},
 };
+// HR signature layer keys (same image, one per card face).
+EL.dSign = {label:'HR signature (front)', kind:'w', min:50, max:320, def:150, signature:true};
+EL.dSignB = {label:'HR signature (back)', kind:'w', min:50, max:320, def:150, signature:true};
+EL.cSign = {label:'HR signature (corporate)', kind:'w', min:50, max:320, def:150, signature:true};
 let layout = {}, selEl = 'dPhoto';
 function layOf(k){ if(!layout[k] || typeof layout[k] !== 'object') layout[k] = {dx:0, dy:0, size:EL[k].def, vis:true}; const L = layout[k]; if(typeof L.dx!=='number')L.dx=0; if(typeof L.dy!=='number')L.dy=0; if(typeof L.size!=='number')L.size=EL[k].def; if(typeof L.vis!=='boolean')L.vis=true; return L; }
 function applyLayout(){
   Object.keys(EL).forEach(k=>{
     const L = layOf(k), cfg = EL[k];
     document.querySelectorAll('[data-el="'+k+'"]').forEach(el=>{
-      el.style.transform = (L.dx || L.dy) ? 'translate('+L.dx+'px,'+L.dy+'px)' : '';
+      if(cfg.signature){
+        el.style.transform = 'translate(-50%,-50%)' + ((L.dx || L.dy) ? ' translate('+L.dx+'px,'+L.dy+'px)' : '');
+      } else {
+        el.style.transform = (L.dx || L.dy) ? 'translate('+L.dx+'px,'+L.dy+'px)' : '';
+      }
       if(cfg.kind === 'w'){
         el.style.width = L.size + 'px';
         el.style.height = cfg.square ? L.size + 'px' : 'auto';
@@ -52,7 +64,7 @@ function applyLayout(){
       } else {
         el.style.fontSize = L.size + 'px';
       }
-      el.style.display = L.vis === false ? 'none' : '';
+      el.style.display = (L.vis === false || (cfg.signature && !signatureData)) ? 'none' : '';
       el.classList.toggle('el-sel', k === selEl);
     });
   });
@@ -350,6 +362,9 @@ function applyBaseDefault(n){
   try{ applyBack(JSON.parse(t.back_json || 'null')); }catch(e){ applyBack(null); }
   try{ applyCode(JSON.parse(t.code_json || 'null')); }catch(e){ applyCode(null); }
   if(t.logo_path){ logoData = t.logo_path; }
+  signaturePath = t.signature_path || '';
+  signatureData = assetUrl(signaturePath);
+  presetSignature = signaturePath;
   render();
   return true;
 }
@@ -368,6 +383,9 @@ async function saveDefaultDesign(){
   const lf = $('logoFile') && $('logoFile').files[0];
   if(lf) fd.append('logo', lf);
   else if(logoData && !String(logoData).startsWith('data:')) fd.append('logo_path', logoData);
+  const sf = $('signatureFile') && $('signatureFile').files[0];
+  if(sf) fd.append('signature', sf);
+  else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
   const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
   if(r.ok){ alert('Template ' + base + ' default updated — it now opens with this design.'); fetchDefaults(); }
   else alert('Save failed: '+(r.error||'unknown'));
@@ -378,6 +396,7 @@ async function resetFactoryDefault(){
   await fetch('../api/id-cards.php?action=default_reset&base='+base, {method:'POST'}).then(r=>r.json());
   delete DEFAULTS[base];
   layout = {}; applyLabels({});
+  signatureData = ''; signaturePath = ''; presetSignature = '';
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
   CODE = {...CODE_DEFAULT}; fillCodeEditor();
   if($('color1')) $('color1').value = TPLS[base-1][0];
@@ -398,6 +417,16 @@ function readFile(input, cb){
   const r = new FileReader(); r.onload = e => cb(e.target.result); r.readAsDataURL(f);
 }
 function val(id){ const el = $(id); return el ? el.value.trim() : ''; }
+// Stored uploads are root-relative ("modules/hr/assets/..."), while employee
+// scans are stored relative to the HR pages ("../assets/..."). Resolve both
+// for <img> use without changing the value that gets saved back.
+function assetUrl(p){
+  p = String(p || '');
+  if(!p) return '';
+  if(/^(data:|blob:|https?:|\/\/|\.\.\/)/i.test(p)) return p;
+  if(p.startsWith('modules/')) return '../../../' + p;
+  return p;
+}
 
 function render(){
   const c1 = val('color1')||'#0d6b3f', c2 = val('color2')||'#8fd14f';
@@ -432,6 +461,10 @@ function render(){
   }
   if(photoData && $('dPhoto')) $('dPhoto').src = photoData;
   if(logoData){ if($('dLogo')) $('dLogo').src = logoData; if($('dLogoB')) $('dLogoB').src = logoData; }
+  // HR signature: one image behind the front, back and corporate cards
+  document.querySelectorAll('img.dx-signature').forEach(img=>{
+    if(signatureData){ img.src = signatureData; } else { img.removeAttribute('src'); }
+  });
   // Back: editable heading/body + custom fields
   const ctx = {staff_id: staffId, name: empName, title: title, department: val('department'),
     phone: val('phone'), email: val('email'), company: val('org_name')};
@@ -503,8 +536,10 @@ async function save(){
   fd.append('template_id', currentPresetId);
   if(!($('photoFile') && $('photoFile').files[0]) && presetPhoto) fd.append('photo_path', presetPhoto);
   if(!($('logoFile') && $('logoFile').files[0]) && presetLogo) fd.append('logo_path', presetLogo);
+  if(!($('signatureFile') && $('signatureFile').files[0]) && (signaturePath || presetSignature)) fd.append('signature_path', signaturePath || presetSignature);
   const pf = $('photoFile') && $('photoFile').files[0]; if(pf) fd.append('photo', pf);
   const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
+  const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
   fd.append('action','save');
   const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
   if(r.ok){ alert('Saved (ID '+r.id+')'); editingId = 0; if($('editLabel')) $('editLabel').textContent='New card'; loadRecords(); }
@@ -548,6 +583,8 @@ async function loadCard(id){
   try{ applyCode(JSON.parse(c.code_json || 'null')); }catch(e){ applyCode(null); }
   persistLayout(); syncPanel();
   photoData = c.photo_path||''; logoData = c.logo_path||'';
+  signaturePath = c.signature_path || ''; signatureData = assetUrl(signaturePath);
+  presetSignature = signaturePath;
   if(photoData && $('dPhoto')) $('dPhoto').src = photoData;
   if(logoData){ if($('dLogo')) $('dLogo').src = logoData; if($('dLogoB')) $('dLogoB').src = logoData; }
   setLayout(c.layout||'horizontal');
@@ -559,11 +596,14 @@ function resetForm(){
   ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','emergency_contact','phone','email','address','principal'].forEach(k=>{ if($(k)) $(k).value=''; });
   if($('employment_type')) $('employment_type').value='Full-time';
   photoData=''; logoData='';
+  signatureData=''; signaturePath=''; presetSignature='';
   if($('photoFile')) $('photoFile').value='';
   if($('logoFile')) $('logoFile').value='';
+  if($('signatureFile')) $('signatureFile').value='';
   if($('dPhoto')) $('dPhoto').src=window.IDM_FALLBACK_PHOTO;
   if($('dLogo')) $('dLogo').src=window.IDM_FALLBACK_LOGO;
   if($('dLogoB')) $('dLogoB').src=window.IDM_FALLBACK_LOGO;
+  document.querySelectorAll('img.dx-signature').forEach(img=>img.removeAttribute('src'));
   layout = {}; persistLayout(); syncPanel();
   applyLabels({});
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
@@ -585,6 +625,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   F.forEach(k=>{ if($(k)) $(k).addEventListener('input', render); if($(k)) $(k).addEventListener('change', render); });
   if($('photoFile')) $('photoFile').addEventListener('change', e=>readFile(e.target, d=>{photoData=d; render();}));
   if($('logoFile')) $('logoFile').addEventListener('change', e=>readFile(e.target, d=>{logoData=d; render();}));
+  if($('signatureFile')) $('signatureFile').addEventListener('change', e=>readFile(e.target, d=>{signatureData=d; render();}));
   if($('search')) $('search').addEventListener('input', loadRecords);
   if($('presetSelect')){ loadPresetOptions('presetSelect'); $('presetSelect').addEventListener('change', e=>applyPreset(+e.target.value)); }
   if($('presetSelectAuto')){ loadPresetOptions('presetSelectAuto'); $('presetSelectAuto').addEventListener('change', e=>applyPreset(+e.target.value)); }
@@ -632,6 +673,8 @@ async function applyPreset(id){
     try{ applyBack(JSON.parse(t.back_json || 'null')); }catch(e){ applyBack(null); }
     try{ applyCode(JSON.parse(t.code_json || 'null')); }catch(e){ applyCode(null); }
     if(t.logo_path){ presetLogo = t.logo_path; logoData = t.logo_path; }
+    presetSignature = t.signature_path || '';
+    signaturePath = presetSignature; signatureData = assetUrl(signaturePath);
     render();
   }catch(e){}
 }
@@ -652,6 +695,8 @@ async function savePreset(){
   fd.append('back_json', JSON.stringify(collectBack()));
   fd.append('code_json', JSON.stringify(collectCode()));
   const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
+  const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
+  else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
   const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
   if(r.ok){ alert('Template saved (ID '+r.id+')'); editingPresetId = 0; loadTemplateList(); }
   else alert('Save failed: '+(r.error||'unknown'));
@@ -661,6 +706,7 @@ function newPreset(){
   if($('preset_name')) $('preset_name').value = '';
   layout = {}; persistLayout(); syncPanel();
   applyLabels({});
+  signatureData = ''; signaturePath = ''; presetSignature = '';
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
   CODE = {...CODE_DEFAULT}; fillCodeEditor();
   setTemplate(1); render();
@@ -687,6 +733,8 @@ async function loadTemplateList(){
       try{ applyBack(JSON.parse(g.template.back_json || 'null')); }catch(e){ applyBack(null); }
       try{ applyCode(JSON.parse(g.template.code_json || 'null')); }catch(e){ applyCode(null); }
       if(g.template.logo_path){ logoData = g.template.logo_path; }
+      presetSignature = g.template.signature_path || '';
+      signaturePath = presetSignature; signatureData = assetUrl(signaturePath);
       render(); window.scrollTo({top:0, behavior:'smooth'});
     };
     tr.querySelector('[data-a=del]').onclick = async ()=>{
@@ -730,12 +778,14 @@ function normStaff(o){
     phone:[m.phone,'phone','phone_number','mobile','tel'],
     email:[m.email,'email','email_address','mail'],
     photo:[m.photo,'photo','photo_url','avatar','image','picture'],
+    signature:['signature','signature_path','signature_url','sign'],
   };
   return {
     name: String(tryPaths(o, alt.name)), id: String(tryPaths(o, alt.id)),
     title: String(tryPaths(o, alt.title)), dept: String(tryPaths(o, alt.dept)),
     phone: String(tryPaths(o, alt.phone)), email: String(tryPaths(o, alt.email)),
     photo: String(tryPaths(o, alt.photo)),
+    signature: String(tryPaths(o, alt.signature)),
     employee_id: o.employee_id ?? '',
   };
 }
@@ -776,6 +826,7 @@ function parseCSVText(){
       name: g('name')||g('full_name')||g('employee'), id: g('staff_id')||g('id')||g('employee_id'),
       title: g('job_title')||g('title')||g('position'), dept: g('department')||g('dept'),
       phone: g('phone')||g('mobile'), email: g('email'), photo: g('photo')||g('photo_url')||g('avatar'),
+      signature: g('signature')||g('signature_path')||g('signature_url'),
     };
   }).filter(s=>s.name || s.id);
   renderHRTable();
@@ -816,6 +867,8 @@ function fillStaffForm(s, company){
   set('job_title', s.title); set('department', s.dept);
   set('phone', s.phone); set('email', s.email);
   photoData = s.photo || ''; logoData = presetLogo || logoData;
+  signaturePath = s.signature || presetSignature || '';
+  signatureData = assetUrl(signaturePath);
   render();
 }
 function previewHRStaff(){
@@ -851,6 +904,7 @@ async function generateSelected(){
       fd.append('code_json', JSON.stringify(CODE));
       if(s.photo) fd.append('photo_path', s.photo);
       if(presetLogo) fd.append('logo_path', presetLogo);
+      fd.append('signature_path', s.signature || presetSignature || '');
       const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
       if(r.ok) ok++; else fail++;
     }catch(e){ fail++; }
