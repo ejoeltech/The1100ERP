@@ -150,21 +150,86 @@ function onboardAlphabet()
 }
 
 /**
- * Issue a high-entropy onboarding code. Returns plaintext code ONCE.
+ * Canonical onboarding/staff types. These mirror hr_employees.employment_status
+ * where it overlaps (contract/intern) and fall back to "staff" for full-time
+ * employees and legacy codes (viewer/employee).
  */
-function issueOnboardingCode($role, $createdBy = null)
+function onboardingTypes()
 {
-    global $pdo;
+    return ['staff' => 'Staff', 'intern' => 'Intern', 'contract' => 'Contract'];
+}
+
+/**
+ * Normalise any stored or posted onboarding type. Legacy roles such as
+ * "viewer" or "employee" become "staff"; unknown values also become "staff".
+ */
+function onboardingTypeFromRole($role)
+{
+    $role = strtolower(trim((string)$role));
+    return array_key_exists($role, onboardingTypes()) ? $role : 'staff';
+}
+
+function onboardingTypeLabel($role)
+{
+    $types = onboardingTypes();
+    return $types[onboardingTypeFromRole($role)] ?? 'Staff';
+}
+
+/**
+ * Generate a high-entropy onboarding code string (plaintext).
+ */
+function onboardGenerateCode()
+{
     $alpha = onboardAlphabet();
     $rand = '';
     for ($i = 0; $i < ONBOARD_CODE_LEN; $i++) {
         $rand .= $alpha[random_int(0, strlen($alpha) - 1)];
     }
-    $code = 'OB-' . $rand;
+    return 'OB-' . $rand;
+}
+
+/**
+ * Issue a high-entropy onboarding code. Returns plaintext code ONCE.
+ */
+function issueOnboardingCode($role, $createdBy = null)
+{
+    global $pdo;
+    $role = onboardingTypeFromRole($role);
+    $code = onboardGenerateCode();
     $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, code_hash, role, created_by, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))");
     // NOTE: plaintext `code` column is legacy; verification uses code_hash only.
     $stmt->execute([$code, hash('sha256', $code), $role, $createdBy, ONBOARD_CODE_TTL_DAYS]);
     return $code;
+}
+
+/**
+ * Renew an unused code in place: fresh secret, fresh 30-day window, attempts
+ * reset. Keeping the row id means any draft the applicant already started
+ * stays attached to the renewed code. Returns the new plaintext code or null.
+ */
+function renewOnboardingCode($codeId)
+{
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM hr_onboarding_codes WHERE id = ?");
+    $stmt->execute([(int)$codeId]);
+    $row = $stmt->fetch();
+    if (!$row || !empty($row['is_used'])) {
+        return null;
+    }
+    $code = onboardGenerateCode();
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare("UPDATE hr_onboarding_codes SET code = ?, code_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), failed_attempts = 0 WHERE id = ?")
+            ->execute([$code, hash('sha256', $code), ONBOARD_CODE_TTL_DAYS, (int)$codeId]);
+        // Keep the cached code in sync for drafts created under the old code.
+        $pdo->prepare("UPDATE hr_onboarding_entries SET signup_code = ? WHERE code_id = ?")
+            ->execute([$code, (int)$codeId]);
+        $pdo->commit();
+        return $code;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
 }
 
 /**
@@ -207,5 +272,64 @@ function recordOnboardFailure($codeId)
         $stmt->execute([$codeId]);
     } catch (Exception $e) {
         // best effort
+    }
+}
+
+/**
+ * Send an onboarding invitation email containing the one-time signup code.
+ * The code is only ever sent to the address HR supplied; it is never logged.
+ * Returns ['success' => bool, 'message' => string].
+ */
+function sendOnboardingInviteEmail($to, $code, $role, $signupUrl, $recipientName = '')
+{
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'message' => 'Invalid recipient email address.'];
+    }
+
+    $company = defined('COMPANY_NAME') ? COMPANY_NAME : 'Eleven100 ERP';
+    $typeLabel = onboardingTypeLabel($role);
+    $name = trim((string)$recipientName);
+    $greeting = $name !== '' ? 'Hello ' . $name . ',' : 'Hello,';
+    $expiryDays = defined('ONBOARD_CODE_TTL_DAYS') ? ONBOARD_CODE_TTL_DAYS : 30;
+
+    $subject = 'You are invited to register with ' . $company;
+    $body = $greeting . "\n\n"
+        . $company . " has invited you to complete your employee registration as "
+        . strtolower($typeLabel) . ".\n\n"
+        . "Signup code: " . $code . "\n"
+        . "Signup link: " . $signupUrl . "\n\n"
+        . "Enter the code and the phone number HR has on file to begin. "
+        . "The code is single-use and expires in " . (int)$expiryDays . " days.\n\n"
+        . "If you were not expecting this email you can safely ignore it.\n\n"
+        . $company;
+
+    $fromEmail = function_exists('getSetting') ? (getSetting('email_from_address', '') ?: getSetting('company_email', '')) : '';
+    $fromName = function_exists('getSetting') ? (getSetting('email_from_name', '') ?: $company) : $company;
+    if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'message' => 'Sender email is not configured (Settings > Email > From Email).'];
+    }
+
+    try {
+        if (function_exists('getSetting') && getSetting('email_method', 'php_mail') === 'smtp' && getSetting('smtp_host', '')) {
+            require_once __DIR__ . '/smtp-mailer.php';
+            $result = smtpSendEmail($to, $subject, $body, [], [
+                'from' => $fromEmail,
+                'fromName' => $fromName,
+                'replyTo' => $fromEmail,
+                'host' => getSetting('smtp_host', ''),
+                'port' => (int)getSetting('smtp_port', 587),
+                'encryption' => getSetting('smtp_encryption', 'tls'),
+                'username' => getSetting('smtp_username', ''),
+                'password' => getSetting('smtp_password', ''),
+            ]);
+            return $result;
+        }
+
+        require_once __DIR__ . '/simple-mailer.php';
+        return sendEmailWithAttachment($to, $name, $subject, $body, null, $fromEmail, $fromName);
+    } catch (Exception $e) {
+        // Never include the code or recipient in the log message.
+        error_log('Onboarding invite email failed: ' . $e->getMessage());
+        return ['success' => false, 'message' => 'Email transport error. Please try again or share the code manually.'];
     }
 }

@@ -714,6 +714,30 @@ class SchemaPatcher
                 $add('info', 'columns', "Skipped $idTable.signature_path (ID card tables not installed).");
             }
         }
+        // v12: onboarding codes carry a staff type (staff/intern/contract).
+        // The entry records it so the review queue can show it before import.
+        try {
+            $hasOnboardCodes = $pdo->query("SHOW TABLES LIKE 'hr_onboarding_codes'")->fetchColumn();
+            $hasOnboardEntries = $pdo->query("SHOW TABLES LIKE 'hr_onboarding_entries'")->fetchColumn();
+        } catch (Exception $e) {
+            $hasOnboardCodes = false;
+            $hasOnboardEntries = false;
+        }
+        if ($hasOnboardCodes) {
+            try {
+                $pdo->exec("UPDATE hr_onboarding_codes SET role = 'staff' WHERE role NOT IN ('staff','intern','contract')");
+                $add('ok', 'seed', 'Normalised legacy onboarding code types to staff.');
+            } catch (Exception $e) {
+                $add('error', 'seed', 'Failed normalising onboarding code types: ' . $e->getMessage());
+            }
+        } else {
+            $add('info', 'columns', 'Skipped onboarding type normalisation (table not installed).');
+        }
+        if ($hasOnboardEntries) {
+            $addCol('hr_onboarding_entries', 'employment_type', "VARCHAR(20) NOT NULL DEFAULT 'staff'");
+        } else {
+            $add('info', 'columns', 'Skipped hr_onboarding_entries.employment_type (table not installed).');
+        }
         $exec("CREATE TABLE IF NOT EXISTS `hr_payroll_items` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
     `employee_id` int(11) unsigned NOT NULL,

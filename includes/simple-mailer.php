@@ -373,7 +373,7 @@ function sendEmailWithAttachment($to, $toName, $subject, $body, $attachment, $fr
             $message = $body;
         }
 
-        $result = mail($to, $subject, $message, $headers);
+        $result = @mail($to, $subject, $message, $headers);
 
         if ($result) {
             return ['success' => true, 'message' => 'Email sent successfully'];
