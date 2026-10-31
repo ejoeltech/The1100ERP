@@ -161,6 +161,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../pages/users/edit-user.php');
     $error = urlencode($e->getMessage());
     header("Location: ../pages/users/edit-user.php?id=$user_id&error=$error");
     exit;

@@ -39,6 +39,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../../pages/customers/edit-customer.php');
     $id = $_POST['id'] ?? '';
     header('Location: ../../pages/customers/edit-customer.php?id=' . $id . '&error=' . urlencode($e->getMessage()));
     exit;

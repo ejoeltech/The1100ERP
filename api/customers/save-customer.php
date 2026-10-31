@@ -36,6 +36,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../../pages/customers/create-customer.php');
     header('Location: ../../pages/customers/create-customer.php?error=' . urlencode($e->getMessage()));
     exit;
 }

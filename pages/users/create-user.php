@@ -47,6 +47,7 @@ include '../../includes/header.php';
                     </label>
                     <input type="text" name="username" required pattern="[a-zA-Z0-9_]+"
                         title="Only letters, numbers, and underscores allowed"
+                        value="<?php echo htmlspecialchars(old('username'), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="johndoe">
                     <p class="text-xs text-gray-500 mt-1">Letters, numbers, underscores only</p>
@@ -57,6 +58,7 @@ include '../../includes/header.php';
                         Full Name <span class="text-red-500">*</span>
                     </label>
                     <input type="text" name="full_name" required
+                        value="<?php echo htmlspecialchars(old('full_name'), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="John Doe">
                 </div>
@@ -68,6 +70,7 @@ include '../../includes/header.php';
                         Email
                     </label>
                     <input type="email" name="email"
+                        value="<?php echo htmlspecialchars(old('email'), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="john@eleven100erp.com.ng">
                 </div>
@@ -77,6 +80,7 @@ include '../../includes/header.php';
                         Phone
                     </label>
                     <input type="tel" name="phone"
+                        value="<?php echo htmlspecialchars(old('phone'), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                         placeholder="08012345678">
                 </div>
@@ -90,12 +94,12 @@ include '../../includes/header.php';
                     <select name="role" required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                         <option value="">-- Select Role --</option>
-                        <?php if ($canMakeSuper): ?><option value="super_admin">Super Admin (Full system control)</option><?php endif; ?>
-                        <?php if ($isSuper): ?><option value="admin">Admin (Manage users & settings)</option><?php endif; ?>
-                        <option value="manager">Manager (View All, Edit Own)</option>
-                        <option value="accountant">Accountant (Invoices & payments)</option>
-                        <option value="sales_rep">Sales Rep (View Own Only)</option>
-                        <option value="viewer">Viewer (Read-only)</option>
+                        <?php if ($canMakeSuper): ?><option value="super_admin" <?php echo oldSelected('role', 'super_admin'); ?>>Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($isSuper): ?><option value="admin" <?php echo oldSelected('role', 'admin'); ?>>Admin (Manage users & settings)</option><?php endif; ?>
+                        <option value="manager" <?php echo oldSelected('role', 'manager'); ?>>Manager (View All, Edit Own)</option>
+                        <option value="accountant" <?php echo oldSelected('role', 'accountant'); ?>>Accountant (Invoices & payments)</option>
+                        <option value="sales_rep" <?php echo oldSelected('role', 'sales_rep'); ?>>Sales Rep (View Own Only)</option>
+                        <option value="viewer" <?php echo oldSelected('role', 'viewer'); ?>>Viewer (Read-only)</option>
                     </select>
                     <p class="text-xs text-gray-500 mt-1">Role drives ownership rules; group drives permissions</p>
                 </div>
@@ -110,7 +114,7 @@ include '../../includes/header.php';
                         <?php foreach ($groups as $g): ?>
                             <?php if ($g['name'] === 'super_admin' && !$canMakeSuper) continue; ?>
                             <?php if ($g['name'] === 'developer' && !$isSuper) continue; ?>
-                            <option value="<?php echo $g['id']; ?>"><?php echo htmlspecialchars($g['name']); ?></option>
+                            <option value="<?php echo $g['id']; ?>" <?php echo oldSelected('group_id', $g['id']); ?>><?php echo htmlspecialchars($g['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <p class="text-xs text-gray-500 mt-1">Leave on auto to use the role's standard group</p>
@@ -148,7 +152,7 @@ include '../../includes/header.php';
 
             <div>
                 <label class="flex items-center gap-2">
-                    <input type="checkbox" name="is_active" value="1" checked
+                    <input type="checkbox" name="is_active" value="1" <?php echo oldChecked('is_active', '1', true); ?>
                         class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary">
                     <span class="text-sm font-semibold text-gray-700">Active (User can login)</span>
                 </label>
@@ -169,4 +173,5 @@ include '../../includes/header.php';
     </form>
 </div>
 
+<?php clearOldInput(); ?>
 <?php include '../../includes/footer.php'; ?>

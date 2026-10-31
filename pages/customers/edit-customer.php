@@ -24,6 +24,12 @@ include '../../includes/header.php';
 <div class="max-w-2xl mx-auto">
     <h2 class="text-3xl font-bold text-gray-900 mb-6">Edit Customer</h2>
 
+    <?php if (!empty($_GET['error'])): ?>
+        <div class="bg-red-50 text-red-700 p-4 rounded-lg mb-6 border border-red-200">
+            <?php echo htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8'); ?>
+        </div>
+    <?php endif; ?>
+
     <div class="bg-white rounded-lg shadow-md p-8">
         <form method="POST" action="../../api/customers/update-customer.php">
             <?php echo csrfField(); ?>
@@ -34,14 +40,14 @@ include '../../includes/header.php';
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Name <span
                             class="text-red-500">*</span></label>
                     <input type="text" name="customer_name" required
-                        value="<?php echo htmlspecialchars($customer['customer_name']); ?>"
+                        value="<?php echo htmlspecialchars(old('customer_name', $customer['customer_name']), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Company</label>
                     <input type="text" name="company"
-                        value="<?php echo htmlspecialchars($customer['company'] ?? ''); ?>"
+                        value="<?php echo htmlspecialchars(old('company', $customer['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
 
@@ -50,13 +56,13 @@ include '../../includes/header.php';
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Email <span
                                 class="text-red-500">*</span></label>
                         <input type="email" name="email" required
-                            value="<?php echo htmlspecialchars($customer['email']); ?>"
+                            value="<?php echo htmlspecialchars(old('email', $customer['email']), ENT_QUOTES, 'UTF-8'); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-                        <input type="tel" name="phone" value="<?php echo htmlspecialchars($customer['phone'] ?? ''); ?>"
+                        <input type="tel" name="phone" value="<?php echo htmlspecialchars(old('phone', $customer['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                     </div>
                 </div>
@@ -64,19 +70,19 @@ include '../../includes/header.php';
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Address</label>
                     <textarea name="address" rows="3"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"><?php echo htmlspecialchars($customer['address'] ?? ''); ?></textarea>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"><?php echo htmlspecialchars(old('address', $customer['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">City</label>
-                    <input type="text" name="city" value="<?php echo htmlspecialchars($customer['city'] ?? ''); ?>"
+                    <input type="text" name="city" value="<?php echo htmlspecialchars(old('city', $customer['city'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
                     <textarea name="notes" rows="3"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"><?php echo htmlspecialchars($customer['notes'] ?? ''); ?></textarea>
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"><?php echo htmlspecialchars(old('notes', $customer['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
                 </div>
             </div>
 
@@ -91,4 +97,5 @@ include '../../includes/header.php';
     </div>
 </div>
 
+<?php clearOldInput(); ?>
 <?php include '../../includes/footer.php'; ?>

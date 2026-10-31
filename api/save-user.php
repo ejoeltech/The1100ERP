@@ -134,6 +134,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../pages/users/create-user.php');
     $error = urlencode($e->getMessage());
     header("Location: ../pages/users/create-user.php?error=$error");
     exit;

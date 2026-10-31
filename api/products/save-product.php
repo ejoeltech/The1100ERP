@@ -55,6 +55,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../../pages/products/create-product.php');
     header('Location: ../../pages/products/create-product.php?error=' . urlencode($e->getMessage()));
     exit;
 }

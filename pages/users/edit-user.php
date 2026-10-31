@@ -57,7 +57,7 @@ include '../../includes/header.php';
                         type="text" 
                         name="username"
                         required
-                        value="<?php echo htmlspecialchars($user['username']); ?>"
+                        value="<?php echo htmlspecialchars(old('username', $user['username']), ENT_QUOTES, 'UTF-8'); ?>"
                         pattern="[a-zA-Z0-9_]+"
                         title="Only letters, numbers, and underscores allowed"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
@@ -72,7 +72,7 @@ include '../../includes/header.php';
                         type="text" 
                         name="full_name"
                         required
-                        value="<?php echo htmlspecialchars($user['full_name']); ?>"
+                        value="<?php echo htmlspecialchars(old('full_name', $user['full_name']), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     >
                 </div>
@@ -86,7 +86,7 @@ include '../../includes/header.php';
                     <input 
                         type="email" 
                         name="email"
-                        value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>"
+                        value="<?php echo htmlspecialchars(old('email', $user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     >
                 </div>
@@ -98,7 +98,7 @@ include '../../includes/header.php';
                     <input 
                         type="tel" 
                         name="phone"
-                        value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>"
+                        value="<?php echo htmlspecialchars(old('phone', $user['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     >
                 </div>
@@ -114,12 +114,12 @@ include '../../includes/header.php';
                         required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                     >
-                        <?php if ($canMakeSuper || $user['role'] === 'super_admin'): ?><option value="super_admin" <?php echo $user['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin (Full system control)</option><?php endif; ?>
-                        <?php if ($isSuper || $user['role'] === 'admin'): ?><option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin (Manage users & settings)</option><?php endif; ?>
-                        <option value="manager" <?php echo $user['role'] === 'manager' ? 'selected' : ''; ?>>Manager (View All, Edit Own)</option>
-                        <option value="accountant" <?php echo $user['role'] === 'accountant' ? 'selected' : ''; ?>>Accountant (Invoices & payments)</option>
-                        <option value="sales_rep" <?php echo $user['role'] === 'sales_rep' ? 'selected' : ''; ?>>Sales Rep (View Own Only)</option>
-                        <option value="viewer" <?php echo $user['role'] === 'viewer' ? 'selected' : ''; ?>>Viewer (Read-only)</option>
+                        <?php if ($canMakeSuper || $user['role'] === 'super_admin'): ?><option value="super_admin" <?php echo oldSelected('role', 'super_admin', $user['role']); ?>>Super Admin (Full system control)</option><?php endif; ?>
+                        <?php if ($isSuper || $user['role'] === 'admin'): ?><option value="admin" <?php echo oldSelected('role', 'admin', $user['role']); ?>>Admin (Manage users & settings)</option><?php endif; ?>
+                        <option value="manager" <?php echo oldSelected('role', 'manager', $user['role']); ?>>Manager (View All, Edit Own)</option>
+                        <option value="accountant" <?php echo oldSelected('role', 'accountant', $user['role']); ?>>Accountant (Invoices & payments)</option>
+                        <option value="sales_rep" <?php echo oldSelected('role', 'sales_rep', $user['role']); ?>>Sales Rep (View Own Only)</option>
+                        <option value="viewer" <?php echo oldSelected('role', 'viewer', $user['role']); ?>>Viewer (Read-only)</option>
                     </select>
                 </div>
 
@@ -135,7 +135,7 @@ include '../../includes/header.php';
                         <?php foreach ($groups as $g): ?>
                             <?php if ($g['name'] === 'super_admin' && !$canMakeSuper && (string)($user['group_id'] ?? '') !== (string)$g['id']) continue; ?>
                             <?php if ($g['name'] === 'developer' && !$isSuper && (string)($user['group_id'] ?? '') !== (string)$g['id']) continue; ?>
-                            <option value="<?php echo $g['id']; ?>" <?php echo (string)($user['group_id'] ?? '') === (string)$g['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($g['name']); ?></option>
+                            <option value="<?php echo $g['id']; ?>" <?php echo oldSelected('group_id', $g['id'], $user['group_id'] ?? ''); ?>><?php echo htmlspecialchars($g['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                     <p class="text-xs text-gray-500 mt-1">Group grants baseline permissions; <a class="text-primary font-semibold" href="user-permissions.php?id=<?php echo $user['id']; ?>">customize per-user permissions →</a></p>
@@ -179,7 +179,7 @@ include '../../includes/header.php';
                         type="checkbox" 
                         name="is_active"
                         value="1"
-                        <?php echo $user['is_active'] ? 'checked' : ''; ?>
+                        <?php echo oldChecked('is_active', '1', (bool)$user['is_active']); ?>
                         class="w-5 h-5 text-primary rounded focus:ring-2 focus:ring-primary"
                     >
                     <span class="text-sm font-semibold text-gray-700">Active (User can login)</span>
@@ -206,4 +206,5 @@ include '../../includes/header.php';
     </form>
 </div>
 
+<?php clearOldInput(); ?>
 <?php include '../../includes/footer.php'; ?>

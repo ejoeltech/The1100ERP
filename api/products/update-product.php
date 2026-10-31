@@ -52,6 +52,7 @@ try {
     exit;
 
 } catch (Exception $e) {
+    flashOldInput('../../pages/products/edit-product.php');
     $id = $_POST['id'] ?? '';
     header('Location: ../../pages/products/edit-product.php?id=' . $id . '&error=' . urlencode($e->getMessage()));
     exit;
