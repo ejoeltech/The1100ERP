@@ -75,14 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Signup Code</label>
                 <input type="text" name="code" placeholder="OB-XXXXXX" required
+                    value="<?php echo htmlspecialchars($_POST['code'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase tracking-widest text-center font-bold text-lg">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                 <input type="tel" name="phone" placeholder="080..." required
+                    value="<?php echo htmlspecialchars($_POST['phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                     class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500">
-                <p class="text-xs text-gray-400 mt-1">This will be your initial password.</p>
+                <p class="text-xs text-gray-400 mt-1">Use the phone number HR has on file.</p>
             </div>
 
             <button type="submit"
@@ -90,6 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Proceed to Registration
             </button>
         </form>
+
+        <div class="mt-6 pt-5 border-t border-gray-200 text-center text-sm text-gray-600">
+            Already have an account?
+            <a href="login.php" class="font-semibold text-blue-700 hover:text-blue-900">Sign in</a>
+        </div>
     </div>
 
 </body>
