@@ -150,32 +150,33 @@ if (isset($_POST['import_entry'])) {
                 $employmentStatus = 'full_time';
             }
 
+            // full_name/email/phone live on users (already inserted above).
+            // hr_employees holds the HR-specific fields, and join_date is
+            // required, so default it to the import date.
             $sql_hr = "INSERT INTO hr_employees (
-                user_id, employee_code, full_name, email, phone, secondary_phone, 
-                address, date_of_birth, gender, employment_status,
+                user_id, employee_code, join_date, employment_status,
+                date_of_birth, gender, address, secondary_phone,
                 passport_path, signature_path, nin_number, bvn_number,
                 next_of_kin_name, next_of_kin_phone, next_of_kin_relationship
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             $stmt = $pdo->prepare($sql_hr);
             $stmt->execute([
                 $user_id,
                 $emp_code,
-                $entry['full_name'],
-                $entry['email'],
-                $entry['phone'],
-                $entry['phone'],
-                $entry['address'],
-                $entry['date_of_birth'],
-                $entry['gender'],
+                date('Y-m-d'),
                 $employmentStatus,
-                $entry['passport_path'],
-                $entry['signature_path'],
+                $entry['date_of_birth'] ?: null,
+                $entry['gender'] ?: null,
+                $entry['address'] ?: null,
+                null,
+                $entry['passport_path'] ?: null,
+                $entry['signature_path'] ?: null,
                 encryptPII($entry['nin_number'] ?? null),
                 encryptPII($entry['bvn_number'] ?? null),
-                $entry['next_of_kin_name'],
-                $entry['next_of_kin_phone'],
-                $entry['next_of_kin_relationship']
+                $entry['next_of_kin_name'] ?: null,
+                $entry['next_of_kin_phone'] ?: null,
+                $entry['next_of_kin_relationship'] ?: null
             ]);
 
             // 3. Mark Code as Used & Entry Imported
