@@ -30,12 +30,33 @@ if (!$codeRow || !empty($codeRow['is_used']) || (!empty($codeRow['expires_at']) 
     exit;
 }
 $signup_code = $codeRow['code'];
-$employment_type = onboardingTypeFromRole($codeRow['role'] ?? 'staff');
+// Fallbacks keep applicants out of a 500 if this page is deployed ahead of
+// includes/invites.php during a partial update.
+$employment_type = function_exists('onboardingTypeFromRole')
+    ? onboardingTypeFromRole($codeRow['role'] ?? 'staff')
+    : 'staff';
+$employment_type_label = function_exists('onboardingTypeLabel')
+    ? onboardingTypeLabel($employment_type)
+    : ucfirst($employment_type);
 
-// Check if entry exists or create one
-$stmt = $pdo->prepare("SELECT * FROM hr_onboarding_entries WHERE code_id = ?");
-$stmt->execute([$code_id]);
-$entry = $stmt->fetch();
+// Check if entry exists or create one. A partially applied install can be
+// missing this table; render the form anyway and report a friendly error on
+// submit instead of returning HTTP 500.
+$entry = false;
+$stmt = null;
+try {
+    $stmt = $pdo->prepare("SELECT * FROM hr_onboarding_entries WHERE code_id = ?");
+    $stmt->execute([$code_id]);
+    $entry = $stmt->fetch();
+} catch (PDOException $e) {
+    error_log('Onboarding entry lookup failed: ' . $e->getMessage());
+}
+
+// Schema v12 adds employment_type. If the live database has not been patched,
+// keep accepting applications rather than failing the whole submission; the
+// type is still shown/stored from the code row at review/import time.
+$hasEmploymentType = function_exists('onboardingEntryColumnExists')
+    && onboardingEntryColumnExists('employment_type');
 
 $success = '';
 $error = '';
@@ -128,65 +149,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'signature_path' => $signature_path
             ];
 
-            if ($entry) {
-                // Update
-                $sql = "UPDATE hr_onboarding_entries SET
-                    full_name=?, phone=?, email=?, date_of_birth=?, gender=?, address=?,
-                    nin_number=?, bvn_number=?, next_of_kin_name=?, next_of_kin_relationship=?, next_of_kin_phone=?,
-                    passport_path=?, signature_path=?, employment_type=?, status='submitted'
-                    WHERE id=?";
-                $pdo->prepare($sql)->execute([
-                    $data['full_name'],
-                    $data['phone'],
-                    $data['email'],
-                    $data['date_of_birth'],
-                    $data['gender'],
-                    $data['address'],
-                    $data['nin_number'],
-                    $data['bvn_number'],
-                    $data['next_of_kin_name'],
-                    $data['next_of_kin_relationship'],
-                    $data['next_of_kin_phone'],
-                    $data['passport_path'],
-                    $data['signature_path'],
-                    $data['employment_type'],
-                    $entry['id']
-                ]);
-                $success = "Information saved! The admin will review your submission.";
-                // Refresh entry
-                $stmt->execute([$code_id]);
-                $entry = $stmt->fetch();
+            // Columns shared by insert and update, built once so the
+            // employment_type column can be included only when it exists.
+            $fields = [
+                'full_name' => $data['full_name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'],
+                'date_of_birth' => $data['date_of_birth'],
+                'gender' => $data['gender'],
+                'address' => $data['address'],
+                'nin_number' => $data['nin_number'],
+                'bvn_number' => $data['bvn_number'],
+                'next_of_kin_name' => $data['next_of_kin_name'],
+                'next_of_kin_relationship' => $data['next_of_kin_relationship'],
+                'next_of_kin_phone' => $data['next_of_kin_phone'],
+                'passport_path' => $data['passport_path'],
+                'signature_path' => $data['signature_path'],
+            ];
+            if ($hasEmploymentType) {
+                $fields['employment_type'] = $data['employment_type'];
+            }
 
-            } else {
-                // Insert
-                $sql = "INSERT INTO hr_onboarding_entries (
-                    code_id, signup_code, employment_type, full_name, phone, email, date_of_birth, gender, address,
-                    nin_number, bvn_number, next_of_kin_name, next_of_kin_relationship, next_of_kin_phone,
-                    passport_path, signature_path, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'submitted')";
-
-                $pdo->prepare($sql)->execute([
-                    $data['code_id'],
-                    $data['signup_code'],
-                    $data['employment_type'],
-                    $data['full_name'],
-                    $data['phone'],
-                    $data['email'],
-                    $data['date_of_birth'],
-                    $data['gender'],
-                    $data['address'],
-                    $data['nin_number'],
-                    $data['bvn_number'],
-                    $data['next_of_kin_name'],
-                    $data['next_of_kin_relationship'],
-                    $data['next_of_kin_phone'],
-                    $data['passport_path'],
-                    $data['signature_path']
-                ]);
-                $success = "Registration Submitted! You can come back to edit until approval.";
+            try {
+                if ($entry) {
+                    // Update
+                    $assignments = [];
+                    foreach (array_keys($fields) as $column) {
+                        $assignments[] = "`$column` = ?";
+                    }
+                    $sql = "UPDATE hr_onboarding_entries SET " . implode(', ', $assignments) . ", status = 'submitted' WHERE id = ?";
+                    $params = array_values($fields);
+                    $params[] = $entry['id'];
+                    $pdo->prepare($sql)->execute($params);
+                    $success = "Information saved! The admin will review your submission.";
+                } else {
+                    // Insert
+                    $columns = array_keys($fields);
+                    $placeholders = rtrim(str_repeat('?, ', count($columns)), ', ');
+                    $sql = "INSERT INTO hr_onboarding_entries (`code_id`, `signup_code`, `"
+                        . implode('`, `', $columns) . "`, `status`) VALUES (?, ?, $placeholders, 'submitted')";
+                    $params = array_merge([$data['code_id'], $data['signup_code']], array_values($fields));
+                    $pdo->prepare($sql)->execute($params);
+                    $success = "Registration Submitted! You can come back to edit until approval.";
+                }
                 // Refresh entry
-                $stmt->execute([$code_id]);
-                $entry = $stmt->fetch();
+                if ($stmt) {
+                    $stmt->execute([$code_id]);
+                    $entry = $stmt->fetch();
+                }
+            } catch (PDOException $e) {
+                // Never expose SQL or applicant data in the public response.
+                error_log('Onboarding submission failed: ' . $e->getMessage());
+                $error = 'We could not save your registration right now. Please try again in a moment.';
             }
         }
     }
@@ -231,7 +245,7 @@ function signupValue($field, $entry, $fallback = '', $postKey = null)
         </div>
 
         <div class="bg-blue-50 border-b border-blue-100 px-8 py-3 text-sm text-blue-900">
-            Registering as <strong><?php echo htmlspecialchars(onboardingTypeLabel($employment_type), ENT_QUOTES, 'UTF-8'); ?></strong>
+            Registering as <strong><?php echo htmlspecialchars($employment_type_label, ENT_QUOTES, 'UTF-8'); ?></strong>
             <span class="text-blue-500">• code <?php echo htmlspecialchars($signup_code, ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
 

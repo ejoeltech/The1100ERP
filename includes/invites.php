@@ -176,6 +176,39 @@ function onboardingTypeLabel($role)
 }
 
 /**
+ * Whether hr_onboarding_entries already has a column. The public signup form
+ * uses this so an install whose schema patch has not run yet still saves the
+ * application instead of returning HTTP 500; HR can recover the type from the
+ * code row until the column exists.
+ */
+function onboardingEntryColumnExists($column)
+{
+    global $pdo;
+    static $cache = [];
+    $column = (string)$column;
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $column)) {
+        return false;
+    }
+    if (array_key_exists($column, $cache)) {
+        return $cache[$column];
+    }
+    try {
+        // INFORMATION_SCHEMA (not SHOW COLUMNS ... LIKE ?) because this app
+        // uses native prepares, where SHOW does not accept placeholders.
+        $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'hr_onboarding_entries'
+              AND COLUMN_NAME = ?
+            LIMIT 1");
+        $stmt->execute([$column]);
+        $cache[$column] = (bool)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        $cache[$column] = false;
+    }
+    return $cache[$column];
+}
+
+/**
  * Generate a high-entropy onboarding code string (plaintext).
  */
 function onboardGenerateCode()
