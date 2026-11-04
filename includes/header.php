@@ -197,6 +197,10 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_employees'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         👥 Employees
                     </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_departments'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        🏢 Departments
+                    </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_attendance'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🕒 Attendance
@@ -485,6 +489,11 @@ if (function_exists('setSecurityHeaders')) {
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">👥 Employees</div>
                                     <div class="text-xs text-gray-500">Manage Staff</div>
+                                </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">🏢 Departments</div>
+                                    <div class="text-xs text-gray-500">Teams & Job Titles</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">

@@ -226,7 +226,10 @@ include_once '../../../includes/header.php';
 
     <!-- 2. Employment -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Employment Details</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 border-b pb-2">
+            <h2 class="text-lg font-semibold text-gray-900">Employment Details</h2>
+            <a href="departments.php" class="text-xs font-semibold text-primary hover:underline">Manage departments & designations →</a>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Employee Code *</label>
