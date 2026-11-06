@@ -10,7 +10,7 @@ $pageTitle = 'Employees | ' . COMPANY_NAME;
 $currentPage = 'hr_employees';
 
 $hr_employee = new HR_Employee($pdo);
-$employees = $hr_employee->getAllEmployees();
+$employees = $hr_employee->getEmployeeDirectory();
 
 include_once '../../../includes/header.php';
 ?>

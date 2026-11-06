@@ -29,6 +29,30 @@ class HR_Employee
         return $stmt->fetchAll();
     }
 
+    /**
+     * Directory rows for the HR list. Deliberately excludes salary, bank and
+     * NIN/BVN fields so an `hr_view` user cannot see payroll-sensitive data.
+     */
+    public function getEmployeeDirectory($limit = 50, $offset = 0)
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT e.id, e.user_id, e.employee_code, e.join_date, e.employment_status,
+                   e.passport_path, e.department_id, e.designation_id,
+                   u.full_name, u.email, u.phone, u.is_active,
+                   d.name AS department, des.title AS designation
+            FROM hr_employees e
+            JOIN users u ON e.user_id = u.id
+            LEFT JOIN hr_departments d ON e.department_id = d.id
+            LEFT JOIN hr_designations des ON e.designation_id = des.id
+            ORDER BY u.full_name ASC
+            LIMIT :limit OFFSET :offset
+        ");
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function getEmployeeById($id)
     {
         $stmt = $this->pdo->prepare("
