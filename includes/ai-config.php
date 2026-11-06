@@ -168,6 +168,25 @@ function callAiAPI($prompt, $systemPrompt = '', $options = [], $override = []) {
         throw new Exception('AI Base URL not configured for provider: ' . $cfg['provider']);
     }
 
+    // Central rate limit for every AI call. Design Planner/Implementation
+    // already run their own limiter and pass skip_rate_limit to avoid a
+    // double count.
+    if (empty($options['skip_rate_limit'])) {
+        require_once __DIR__ . '/ai-rate-limiter.php';
+        $tool = preg_replace('/[^A-Za-z0-9_]/', '_', basename($_SERVER['SCRIPT_NAME'] ?? 'ai_call', '.php'));
+        if ($tool === '' || $tool === null) $tool = 'ai_call';
+        $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+        $rateLimiter = new AiRateLimiter($tool, $userId);
+        $rateParams = [
+            'prompt' => hash('sha256', (string)$prompt),
+            'system' => hash('sha256', (string)$systemPrompt),
+            'model' => (string)$model,
+        ];
+        $rateLimiter->checkLimit($rateParams);
+        // Count the attempt now; provider failures still consume a slot.
+        $rateLimiter->logUsage(AiRateLimiter::generateRequestHash($rateParams), 0, 0, true);
+    }
+
     // Gemini has different API shape
     if ($cfg['provider'] === 'gemini' || ($cfg['provider_config']['is_gemini'] ?? false)) {
         return callGeminiAPI($prompt, $systemPrompt, $apiKey, $model, $baseUrl, $options);

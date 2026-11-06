@@ -27,17 +27,23 @@ class AiRateLimiter
      */
     public static function getClientIP()
     {
-        $ip = $_SERVER['REMOTE_ADDR'];
+        $remote = $_SERVER['REMOTE_ADDR'] ?? '';
+        $ip = $remote;
 
-        // Check for proxy headers (only trust if from known proxies)
-        if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        // Only honour X-Forwarded-For when the direct peer is a configured
+        // trusted proxy. Otherwise any client can spoof the header and bypass
+        // IP quotas.
+        $trusted = array_filter(array_map('trim', explode(',', (string)getenv('TRUSTED_PROXIES'))));
+        if ($remote !== '' && in_array($remote, $trusted, true) && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
             $forwardedIPs = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-            $ip = trim($forwardedIPs[0]);
+            $candidate = trim($forwardedIPs[0]);
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                $ip = $candidate;
+            }
         }
 
-        // Validate IP format
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-            $ip = '0.0.0.0'; // Fallback
+            $ip = '0.0.0.0';
         }
 
         return $ip;
