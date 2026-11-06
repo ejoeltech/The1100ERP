@@ -44,7 +44,18 @@ function saveUpload($key) {
 }
 
 try {
-    $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
+    $action = $_POST['action'] ?? $_GET['action'] ?? 'list';
+
+    // WP4: state-changing actions must be POST. Reads stay on GET.
+    $mutationActions = ['save', 'delete', 'template_save', 'template_delete', 'default_save', 'default_reset'];
+    if (in_array($action, $mutationActions, true)) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            out(['ok' => false, 'error' => 'Method not allowed'], 405);
+        }
+        // session-check already enforces this on POST; keep it explicit here
+        // so the endpoint stays safe if its bootstrap ever changes.
+        requireCsrf();
+    }
 
     if ($action === 'save') {
         if (!canEditCards()) out(['ok' => false, 'error' => 'Forbidden: admin/manager only'], 403);

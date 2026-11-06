@@ -561,7 +561,7 @@ async function loadRecords(){
     tr.querySelector('[data-a=load]').onclick = ()=>loadCard(c.id);
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete #'+c.id+'?')) return;
-      await fetch('../api/id-cards.php?action=delete&id='+c.id).then(r=>r.json());
+      await fetch('../api/id-cards.php?action=delete&id='+c.id, {method:'POST'}).then(r=>r.json());
       loadRecords();
     };
     tb.appendChild(tr);
@@ -739,7 +739,7 @@ async function loadTemplateList(){
     };
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete template "'+t.name+'"?')) return;
-      await fetch('../api/id-cards.php?action=template_delete&id='+t.id).then(r=>r.json());
+      await fetch('../api/id-cards.php?action=template_delete&id='+t.id, {method:'POST'}).then(r=>r.json());
       if(editingPresetId === t.id) editingPresetId = 0;
       loadTemplateList();
     };
