@@ -30,7 +30,10 @@ function generateCSRFToken() {
 }
 
 function validateCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+    if (!is_string($token) || $token === '' || empty($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
 }
 
 function csrfField() {
@@ -82,7 +85,16 @@ function ensureUploadDir($dir)
     }
     $ht = $dir . '.htaccess';
     if (!file_exists($ht)) {
-        @file_put_contents($ht, "# WP7: uploads must never execute as PHP.\nphp_flag engine off\nRemoveHandler .php .phtml .phar\nRemoveType .php .phtml .phar\n<FilesMatch \"\\.(php|phtml|phar|phps|php\\d+)$\">\n    Order allow,deny\n    Deny from all\n</FilesMatch>\n");
+        // Reuse the vetted static guard (Apache 2.4 + 2.2 fallbacks) instead
+        // of emitting unconditional directives that break PHP-FPM/Apache 2.4.
+        $guard = @file_get_contents(dirname(__DIR__) . '/uploads/.htaccess');
+        if ($guard === false || trim($guard) === '') {
+            $guard = "<FilesMatch \"\\.(php|phtml|phar|phps|php[0-9]+)$\">\n"
+                . "    <IfModule mod_authz_core.c>\n        Require all denied\n    </IfModule>\n"
+                . "    <IfModule !mod_authz_core.c>\n        Order allow,deny\n        Deny from all\n    </IfModule>\n"
+                . "</FilesMatch>\n";
+        }
+        @file_put_contents($ht, $guard);
     }
     return $dir;
 }
@@ -393,9 +405,10 @@ if (!defined('PII_ENVELOPE_PREFIX')) {
  */
 function piiEncryptionKey($version = 'v2')
 {
-    $secret = getenv('ENCRYPTION_KEY');
-    if ($secret === false || trim((string)$secret) === '') {
-        throw new RuntimeException('ENCRYPTION_KEY is not configured; refusing to handle PII.');
+    $secret = trim((string)getenv('ENCRYPTION_KEY'));
+    $placeholders = ['change-me-to-a-random-32-character-string', 'changeme', 'change-me'];
+    if ($secret === '' || strlen($secret) < 32 || in_array(strtolower($secret), $placeholders, true)) {
+        throw new RuntimeException('ENCRYPTION_KEY is missing, too short, or still a placeholder; refusing to handle PII.');
     }
     if ($version === 'legacy') {
         return $secret;

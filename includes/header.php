@@ -1,6 +1,9 @@
 <?php
 // WP3: refuse direct web execution; this file only works when included.
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
+if (function_exists('setSecurityHeaders')) {
+    setSecurityHeaders();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,9 +15,6 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
     <title><?php echo htmlspecialchars($pageTitle ?? 'ERP System', ENT_QUOTES, 'UTF-8'); ?></title>
 
 <?php
-if (function_exists('setSecurityHeaders')) {
-    setSecurityHeaders();
-}
 // Determine base path for relative links
     $base_path = '';
     if (file_exists('config.php')) {

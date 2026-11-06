@@ -8,6 +8,7 @@ configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+setSecurityHeaders();
 
 $error = '';
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
