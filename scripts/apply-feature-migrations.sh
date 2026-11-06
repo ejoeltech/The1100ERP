@@ -36,7 +36,10 @@ while [ $# -gt 0 ]; do
 done
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MYSQL="mysql --host=$DB_HOST --port=$PORT --user=$DB_USER $([ -n "$DB_PASS" ] && echo "--password=$DB_PASS") --default-character-set=utf8mb4 $DB_NAME"
+# Keep the password out of the process list (MYSQL_PWD, not --password=).
+export MYSQL_PWD="$DB_PASS"
+MYSQL="mysql --host=$DB_HOST --port=$PORT --user=$DB_USER --default-character-set=utf8mb4 $DB_NAME"
+trap 'unset MYSQL_PWD' EXIT
 
 echo "==> Applying HR payroll + leads migrations to '$DB_NAME' on $DB_HOST:$PORT"
 
@@ -46,17 +49,13 @@ if [ -f "$ROOT/modules/hr/hr_schema.sql" ]; then
   $MYSQL < "$ROOT/modules/hr/hr_schema.sql" || { echo "FAILED hr_schema.sql"; exit 1; }
 fi
 
-# 2) HR incremental migrations (all additive, IF NOT EXISTS)
+# 2) HR incremental migrations (all additive). Discover every vN file so new
+#    migrations (v11 signature, v12 onboarding types, ...) are never skipped.
 echo "  [2/3] HR incremental migrations"
-for f in "$ROOT"/modules/hr/update_schema_v2.sql \
-         "$ROOT"/modules/hr/update_schema_v3_voting.sql \
-         "$ROOT"/modules/hr/update_schema_v5_onboarding.sql \
-         "$ROOT"/modules/hr/update_schema_v10_idcards.sql \
-         "$ROOT"/modules/hr/update_schema_v10_payroll.sql; do
-  if [ -f "$f" ]; then
-    echo "        - $(basename "$f")"
-    $MYSQL < "$f" || { echo "FAILED $(basename "$f")"; exit 1; }
-  fi
+mapfile -t HR_MIGRATIONS < <(find "$ROOT/modules/hr" -maxdepth 1 -name 'update_schema_v*.sql' -print | sort -V)
+for f in "${HR_MIGRATIONS[@]}"; do
+  echo "        - $(basename "$f")"
+  $MYSQL < "$f" || { echo "FAILED $(basename "$f")"; exit 1; }
 done
 
 # 3) Leads schema + settings seed is owned by the schema patcher now
