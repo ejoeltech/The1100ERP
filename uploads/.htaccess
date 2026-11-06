@@ -1,0 +1,25 @@
+# Static guard for all uploaded files: never execute them as code.
+Options -Indexes
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+RemoveHandler .php .phtml .phar .phps
+RemoveType .php .phtml .phar .phps
+
+<FilesMatch "\.(php|phtml|phar|phps|php[0-9]+)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

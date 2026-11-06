@@ -1,7 +1,19 @@
-# Allow downloads
-<FilesMatch "\.(pdf)$">
-    Header set Content-Disposition attachment
+# Exports may contain customer data: only PDF files are retrievable.
+<FilesMatch "(?i)^(?!.*\.pdf$).*$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.pdf$">
+        Header set Content-Disposition attachment
+    </FilesMatch>
+</IfModule>
 
 # Prevent directory listing
 Options -Indexes
