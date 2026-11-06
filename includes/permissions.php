@@ -461,6 +461,12 @@ function canViewDocument($document)
  */
 function getRoleFilter($tableName = 'd')
 {
+    // The alias is interpolated into SQL; reject anything that is not a
+    // simple identifier even though current callers are literals.
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', (string)$tableName)) {
+        throw new InvalidArgumentException('Invalid role-filter table alias.');
+    }
+
     $role = getUserRole();
     $userId = $_SESSION['user_id'] ?? 0;
 
