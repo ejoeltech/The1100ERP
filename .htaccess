@@ -2,16 +2,26 @@
 Options -Indexes
 
 # Protect sensitive files from direct access
-<FilesMatch "(^\.env|\.log$|\.sql$|composer\.(json|lock)$)">
-    Order allow,deny
-    Deny from all
+<FilesMatch "(^\.env|^\.env\..*|\.log$|\.sql$|composer\.(json|lock)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # Protect the includes directory from direct browser access
 # (Files inside are not executable directly, but we block them anyway)
 <FilesMatch "^(security|permissions|auth|audit|dotenv|api-auth|header|sidebar|footer)\.php$">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # Security Headers (fallback - PHP also sets these; kept consistent with setSecurityHeaders())
@@ -26,8 +36,13 @@ Options -Indexes
 
 # Block common secret/config remnants anywhere in the tree
 <FilesMatch "(^config\.bak$|\.bak$|\.orig$|~$)">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # WP12: never serve version control, dependency manifests, cron internals,
@@ -38,7 +53,3 @@ Options -Indexes
     RewriteRule (^|/)\.git(/|$) - [F]
     RewriteRule ^(cron|vendor)(/|$) - [F]
 </IfModule>
-<FilesMatch "(^composer\.(json|lock)$)">
-    Order allow,deny
-    Deny from all
-</FilesMatch>

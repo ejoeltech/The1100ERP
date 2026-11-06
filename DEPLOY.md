@@ -31,7 +31,11 @@ cp .env.example .env       # then fill in real DB credentials (never commit)
 ## 3. Configure
 Put secrets in the environment, never in code (WP1). Either export real
 environment variables, set `APP_SECRETS_FILE` to a file outside the web
-root, or fill in `.env` (gitignored — copy from `.env.example`):
+root, or fill in `.env` (gitignored — copy from `.env.example`).
+
+**Production:** prefer `APP_SECRETS_FILE` outside the document root. A `.env`
+inside the web root is only a development fallback; protect it with the
+Apache/Nginx configuration as well as the repository's `.htaccess`.
 ```env
 DB_HOST=localhost
 DB_NAME=1100erp
