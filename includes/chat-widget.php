@@ -82,6 +82,21 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
         chatUrl: '<?php echo isset($base_path) ? $base_path : "."; ?>/api/ai/chat.php'
     };
 
+    function chatEscape(value) {
+        return String(value ?? '').replace(/[&<>"']/g, m => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[m]));
+    }
+
+    function chatSafeHref(value) {
+        try {
+            const url = new URL(String(value), window.location.origin);
+            return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : '#';
+        } catch (e) {
+            return '#';
+        }
+    }
+
     function toggleAiChat() {
         const chat = document.getElementById('ai-chat-window');
         chat.classList.toggle('hidden');
@@ -133,7 +148,7 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
                     // Headers
                     tableHtml += `<thead class="bg-gray-50"><tr>`;
                     Object.keys(data.data[0]).forEach(key => {
-                        tableHtml += `<th class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">${key}</th>`;
+                        tableHtml += `<th class="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">${chatEscape(key)}</th>`;
                     });
                     tableHtml += `</tr></thead><tbody class="bg-white divide-y divide-gray-200">`;
 
@@ -141,19 +156,20 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
                     data.data.forEach(row => {
                         tableHtml += `<tr>`;
                         Object.values(row).forEach(val => {
-                            tableHtml += `<td class="px-2 py-1 text-gray-700 whitespace-nowrap">${val}</td>`;
+                            tableHtml += `<td class="px-2 py-1 text-gray-700 whitespace-nowrap">${chatEscape(val)}</td>`;
                         });
                         tableHtml += `</tr>`;
                     });
                     tableHtml += `</tbody></table></div>`;
 
-                    addMessage(data.content + tableHtml, 'bot', false, true); // Allow HTML
+                    addMessage(chatEscape(data.content) + tableHtml, 'bot', false, true); // Safe HTML only
                 } else {
                     addMessage(data.content + " (No results found)", 'bot');
                 }
 
             } else if (data.type === 'action' && data.action_url) {
-                addMessage(`${data.content} <br><a href="${data.action_url}" class="inline-block mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Go there &rarr;</a>`, 'bot', false, true);
+                const actionHref = chatSafeHref(data.action_url);
+                addMessage(`${chatEscape(data.content)} <br><a href="${chatEscape(actionHref)}" class="inline-block mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Go there &rarr;</a>`, 'bot', false, true);
             } else {
                 // Text only
                 addMessage(data.content, 'bot');

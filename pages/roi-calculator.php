@@ -254,7 +254,9 @@ include '../includes/public-header.php';
                 document.getElementById('breakdownText').textContent = result.data.breakdown_text || 'No details available.';
 
                 // Update AI Text (render HTML safely)
-                document.getElementById('aiAnalysis').innerHTML = result.ai_analysis;
+                const aiAnalysisEl = document.getElementById('aiAnalysis');
+                aiAnalysisEl.textContent = result.ai_analysis || '';
+                aiAnalysisEl.style.whiteSpace = 'pre-line';
             } else {
                 alert('Calculation Error: ' + (result.error || 'Unknown error'));
             }

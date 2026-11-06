@@ -59,6 +59,12 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
 <script>
 let storePickerCallback = null;
 
+function pickerEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
 function openProductPicker(callback) {
     storePickerCallback = callback;
     document.getElementById('productPickerModal').classList.remove('hidden');
@@ -80,7 +86,11 @@ async function loadPickerCategories() {
         select.innerHTML = '<option value="">All Categories</option>';
         if (res.success) {
             res.data.forEach(cat => {
-                select.innerHTML += `<option value="${cat.id}" ${cat.id == currentVal ? 'selected' : ''}>${cat.name}</option>`;
+                const option = document.createElement('option');
+                option.value = String(cat.id);
+                option.textContent = String(cat.name ?? '');
+                if (String(cat.id) === currentVal) option.selected = true;
+                select.appendChild(option);
             });
         }
     } catch (e) {}
@@ -105,17 +115,17 @@ async function loadPickerItems() {
                 tr.className = 'hover:bg-blue-50 cursor-pointer transition-colors group';
                 tr.onclick = () => selectItem(item);
                 tr.innerHTML = `
-                    <td class="px-6 py-4 font-mono text-gray-500">${item.sku || '-'}</td>
+                    <td class="px-6 py-4 font-mono text-gray-500">${pickerEsc(item.sku || '-')}</td>
                     <td class="px-6 py-4">
-                        <div class="font-bold text-gray-900">${item.name}</div>
-                        <div class="text-xs text-gray-400">${item.category_name || ''}</div>
+                        <div class="font-bold text-gray-900">${pickerEsc(item.name)}</div>
+                        <div class="text-xs text-gray-400">${pickerEsc(item.category_name || '')}</div>
                     </td>
                     <td class="px-6 py-4 text-right font-bold text-gray-900">
                         ₦${Number(item.price).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="${item.stock_quantity <= item.minimum_stock ? 'text-red-500 font-bold' : 'text-gray-600'}">
-                            ${item.stock_quantity} ${item.unit || ''}
+                        <span class="${Number(item.stock_quantity) <= Number(item.minimum_stock) ? 'text-red-500 font-bold' : 'text-gray-600'}">
+                            ${Number(item.stock_quantity) || 0} ${pickerEsc(item.unit || '')}
                         </span>
                     </td>
                     <td class="px-3 py-4 text-center">
