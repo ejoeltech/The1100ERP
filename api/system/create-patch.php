@@ -48,6 +48,28 @@ foreach ($files as $name => $file) {
         // Get real and relative path for current file
         $filePath = $file->getRealPath();
         $relativePath = substr($filePath, strlen($rootPath) + 1);
+        $relNorm = str_replace('\\', '/', $relativePath);
+        $relBase = basename($relNorm);
+
+        // Never bundle installer files or a template the applier rejects.
+        if ($relBase === 'config.sample.php' || strpos($relBase, '.env') === 0) {
+            continue;
+        }
+        if (strpos($relNorm, 'maintenance/setup/') === 0 || $relNorm === 'maintenance/setup') {
+            continue;
+        }
+        // Dependencies and generated exports are already on the server and
+        // can make an update package far larger than the upload limit.
+        if (strpos($relNorm, 'vendor/') === 0 || strpos($relNorm, 'exports/') === 0) {
+            continue;
+        }
+        // Never ship uploaded media/PII or previous patch archives.
+        if (strpos($relNorm, 'uploads/') === 0 || strpos($relNorm, '/uploads/') !== false) {
+            continue;
+        }
+        if (preg_match('/\.zip$/i', $relBase)) {
+            continue;
+        }
 
         // EXCLUSIONS
         // Skip .git, .vscode, node_modules, config.php, uploads, logs, brain, .gemini, database/backups.

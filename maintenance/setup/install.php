@@ -24,6 +24,16 @@ if (install_is_installed()) {
     // the cleanup form, both for logged-in admins only. (config.php exists
     // this late, so the normal session bootstrap works.)
     // Everything else stays refused.
+    $finalizeSessionOk = !empty($_SESSION['install_finalized_ok'])
+        && (time() - (int)$_SESSION['install_finalized_ok']) < 900;
+    if (($_POST['action'] ?? '') === 'final_check' && $finalizeSessionOk) {
+        // Same wizard session that just finalized: run the final schema check
+        // without auto-logging an admin in. Cleanup still requires real login.
+        require_once dirname(__DIR__, 2) . '/config.php';
+        unset($_SESSION['install_finalized_ok']);
+        $response = ['success' => false, 'message' => ''];
+        runFinalCheck();
+    }
     if (in_array(($_POST['action'] ?? ''), ['final_check', 'csrf_token'], true)) {
         require_once dirname(__DIR__, 2) . '/config.php';
         require_once dirname(__DIR__, 2) . '/includes/session-check.php';
@@ -581,6 +591,10 @@ function finalizeInstallation()
         unset($_SESSION['install_token_ok']);
 
         @chmod($configFile, 0644);
+
+        // Allow this wizard session to run the Step-7 final schema check. It
+        // does not log the admin in; cleanup still requires a normal login.
+        $_SESSION['install_finalized_ok'] = time();
 
         $response['success'] = true;
         $response['message'] = 'Installation finalized. Log in with the administrator account you created.';

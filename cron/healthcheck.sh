@@ -38,7 +38,7 @@ if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "302" ] && [ "$HTTP_CODE" != "
 fi
 
 # 2) Database
-if ! mysql -h "${DB_HOST:-localhost}" -u "$DB_USER" ${DB_PASS:+-p"$DB_PASS"} -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1; then
+if ! MYSQL_PWD="$DB_PASS" mysql -h "${DB_HOST:-localhost}" -u "$DB_USER" -e "SELECT 1" "$DB_NAME" >/dev/null 2>&1; then
   PROBLEMS+=("Database unreachable ($DB_USER@${DB_HOST:-localhost}/$DB_NAME)")
 fi
 

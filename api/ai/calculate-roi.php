@@ -8,6 +8,12 @@ header('Content-Type: application/json');
 require_once '../../includes/public-init.php';
 require_once '../../includes/groq-config.php';
 
+if (empty($_SESSION['user_id']) && getSetting('ai_enable_public_access', '1') !== '1') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Public AI access is disabled.']);
+    exit;
+}
+
 // No auth check required for calculator
 /*
 if (!isset($_SESSION['user_id'])) {

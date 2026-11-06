@@ -1,6 +1,7 @@
 <?php
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
+require_once '../../includes/invites.php';
 
 requirePermission('manage_settings');
 
@@ -24,6 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (($_POST['confirm'] ?? '') !== 'RESTORE') {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'Type RESTORE to confirm this restore.']);
+    exit;
+}
+$reauthIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!throttleCheck('reauth:' . ($_SESSION['user_id'] ?? 0) . ':' . $reauthIp, 5, 900)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Too many re-authentication attempts. Try again later.']);
     exit;
 }
 $reauthPassword = $_POST['admin_password'] ?? '';

@@ -206,8 +206,9 @@ function callAiAPI($prompt, $systemPrompt = '', $options = [], $override = []) {
     // double count.
     if (empty($options['skip_rate_limit'])) {
         require_once __DIR__ . '/ai-rate-limiter.php';
-        $tool = preg_replace('/[^A-Za-z0-9_]/', '_', basename($_SERVER['SCRIPT_NAME'] ?? 'ai_call', '.php'));
-        if ($tool === '' || $tool === null) $tool = 'ai_call';
+        // One logical quota shared by every AI endpoint; the script name is
+        // metadata only, not a separate bucket.
+        $tool = 'ai';
         $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
         $rateLimiter = new AiRateLimiter($tool, $userId);
         $rateParams = [
@@ -216,8 +217,12 @@ function callAiAPI($prompt, $systemPrompt = '', $options = [], $override = []) {
             'model' => (string)$model,
         ];
         $rateLimiter->checkLimit($rateParams);
+        // Approximate token cost so the monthly budget is meaningful even when
+        // the provider does not return usage metadata.
+        $estimatedTokens = max(1, (int)ceil((strlen((string)$prompt) + strlen((string)$systemPrompt)) / 4)
+            + (int)(($options['max_tokens'] ?? 2048) / 2));
         // Count the attempt now; provider failures still consume a slot.
-        $rateLimiter->logUsage(AiRateLimiter::generateRequestHash($rateParams), 0, 0, true);
+        $rateLimiter->logUsage(AiRateLimiter::generateRequestHash($rateParams), $estimatedTokens, 0, true);
     }
 
     // Gemini has different API shape

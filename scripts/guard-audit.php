@@ -1,5 +1,9 @@
 #!/usr/bin/env php
 <?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    exit('Forbidden: run from the CLI.');
+}
 /**
  * guard-audit.php — static route-exposure report (WP0-F, extended in WP3).
  *

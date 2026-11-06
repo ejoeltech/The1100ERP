@@ -50,9 +50,12 @@ if ($isWindows) {
     }
 }
 
-// 1. Generate SQL Dump
+// 1. Generate SQL Dump. Use an unpredictable temp name with restrictive
+// permissions and pass the DB password through the child environment.
 $sqlFilename = 'backup_' . DB_NAME . '_' . $scopeLabel . '_' . date('Y-m-d_H-i-s') . '.sql';
-$sqlPath = sys_get_temp_dir() . '/' . $sqlFilename;
+$sqlPath = sys_get_temp_dir() . '/erp_backup_' . bin2hex(random_bytes(8)) . '.sql';
+@touch($sqlPath);
+@chmod($sqlPath, 0600);
 
 // Scoped dumps list explicit tables (from the internal map above).
 $tableArgs = '';
@@ -60,11 +63,10 @@ foreach ($scopeTables as $t) {
     $tableArgs .= ' ' . escapeshellarg($t);
 }
 $command = sprintf(
-    '%s --host=%s --user=%s --password=%s --routines %s%s > %s',
+    '%s --host=%s --user=%s --routines %s%s > %s',
     $dumpCommand,
     escapeshellarg(DB_HOST),
     escapeshellarg(DB_USER),
-    escapeshellarg(DB_PASS),
     escapeshellarg(DB_NAME),
     $tableArgs,
     $isWindows ? '"' . $sqlPath . '"' : escapeshellarg($sqlPath)
@@ -74,7 +76,13 @@ if ($isWindows) {
     $command = 'cmd /c "' . $command . '"';
 }
 
-exec($command, $output, $returnVar);
+putenv('MYSQL_PWD=' . DB_PASS);
+try {
+    exec($command, $output, $returnVar);
+} finally {
+    putenv('MYSQL_PWD');
+}
+@chmod($sqlPath, 0600);
 
 if ($returnVar !== 0) {
     @unlink($sqlPath);

@@ -17,10 +17,12 @@ if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
 foreach ($d in @('uploads\logo', 'tmp\mpdf', 'storage', 'logs', 'exports')) {
     New-Item -ItemType Directory -Force (Join-Path $Dest $d) | Out-Null
 }
-foreach ($f in @('storage\.htaccess', 'logs\.htaccess', 'tmp\.htaccess', 'exports\.htaccess')) {
+foreach ($f in @('storage\.htaccess', 'logs\.htaccess', 'tmp\.htaccess', 'exports\.htaccess', 'uploads\.htaccess')) {
     Copy-Item (Join-Path $src $f) (Join-Path $Dest (Split-Path $f -Parent)) -Force
 }
-Remove-Item (Join-Path $Dest 'maintenance\setup\lock') -Force -ErrorAction SilentlyContinue
+foreach ($f in @('maintenance\setup\lock', 'maintenance\setup\ALLOW_INSTALL', 'maintenance\setup\install.token', 'maintenance\setup\.install-attempts')) {
+    Remove-Item (Join-Path $Dest $f) -Force -ErrorAction SilentlyContinue
+}
 
 # Ship the upgrade schema at package root (upload + run via phpMyAdmin to
 # repair schema drift; System Update page is the preferred path).
@@ -28,7 +30,7 @@ Copy-Item (Join-Path $src 'database\upgrade-schema.sql') (Join-Path $Dest 'upgra
 
 # Sanity: fail loudly if anything secret or stateful slipped in.
 # (config.sample.php is REQUIRED as the installer template, so it is exempt.)
-$bad = Get-ChildItem -Path $Dest -Recurse -Include *.md, .env*, config.php, restore.php -File |
+$bad = Get-ChildItem -Path $Dest -Recurse -Include *.md, .env*, config.php, restore.php, ALLOW_INSTALL, install.token, .install-attempts -File |
     Where-Object { $_.Name -ne 'config.sample.php' }
 if ($bad) { throw ("Banned files in package: " + (($bad.FullName) -join ', ')) }
 if (Test-Path (Join-Path $Dest '.git')) { throw '.git leaked into package' }

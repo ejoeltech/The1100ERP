@@ -13,6 +13,12 @@ require_once '../../includes/ai-json.php';
 
 header('Content-Type: application/json');
 
+if (empty($_SESSION['user_id']) && getSetting('ai_enable_public_access', '1') !== '1') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Public AI access is disabled.']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed']);

@@ -23,6 +23,11 @@ if (empty($message)) {
     echo json_encode(['error' => 'Empty message']);
     exit;
 }
+if (function_exists('mb_substr')) {
+    $message = mb_substr((string)$message, 0, 4000);
+} else {
+    $message = substr((string)$message, 0, 4000);
+}
 
 try {
     // 1. Define System Context & Tools
@@ -103,6 +108,10 @@ try {
 
     echo json_encode($responsePayload);
 
+} catch (PDOException $e) {
+    error_log('AI chat data query failed: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'The data query failed. Please try again.']);
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);
