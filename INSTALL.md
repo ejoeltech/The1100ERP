@@ -11,7 +11,7 @@ This comprehensive guide covers the installation, configuration, and troubleshoo
 1100-ERP comes with a built-in setup wizard to simplify installation.
 
 ### Step 1: Upload Files
-1.  Upload the contents of the `1100erp_production_v5.zip` (or latest version) to your web server (e.g., `public_html` or a subdomain folder).
+1.  Upload the contents of the latest release archive to your web server (e.g., `public_html` or a subdomain folder).
 2.  Ensure file permissions are correct (folders `755`, files `644`).
 
 ### Step 2: Create Database
@@ -22,7 +22,7 @@ This comprehensive guide covers the installation, configuration, and troubleshoo
 5.  **Important**: Grant "ALL PRIVILEGES" to the user for that database.
 
 ### Step 3: Run the Setup Wizard
-1.  Open your browser and navigate to your site URL: `https://your-site.com/setup/`
+1.  Open your browser and navigate to your site URL: `https://your-site.com/maintenance/setup/`
 2.  Follow the on-screen prompts:
     *   **Database Config**: Enter your database name, user, and password.
     *   **Admin Account**: Create your initial administrator login.
@@ -35,7 +35,7 @@ This comprehensive guide covers the installation, configuration, and troubleshoo
 If the setup wizard does not work or you prefer manual control:
 
 1.  **Configure Database**:
-    *   Import `database/install-schema.sql` into your database using phpMyAdmin.
+    *   Import `maintenance/setup/install-schema.sql` into your database using phpMyAdmin.
 2.  **Configure Secrets (WP1: no secrets in code)**:
     *   Copy `config.sample.php` to `config.php` (secret-free loader, gitignored).
     *   Copy `.env.example` to `.env` and fill in real values
@@ -52,17 +52,17 @@ If you need to run the installation wizard again (e.g., after a failed install o
 
 **To unlock the installer:**
 1.  Open your File Manager (cPanel or FTP).
-2.  Navigate to the `setup/` folder inside your 1100-ERP directory.
+2.  Navigate to `maintenance/setup/` inside your 1100-ERP directory.
 3.  Look for a file named **`lock`** (it has no file extension).
 4.  **Delete** this file.
-5.  Navigate back to `https://your-site.com/setup/`, and the wizard will restart.
+5.  Navigate back to `https://your-site.com/maintenance/setup/`, and the wizard will restart.
 
 ### Updating to a New Version
 1.  Upload the new files (overwrite existing ones).
-2.  After installing, run the schema patcher from **System Update** (admin nav) or during setup via `maintenance/setup/run-schema-update.php`.
+2.  After installing, run the schema patcher from **Settings → Maintenance → System Updates → Run Schema Patcher**.
 3.  This script will automatically add any missing database columns or configuration settings required by the new version.
 
 ### Common Issues
-*   **"Too Many Redirects"**: Ensure your `config.php` has the fix for CDN assets (change local Tom Select paths to CDN).
-*   **White Screen on Quote Page**: Check that `COMPANY_LOGO` is defined in `config.php` (run **System Update** as admin to fix this automatically).
+*   **"Too Many Redirects"**: Clear stale browser assets/cache and verify the configured `APP_URL` matches the real site URL.
+*   **White Screen on Quote Page**: Verify the company logo is set in **Settings → Company** and run **System Updates → Run Schema Patcher**.
 *   **Mobile Table Issues**: Clear your browser cache to load the latest JavaScript fixes.

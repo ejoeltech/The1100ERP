@@ -4,27 +4,23 @@ This ERP system contains placeholder values for company information. **You must 
 
 ## Required Changes
 
-### 1. Company Information (`config.php`)
+### 1. Company Information (Settings)
 
-Update the following constants:
+Sign in as an administrator and open **Settings → Company**. Set the company
+name, address, phone, email, website, logo, and document footer there. These
+values are stored in the database, not in `config.php`.
 
-```php
-define('COMPANY_NAME', 'Your Company Name');        // Your actual company name
-define('COMPANY_ADDRESS', 'Your Company Address, City, State/Province, Country');  // Your full business address
-define('COMPANY_PHONE', '+1234567890');             // Your phone number
-define('COMPANY_EMAIL', 'contact@yourcompany.com'); // Your business email
-define('COMPANY_WEBSITE', 'www.yourcompany.com');   // Your website URL
-```
+### 2. Database Configuration (`.env` / `APP_SECRETS_FILE`)
 
-### 2. Database Configuration (`config.php`)
+Put database credentials in `.env` (local) or in the file referenced by
+`APP_SECRETS_FILE` (production, outside the web root). Never edit secrets into
+`config.php`; it is only the secret-free loader.
 
-Update database connection settings:
-
-```php
-define('DB_HOST', 'localhost');     // Your database host
-define('DB_NAME', '1100erp'); // Your database name
-define('DB_USER', 'root');          // Your database username  
-define('DB_PASS', '');              // Your database password (change for production!)
+```env
+DB_HOST=localhost
+DB_NAME=1100erp
+DB_USER=your_db_user
+DB_PASS=your_db_password
 ```
 
 ### 3. Bank Accounts
@@ -57,21 +53,20 @@ For production email sending:
 - **Review user permissions** and update default admin password
 - **Back up database** regularly
 
-## Default Login Credentials
+## First Login
 
-⚠️ **CHANGE THESE IMMEDIATELY AFTER FIRST LOGIN**
-
-- Username: `admin`
-- Password: `admin123`
+There are no default credentials. The setup wizard creates the first
+administrator account with the password you choose. If you install manually,
+create the first admin through the wizard or the user-management flow; never
+ship a known default password.
 
 ## Quick Start
 
-1. Import database: `database/erp_schema.sql`
-2. Run migrations in `database/` folder
-3. Update `config.php` with your details
-4. Access via web browser
-5. Login and change admin password
-6. Configure settings
+1. Open the setup wizard at `maintenance/setup/` on your server.
+2. Enter the database and first-admin details.
+3. Set `APP_SECRETS_FILE` (production) or `.env` with the database credentials.
+4. Run **Settings → Maintenance → System Updates → Run Schema Patcher**.
+5. Log in and configure company details, banks, and AI settings.
 
 ## Support
 
