@@ -8,19 +8,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 try {
     $pdo->beginTransaction();
 
-    $invoice_id = intval($_POST['invoice_id']);
-    $receipt_date = $_POST['receipt_date'];
-    $payment_method = trim($_POST['payment_method']);
-    $amount_paid = floatval($_POST['amount_paid']);
-    $payment_reference = trim($_POST['payment_reference']);
-    $notes = trim($_POST['notes']);
+    $invoice_id = intval($_POST['invoice_id'] ?? 0);
+    $receipt_date = $_POST['receipt_date'] ?? date('Y-m-d');
+    $payment_method = trim($_POST['payment_method'] ?? '');
+    $amount_paid = floatval($_POST['amount_paid'] ?? 0);
+    $payment_reference = trim($_POST['payment_reference'] ?? '');
+    $notes = trim($_POST['notes'] ?? '');
 
-    // Fetch invoice
+    // Fetch and LOCK the invoice so two concurrent receipts cannot both
+    // pass the remaining-balance check and overpay it.
     $stmt = $pdo->prepare("
         SELECT * FROM invoices 
         WHERE id = ? 
-        AND status = 'finalized'
+        AND status IN ('finalized', 'partial')
         AND deleted_at IS NULL
+        FOR UPDATE
     ");
     $stmt->execute([$invoice_id]);
     $invoice = $stmt->fetch();
@@ -102,15 +104,13 @@ try {
     $new_amount_paid = $invoice['amount_paid'] + $amount_paid;
     $new_balance_due = $invoice['grand_total'] - $new_amount_paid;
 
-    // Determine status (paid vs partially_paid)
+    // Determine status (paid vs partial). The invoices enum uses 'partial'.
     $new_status = $invoice['status'];
     if ($new_balance_due <= 0) {
-        $new_status = 'paid'; // Or 'finalized' meant something else? Schema has 'paid', 'partially_paid'.
-        // Original code kept/set status to 'finalized'. Schema Enum for invoices: 'draft', 'sent', 'paid', 'partially_paid', 'overdue', 'cancelled'.
-        // I should set it to 'paid' or 'partially_paid'.
+        $new_status = 'paid';
         $new_balance_due = 0;
     } else {
-        $new_status = 'partially_paid';
+        $new_status = 'partial';
     }
 
     $stmt = $pdo->prepare("
