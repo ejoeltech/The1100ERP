@@ -35,6 +35,16 @@ try {
     if (!$recipientEmail) {
         throw new Exception('Recipient email required');
     }
+    if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $recipientEmail)) {
+        throw new Exception('Invalid recipient email address');
+    }
+    $recipientName = trim(str_replace(["\r", "\n"], ' ', $recipientName));
+    if ($subject !== null) {
+        $subject = trim(str_replace(["\r", "\n"], ' ', $subject));
+        if (function_exists('mb_substr')) {
+            $subject = mb_substr($subject, 0, 255);
+        }
+    }
 
     // Verify document exists and user has permission to view it
     $document = null;
@@ -65,6 +75,9 @@ try {
     $bcc = null;
     if (!empty($_POST['bcc_salesperson']) && !empty($document['salesperson'])) {
         $bcc = resolveSalespersonEmail($document['salesperson']);
+        if ($bcc !== null && (!filter_var($bcc, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', (string)$bcc))) {
+            $bcc = null;
+        }
     }
 
     // Send email
