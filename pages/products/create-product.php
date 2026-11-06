@@ -133,7 +133,7 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function openAiModal() {
         document.getElementById('aiModal').classList.remove('hidden');
         document.getElementById('aiInput').focus();

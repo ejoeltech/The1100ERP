@@ -215,7 +215,7 @@ include '../includes/header.php';
     <?php endif; ?>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     const container = document.getElementById('template-container');
     const gridBtn = document.getElementById('grid-view-btn');
     const listBtn = document.getElementById('list-view-btn');

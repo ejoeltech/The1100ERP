@@ -278,9 +278,9 @@ include '../includes/header.php';
 </div>
 
 <script src="../assets/js/bulk-actions.js"></script>
-<script>initBulkActions('quote');</script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">initBulkActions('quote');</script>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // WP4: POST helper for state-changing actions (CSRF token from meta tag).
     function postApiAction(path, params) {
         const form = document.createElement('form');

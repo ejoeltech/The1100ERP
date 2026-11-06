@@ -62,7 +62,7 @@ include_once '../../../includes/header.php';
             </button>
         <?php endif; ?>
         <div id="payrollGenMsg" class="text-sm mt-2"></div>
-        <script>
+        <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
             async function generatePayroll(month, year) {
                 const btn = document.getElementById('generatePayrollBtn');
                 const msg = document.getElementById('payrollGenMsg');

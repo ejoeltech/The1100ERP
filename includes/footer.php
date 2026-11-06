@@ -29,7 +29,7 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
     </div>
 </footer>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // Mobile menu toggle functionality
     function toggleMobileMenu() {
         const menu = document.getElementById('mobileMenu');

@@ -362,7 +362,7 @@ include '../../includes/header.php';
     echo json_encode($specFieldsForJs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?></script>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     const DATASHEETS = JSON.parse(document.getElementById('datasheetData').textContent);
     const DATASHEET_FIELDS = JSON.parse(document.getElementById('datasheetFields').textContent);
     const REQUIRED_SPECS = {

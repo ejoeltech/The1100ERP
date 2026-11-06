@@ -10,6 +10,18 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
 // CSRF Protection
 // ============================================
 
+/**
+ * Per-request CSP nonce. Generated lazily so pages can stamp inline scripts
+ * before or after setSecurityHeaders() runs.
+ */
+function cspNonce()
+{
+    if (empty($GLOBALS['csp_nonce'])) {
+        $GLOBALS['csp_nonce'] = base64_encode(random_bytes(18));
+    }
+    return $GLOBALS['csp_nonce'];
+}
+
 function generateCSRFToken() {
     if (!isset($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -351,10 +363,11 @@ function setSecurityHeaders() {
     // Content Security Policy
     // Note: 'unsafe-inline' + 'unsafe-eval' currently required for Tailwind CDN (uses eval) and dynamic styles.
     // Everything else is locked down: no plugins, no foreign frames/forms, no base hijack.
-    // Remaining debt: 'unsafe-inline'/'unsafe-eval' are required by the
-    // current inline handlers and Tailwind CDN. Remove them after migrating
-    // inline scripts to nonces/hashed files.
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
+    // Inline <script> elements carry a per-request nonce. Inline event
+    // handlers (onclick etc.) still need script-src-attr; migrate them next.
+    // unsafe-eval was removed after verifying it is not required.
+    $nonce = cspNonce();
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
 }
 
 // ============================================

@@ -77,7 +77,7 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
     </button>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     const GROQ_CONFIG = {
         chatUrl: '<?php echo isset($base_path) ? $base_path : "."; ?>/api/ai/chat.php'
     };

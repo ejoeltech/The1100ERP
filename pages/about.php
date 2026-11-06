@@ -47,7 +47,7 @@ include '../includes/header.php';
 </div>
 
 <?php if ($canManage): ?>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 async function aboutCheckUpdates() {
     const btn = document.getElementById('about-check-btn');
     const out = document.getElementById('about-update-result');

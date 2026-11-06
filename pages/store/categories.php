@@ -64,7 +64,7 @@ include '../../includes/header.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 document.addEventListener('DOMContentLoaded', loadCategories);
 
 async function loadCategories() {

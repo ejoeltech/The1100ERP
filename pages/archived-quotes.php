@@ -178,6 +178,6 @@ include '../includes/header.php';
 <?php endif; ?>
 
 <script src="../assets/js/bulk-actions.js"></script>
-<script>initBulkActions('quote');</script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">initBulkActions('quote');</script>
 
 <?php include '../includes/footer.php'; ?>

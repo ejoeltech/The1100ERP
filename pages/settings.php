@@ -840,7 +840,7 @@ include '../includes/header.php';
 
         </div>
 
-        <script>
+        <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
             const AI_PROVIDERS = <?php echo json_encode($providers); ?>;
             const CURRENT_PROVIDER = <?php echo json_encode($currentProvider); ?>;
             const CURRENT_MODEL = <?php echo json_encode($currentModel); ?>;
@@ -922,7 +922,7 @@ include '../includes/header.php';
 
     </div>
 
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         function togglePasswordVisibility(btn) {
             const input = btn.previousElementSibling;
             const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -1098,7 +1098,7 @@ include '../includes/header.php';
                         Download Backup
                     </a>
 
-                    <script>
+                    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                         function setBackupScopeAll() {
                             document.querySelectorAll('input[name="backup_scope"]').forEach(c => c.checked = true);
                             updateBackupLink();
@@ -1245,7 +1245,7 @@ include '../includes/header.php';
                     </div>
                 </div>
 
-                <script>
+                <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                     function updatePatchLink() {
                         const h = document.getElementById('patchHours').value || 0;
                         const m = document.getElementById('patchMinutes').value || 0;
@@ -1478,7 +1478,7 @@ include '../includes/header.php';
                 </div>
             </div>
 
-            <script>
+            <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                 function runDiagnostics(type) {
                     const btn = document.getElementById('btn-' + type);
                     const results = document.getElementById('diag-results');
@@ -1518,7 +1518,7 @@ include '../includes/header.php';
 
     </div>
 
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         // A non-JSON response (HTML error page, WAF block, fatal) must produce a
         // readable message instead of "Unexpected token '<'".
         async function readJsonResponse(res) {
@@ -1658,7 +1658,7 @@ include '../includes/header.php';
 
     <link rel="stylesheet" href="../assets/vendors/quill/quill.snow.css">
     <script src="../assets/js/quill-loader.js"></script>
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     loadQuill(function () {
         if (typeof Quill === 'undefined') return;
         QuillHelper.create('quote_terms', { height: 300 });
@@ -1666,7 +1666,7 @@ include '../includes/header.php';
     }, '../assets');
     </script>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function switchTab(tabName) {
         // Hide all tab contents
         document.querySelectorAll('.tab-content').forEach(content => {
@@ -1752,7 +1752,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function showResetModal() {
         document.getElementById('resetModal').classList.remove('hidden');
         document.getElementById('resetPassword').value = '';
@@ -1866,7 +1866,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // Bank Account Management Functions
     function showAddBankModal() {
         document.getElementById('modalTitle').textContent = 'Add Bank Account';

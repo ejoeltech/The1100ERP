@@ -207,7 +207,7 @@ include '../includes/header.php';
     </form>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     document.getElementById('emailForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         const form = e.target;

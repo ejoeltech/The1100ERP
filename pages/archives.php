@@ -302,7 +302,7 @@ include '../includes/header.php';
     </div>
 <?php endif; ?>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     let selectedItems = new Map(); // { 'quote': Set(), 'invoice': Set(), 'receipt': Set() }
     let currentTab = 'quote'; // singular
 

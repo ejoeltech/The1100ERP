@@ -246,6 +246,6 @@ include '../includes/header.php';
 </div>
 
 <script src="../assets/js/bulk-actions.js"></script>
-<script>initBulkActions('invoice');</script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">initBulkActions('invoice');</script>
 
 <?php include '../includes/footer.php'; ?>

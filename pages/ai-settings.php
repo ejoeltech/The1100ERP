@@ -281,7 +281,7 @@ $cacheHitRate = $stats['cache_stats']['total_cached'] > 0
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 // Cost Chart
 const ctx = document.getElementById('costChart').getContext('2d');
 const dailyCosts = <?= json_encode(array_reverse($stats['daily_costs'])) ?>;

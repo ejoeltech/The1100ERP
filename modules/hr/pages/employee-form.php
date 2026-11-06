@@ -439,7 +439,7 @@ include_once '../../../includes/header.php';
 </form>
 
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // Image Preview for Passport
     const passportInput = document.getElementById('passportInput');
     if (passportInput) {

@@ -139,7 +139,7 @@ include '../../includes/header.php';
 <?php include '../../includes/footer.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function deleteCustomer(id) {
         Swal.fire({
             title: 'Are you sure?',

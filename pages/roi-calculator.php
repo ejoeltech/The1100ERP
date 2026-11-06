@@ -190,7 +190,7 @@ include '../includes/public-header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function setMode(mode) {
         document.getElementById('calcMode').value = mode;
 

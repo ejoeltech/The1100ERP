@@ -139,7 +139,7 @@ function loginAuditLog($pdo, $username, $ip, $outcome)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - ERP System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         tailwind.config = {
             theme: {
                 extend: {

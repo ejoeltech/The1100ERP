@@ -1000,7 +1000,7 @@ $b = hexdec(substr($hex, 4, 2));
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     'use strict';
 
     const STORAGE_KEY = 'systemDesignerData';

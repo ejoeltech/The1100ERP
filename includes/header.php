@@ -38,7 +38,7 @@ if (function_exists('setSecurityHeaders')) {
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Tailwind Config -->
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         tailwind.config = {
             theme: {
                 extend: {

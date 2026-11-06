@@ -192,7 +192,7 @@ if (isset($_GET['invoice_id'])) {
 
     <?php include '../../includes/footer.php'; ?>
 
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         // Init Tom Select
         var tomSelectInstance = new TomSelect("#customer", {
             create: false,

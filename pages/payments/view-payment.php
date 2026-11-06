@@ -208,7 +208,7 @@ $pageTitle = 'Payment ' . $payment['payment_number'];
         </div>
     </main>
     </div>
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         async function voidReceipt(id) {
             const reason = prompt("Please enter a reason for voiding this receipt:");
             if (!reason) return;

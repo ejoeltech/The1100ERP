@@ -346,7 +346,7 @@ $requirements = checkRequirements();
     </div>
 
     <script src="assets/wizard.js"></script>
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         // Server-minted CSRF token for Step-7 AJAX (same session the gate validates).
         window.INSTALL_CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
         window.step7Checked = false;

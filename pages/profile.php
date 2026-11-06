@@ -98,7 +98,7 @@ echo csrfField();
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // Initialize Signature Pad
     const canvas = document.getElementById('signature-pad');
 

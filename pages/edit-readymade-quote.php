@@ -153,7 +153,7 @@ include '../includes/header.php';
     </form>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     // Existing line items data
     const existingLineItems = <?php echo json_encode($existingLineItems); ?>;
 </script>

@@ -149,7 +149,7 @@ $lockedGroup = $editing && in_array($editing['name'], ['super_admin', 'developer
                     <button type="button" onclick="setAllGroupPerms(false)" class="px-3 py-1 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-xs">Deselect all</button>
                 </div>
             </div>
-            <script>
+            <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                 function setAllGroupPerms(on) {
                     document.querySelectorAll('input[name="permissions[]"]').forEach(function (cb) { cb.checked = on; });
                 }

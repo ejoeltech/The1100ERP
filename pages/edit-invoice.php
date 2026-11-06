@@ -253,7 +253,7 @@ include '../includes/header.php';
 </div>
 
 <!-- Load existing line items data -->
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     const existingLineItems = <?php echo json_encode($line_items); ?>;
 </script>
 
@@ -261,7 +261,7 @@ include '../includes/header.php';
 <script src="../assets/js/quote-form.js?v=2"></script>
 <script src="../assets/js/edit-invoice.js?v=2"></script>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     function updateBalanceDue() {
         const grandTotal = parseFloat(document.getElementById('grandTotalInput').value) || 0;
         const amountPaid = parseFloat(document.getElementById('amountPaidInput').value) || 0;

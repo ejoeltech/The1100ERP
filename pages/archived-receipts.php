@@ -179,6 +179,6 @@ include '../includes/header.php';
 <?php endif; ?>
 
 <script src="../assets/js/bulk-actions.js"></script>
-<script>initBulkActions('receipt');</script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">initBulkActions('receipt');</script>
 
 <?php include '../includes/footer.php'; ?>

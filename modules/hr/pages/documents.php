@@ -96,7 +96,7 @@ include_once '../../../includes/header.php';
 </div>
 
 <script src="<?php echo $base_path; ?>/assets/js/quill-loader.js"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     var documentQuill = null;
 
     loadQuill(function () {
@@ -104,7 +104,7 @@ include_once '../../../includes/header.php';
         documentQuill = QuillHelper.create('documentEditor', { height: 500 });
     }, '<?php echo $base_path; ?>/assets');
 </script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 
     async function generateDocument(e) {
         e.preventDefault();

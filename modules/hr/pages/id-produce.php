@@ -41,7 +41,7 @@ include_once '../../../includes/header.php';
 <script src="../assets/idmaker/vendor/html2canvas.min.js"></script>
 <script src="../assets/idmaker/vendor/qrcode.min.js"></script>
 <script src="../assets/idmaker/vendor/JsBarcode.all.min.js"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 window.IDM_FALLBACK_PHOTO = 'https://ui-avatars.com/api/?name=Staff&size=220&background=0e4b8f&color=fff';
 window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
 window.ERP_COMPANY = {
@@ -124,7 +124,7 @@ window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
   </section>
 </div>
 </div>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 function loadErpEmployee(id) {
   document.getElementById('employee_id').value = id || '';
   const e = (window.ERP_EMPLOYEES || {})[id];

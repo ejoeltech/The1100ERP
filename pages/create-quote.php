@@ -106,7 +106,7 @@ include '../includes/header.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <script>
+                <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                     document.addEventListener('DOMContentLoaded', function () {
                         if (typeof TomSelect === 'undefined') {
                             console.error('Tom Select library not loaded!');
@@ -263,7 +263,7 @@ include '../includes/header.php';
 <script src="../assets/js/quote-form.js?v=<?php echo time(); ?>"></script>
 
 <?php if ($templateData): ?>
-    <script>
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         // Template data from readymade quote
         const templateData = <?php echo json_encode($templateData); ?>;
 
@@ -367,7 +367,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 function openAiQuoteModal() {
     document.getElementById('aiQuoteModal').classList.remove('hidden');
     document.getElementById('aiQuoteInput').focus();

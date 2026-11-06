@@ -59,7 +59,7 @@ include '../includes/header.php';
 
     <?php if ($results !== null): ?>
         <div id="patcherResults" class="mt-6 space-y-1 text-sm">
-            <script>
+            <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
                 document.getElementById('patcherResults').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             </script>
             <?php foreach ($results as $e): ?>
@@ -100,7 +100,7 @@ include '../includes/header.php';
     <?php endif; ?>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     async function removeInstaller(event) {
         event.preventDefault();
         if (!confirm('Permanently delete maintenance/ (installer + leftovers)?')) return false;

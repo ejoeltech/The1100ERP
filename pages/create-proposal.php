@@ -145,7 +145,7 @@ include '../includes/header.php';
 </div>
 
 <script src="<?php echo $base_path; ?>/assets/js/quill-loader.js"></script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     var proposalQuill = null;
 
     loadQuill(function () {
@@ -153,7 +153,7 @@ include '../includes/header.php';
         proposalQuill = QuillHelper.create('proposalEditor', { height: 500 });
     }, '<?php echo $base_path; ?>/assets');
 </script>
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 
     async function getRecommendation() {
         const houseType = document.getElementById('recHouseType').value;

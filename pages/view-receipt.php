@@ -305,7 +305,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     async function voidReceipt(id) {
         // ... (Existing voidReceipt code) ...
         const reason = prompt("Please enter a reason for voiding this receipt:");

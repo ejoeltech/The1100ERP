@@ -225,7 +225,7 @@ include '../includes/header.php';
 </div>
 
 <!-- Load existing line items data -->
-<script>
+<script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
     const existingLineItems = <?php echo json_encode($line_items); ?>;
 </script>
 
