@@ -62,7 +62,9 @@ try {
         'receipt_prefix' => $_POST['receipt_prefix'] ?? 'REC-',
         'currency_symbol' => $_POST['currency_symbol'] ?? '₦',
         'date_format' => $_POST['date_format'] ?? 'd/m/Y',
-        'auto_archive_days' => isset($_POST['auto_archive_days']) ? '90' : '0',
+        'auto_archive_days' => isset($_POST['auto_archive_days'])
+            ? (string)max(0, min(3650, (int)$_POST['auto_archive_days']))
+            : '0',
 
         // Bank Accounts
         'bank1_name' => $_POST['bank1_name'] ?? '',
