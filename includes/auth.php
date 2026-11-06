@@ -275,9 +275,19 @@ function revokeCurrentSession()
 
 function getBaseUrl()
 {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'];
-    $script = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    // Prefer an explicitly configured canonical URL so Host-header injection
+    // cannot change links in emails/exports.
+    $configured = trim((string)getenv('APP_URL'));
+    if ($configured !== '') {
+        return rtrim($configured, '/') . '/';
+    }
+
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    if (!preg_match('/^[A-Za-z0-9.\-:\[\]]+$/', $host)) {
+        $host = 'localhost';
+    }
+    $script = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
     return $protocol . '://' . $host . $script . '/';
 }
 ?>
