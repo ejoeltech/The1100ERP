@@ -7,11 +7,11 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Admin only - show helpful error if not admin
-if (empty($_SESSION['role']) || strtolower($_SESSION['role']) !== 'admin') {
+// Admin only - show helpful error if not admin (super_admin included)
+if (!isAdmin()) {
     echo '<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;text-align:center;">';
     echo '<h1>Access Denied</h1>';
-    echo '<p>AI Settings requires <strong>Admin</strong> role.</p>';
+    echo '<p>AI Settings requires <strong>Admin</strong> or <strong>Super Admin</strong> role.</p>';
     echo '<p>Your current role: <strong>' . htmlspecialchars($_SESSION['role'] ?? 'Not set', ENT_QUOTES, 'UTF-8') . '</strong></p>';
     echo '<a href="../dashboard.php" style="color:blue;text-decoration:underline;">Return to Dashboard</a>';
     echo '</body></html>';
