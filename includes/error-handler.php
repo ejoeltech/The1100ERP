@@ -41,6 +41,11 @@ function customExceptionHandler($exception) {
     error_log("Uncaught Exception: " . $exception->getMessage() . " in " . 
               $exception->getFile() . " on line " . $exception->getLine());
     
+    // Emit a real 500 so monitoring/proxies do not treat the page as success.
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=utf-8');
+    }
     // Show generic message to user
     echo "An error occurred. Please contact support if this persists.";
 }
