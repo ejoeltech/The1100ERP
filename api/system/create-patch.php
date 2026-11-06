@@ -64,8 +64,12 @@ foreach ($files as $name => $file) {
             strpos($relativePath, 'storage') === 0 ||
             strpos($relativePath, 'tmp') === 0 ||
             strpos($relativePath, 'database' . DIRECTORY_SEPARATOR . 'backups') === 0 ||
+            strpos($relativePath, 'docs') === 0 ||
             $relativePath === 'config.php' ||
-            $relativePath === '.env'
+            $relativePath === 'Actual' ||
+            $relativePath === '.env' ||
+            $relativePath === '.env.example' ||
+            preg_match('/\.md$/i', $relativePath)
         ) {
             continue;
         }
@@ -100,12 +104,60 @@ foreach ($files as $name => $file) {
         // Normalize slashes for ZIP (always use /)
         $zipPath = str_replace('\\', '/', $relativePath);
 
+        // apply-patch.php deliberately rejects .htaccess entries. Ship them
+        // as .new files and let update_script.php move them into place.
+        if (basename($zipPath) === '.htaccess') {
+            $zipPath .= '.new';
+        }
+
         // Add current file to archive
         $zip->addFile($filePath, $zipPath);
     }
 }
 
 
+
+// uploads/ is excluded from patch contents, but its static guard is code.
+// Add the known .htaccess guards explicitly as .new files.
+foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess'] as $htPath) {
+    $abs = $rootPath . '/' . $htPath;
+    if (is_file($abs) && $zip->locateName($htPath . '.new') === false) {
+        $zip->addFile($abs, $htPath . '.new');
+    }
+}
+
+// The patch applier can run this after extraction. It installs .htaccess
+// guards, applies schema changes, and clears opcache.
+$updateScript = <<<'PHP'
+<?php
+set_time_limit(300);
+$root = __DIR__;
+foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess'] as $ht) {
+    $src = $root . '/' . $ht . '.new';
+    $dst = $root . '/' . $ht;
+    if (is_file($src)) {
+        @rename($src, $dst);
+        if (is_file($src)) { @copy($src, $dst); @unlink($src); }
+    }
+}
+try {
+    require_once $root . '/includes/schema-patcher.php';
+    $entries = SchemaPatcher::run($pdo, $root);
+    $errors = 0;
+    foreach ($entries as $entry) {
+        if (($entry['status'] ?? '') === 'error') {
+            $errors++;
+            echo 'SCHEMA ERROR: ' . ($entry['message'] ?? '') . "\n";
+        }
+    }
+    echo 'Schema: ' . count($entries) . " entries, $errors errors.\n";
+} catch (Throwable $e) {
+    echo 'SCHEMA FAILED: ' . $e->getMessage() . "\n";
+}
+if (function_exists('opcache_reset')) { @opcache_reset(); }
+echo "Update script finished.\n";
+PHP;
+$zip->addFromString('update_script.php', $updateScript);
 
 // Ensure zip is not empty by adding a metadata file
 $zip->addFromString('patch_info.txt', "Patch generated on " . date('Y-m-d H:i:s') . "\nTimeframe: " . $timeframe);
