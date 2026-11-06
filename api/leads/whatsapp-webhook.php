@@ -38,17 +38,21 @@ $secret = getSetting('whatsapp_app_secret', '');
 $raw    = file_get_contents('php://input');
 
 // Signature check (X-Hub-Signature-256 = sha256 HMAC of body with app secret).
+// Refuse every POST unless the secret is configured and the HMAC matches.
+if ($secret === '') {
+    http_response_code(503);
+    error_log('WhatsApp webhook: app secret is not configured');
+    exit;
+}
 $sigHeader = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
-if ($secret !== '' && $sigHeader !== '') {
-    $expectedSig = 'sha256=' . hash_hmac('sha256', $raw, $secret);
-    if (!hash_equals($expectedSig, $sigHeader)) {
-        http_response_code(401);
-        error_log('WhatsApp webhook: signature mismatch');
-        exit;
-    }
-} elseif ($secret !== '') {
-    // Secret configured but no signature present -> reject.
+if ($sigHeader === '') {
     http_response_code(401);
+    exit;
+}
+$expectedSig = 'sha256=' . hash_hmac('sha256', $raw, $secret);
+if (!hash_equals($expectedSig, $sigHeader)) {
+    http_response_code(401);
+    error_log('WhatsApp webhook: signature mismatch');
     exit;
 }
 
