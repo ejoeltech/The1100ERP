@@ -4,7 +4,7 @@ include 'includes/session-check.php';
 $pageTitle = 'Dashboard - ERP System';
 
 // Phase 8: Role-based filtering (functions loaded from session-check)
-$role = function_exists('getUserRole') ? getUserRole() : 'admin';
+$role = function_exists('getUserRole') ? getUserRole() : 'viewer';
 $userId = $_SESSION['user_id'];
 
 // Get role filter for queries
