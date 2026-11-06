@@ -23,18 +23,29 @@ try {
 
     // 1. Get Input Data
     $data = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($data)) {
+        throw new Exception('Invalid request data');
+    }
 
-    $customer_id = $data['customer_id'] ?? null;
-    $amount = filter_var($data['amount'], FILTER_VALIDATE_FLOAT);
+    $customer_id = isset($data['customer_id']) ? (int)$data['customer_id'] : 0;
+    $amount = filter_var($data['amount'] ?? null, FILTER_VALIDATE_FLOAT);
     $payment_date = $data['payment_date'] ?? date('Y-m-d');
     $payment_method = $data['payment_method'] ?? 'Bank Transfer';
     $reference = $data['reference'] ?? '';
     $notes = $data['notes'] ?? '';
-    $allocations = $data['allocations'] ?? []; // Array of {invoice_id, amount}
+    $allocations = is_array($data['allocations'] ?? null) ? $data['allocations'] : [];
     $use_credit = !empty($data['use_credit']);
 
-    if (!$customer_id || !$amount) {
-        throw new Exception('Customer and Amount are required');
+    if ($customer_id <= 0 || $amount === false || !is_finite((float)$amount) || $amount <= 0) {
+        throw new Exception('Customer and a positive Amount are required');
+    }
+    $amount = (float)$amount;
+
+    // Reject payments for customers that do not exist (or are deleted).
+    $stmt = $pdo->prepare("SELECT id FROM customers WHERE id = ? AND deleted_at IS NULL");
+    $stmt->execute([$customer_id]);
+    if (!$stmt->fetch()) {
+        throw new Exception('Customer not found');
     }
 
     // 2. Handle Credit Usage vs New Payment
@@ -78,26 +89,43 @@ try {
 
     // 3. Process Allocations
     foreach ($allocations as $allocation) {
-        $invoice_id = $allocation['invoice_id'];
-        $alloc_amount = filter_var($allocation['amount'], FILTER_VALIDATE_FLOAT);
-
-        if ($alloc_amount <= 0)
+        if (!is_array($allocation)) {
             continue;
+        }
+        $invoice_id = (int)($allocation['invoice_id'] ?? 0);
+        $alloc_amount = filter_var($allocation['amount'] ?? null, FILTER_VALIDATE_FLOAT);
+        if ($invoice_id <= 0 || $alloc_amount === false || !is_finite((float)$alloc_amount) || $alloc_amount <= 0) {
+            continue;
+        }
 
-        $total_allocated += $alloc_amount;
-
-        // Fetch invoice to get current state
-        $stmt = $pdo->prepare("SELECT invoice_number, grand_total, amount_paid, created_by FROM invoices WHERE id = ? FOR UPDATE");
+        // Fetch and lock the invoice to get its current state.
+        $stmt = $pdo->prepare("SELECT invoice_number, customer_id, grand_total, amount_paid, created_by
+            FROM invoices WHERE id = ? AND deleted_at IS NULL FOR UPDATE");
         $stmt->execute([$invoice_id]);
         $invoice = $stmt->fetch();
 
         if (!$invoice)
             continue;
 
+        // A payment for one customer must never be allocated to another
+        // customer's invoice.
+        if ((int)$invoice['customer_id'] !== $customer_id) {
+            throw new Exception('Invoice #' . $invoice_id . ' does not belong to this customer');
+        }
+
         // WP3 IDOR: sales reps allocate only to own invoices.
         if ($isSalesRep && (int)$invoice['created_by'] !== (int)$_SESSION['user_id']) {
             throw new Exception('You do not have permission to allocate to invoice #' . $invoice_id);
         }
+
+        // Never apply more than the invoice still owes, and never allocate
+        // more in total than the payment/credit being applied.
+        $due = max(0, round((float)$invoice['grand_total'] - (float)$invoice['amount_paid'], 2));
+        $alloc_amount = min((float)$alloc_amount, $due, max(0, $amount - $total_allocated));
+        if ($alloc_amount <= 0) {
+            continue;
+        }
+        $total_allocated += $alloc_amount;
 
         // Create Receipt
         // If it's a credit usage, we mark it as 'Credit Applied'
@@ -124,7 +152,7 @@ try {
         // Update Invoice
         $new_amount_paid = $invoice['amount_paid'] + $alloc_amount;
         $new_balance_due = max(0, $invoice['grand_total'] - $new_amount_paid);
-        $status = ($new_balance_due <= 0) ? 'paid' : 'partially_paid';
+        $status = ($new_balance_due <= 0) ? 'paid' : 'partial';
 
         $stmt = $pdo->prepare("UPDATE invoices SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?");
         $stmt->execute([$new_amount_paid, $new_balance_due, $status, $invoice_id]);
@@ -140,7 +168,11 @@ try {
             // We exclude invoices that might have just been fully paid in step 3 (though logic handles it)
             // WP3: sales reps auto-allocate across own invoices only.
             $ownerScope = $isSalesRep ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
-            $stmt = $pdo->prepare("SELECT id, invoice_number, grand_total, amount_paid, balance_due FROM invoices WHERE customer_id = ? AND status != 'paid' $ownerScope ORDER BY invoice_date ASC, id ASC");
+            $stmt = $pdo->prepare("SELECT id, invoice_number, grand_total, amount_paid, balance_due
+                FROM invoices
+                WHERE customer_id = ? AND status != 'paid' AND deleted_at IS NULL $ownerScope
+                ORDER BY invoice_date ASC, id ASC
+                FOR UPDATE");
             $stmt->execute([$customer_id]);
             $unpaid_invoices = $stmt->fetchAll();
 
@@ -180,7 +212,7 @@ try {
                 // Update Invoice
                 $new_amount_paid = $inv['amount_paid'] + $allocate_here;
                 $new_balance_due = max(0, $inv['grand_total'] - $new_amount_paid);
-                $status = ($new_balance_due <= 0) ? 'paid' : 'partially_paid';
+                $status = ($new_balance_due <= 0) ? 'paid' : 'partial';
 
                 $stmt = $pdo->prepare("UPDATE invoices SET amount_paid = ?, balance_due = ?, status = ? WHERE id = ?");
                 $stmt->execute([$new_amount_paid, $new_balance_due, $status, $inv['id']]);
