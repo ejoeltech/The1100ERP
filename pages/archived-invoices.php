@@ -3,8 +3,9 @@ include '../includes/session-check.php';
 
 $pageTitle = 'Archived Invoices - ERP System';
 
-// Fetch all archived invoices (deleted_at IS NOT NULL)
-$stmt = $pdo->query("
+// Fetch archived invoices, scoped to the caller's role (sales reps see own).
+$roleData = getRoleFilter('i');
+$stmt = $pdo->prepare("
     SELECT 
         i.id,
         i.invoice_number as document_number,
@@ -17,9 +18,10 @@ $stmt = $pdo->query("
         i.created_at,
         i.deleted_at
     FROM invoices i
-    WHERE i.deleted_at IS NOT NULL
+    WHERE i.deleted_at IS NOT NULL" . $roleData['sql'] . "
     ORDER BY i.deleted_at DESC
 ");
+$stmt->execute($roleData['params']);
 
 $quotes = $stmt->fetchAll();
 

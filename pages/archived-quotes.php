@@ -3,8 +3,9 @@ include '../includes/session-check.php';
 
 $pageTitle = 'Archived Quotes - ERP System';
 
-// Fetch all archived quotes (deleted_at IS NOT NULL)
-$stmt = $pdo->query("
+// Fetch archived quotes, scoped to the caller's role (sales reps see own).
+$roleData = getRoleFilter('q');
+$stmt = $pdo->prepare("
     SELECT 
         q.id,
         q.quote_number as document_number,
@@ -17,9 +18,10 @@ $stmt = $pdo->query("
         q.created_at,
         q.deleted_at
     FROM quotes q
-    WHERE q.deleted_at IS NOT NULL
+    WHERE q.deleted_at IS NOT NULL" . $roleData['sql'] . "
     ORDER BY q.deleted_at DESC
 ");
+$stmt->execute($roleData['params']);
 
 $quotes = $stmt->fetchAll();
 
