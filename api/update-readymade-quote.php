@@ -4,6 +4,7 @@ configureSessionCookies();
 session_start();
 require_once '../config.php';
 require_once '../includes/permissions.php';
+require_once '../includes/helpers.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
@@ -28,13 +29,17 @@ try {
     $template_name = $_POST['template_name'] ?? '';
     $description = $_POST['template_description'] ?? '';
     $payment_terms = $_POST['payment_terms'] ?? DEFAULT_PAYMENT_TERMS;
-    $subtotal = $_POST['subtotal'] ?? 0;
-    $total_vat = $_POST['total_vat'] ?? 0;
-    $grand_total = $_POST['grand_total'] ?? 0;
 
     if (!$template_id) {
         throw new Exception('Template ID required');
     }
+
+    // Recompute totals server-side; posted figures are ignored.
+    $calc = recalcDocumentTotals($_POST['line_items'] ?? []);
+    $line_items = $calc['items'];
+    $subtotal = $calc['subtotal'];
+    $total_vat = $calc['vat'];
+    $grand_total = $calc['grand'];
 
     // Update template
     $stmt = $pdo->prepare("
@@ -64,25 +69,24 @@ try {
     $stmt = $pdo->prepare("DELETE FROM readymade_quote_template_items WHERE template_id = ?");
     $stmt->execute([$template_id]);
 
-    // Insert new line items
-    if (isset($_POST['line_items']) && is_array($_POST['line_items'])) {
+    // Insert new line items (already normalized and recalculated).
+    if (!empty($line_items)) {
         $stmt = $pdo->prepare("
             INSERT INTO readymade_quote_template_items 
             (template_id, item_number, quantity, description, unit_price, vat_applicable, vat_amount, line_total) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
-        $item_number = 1;
-        foreach ($_POST['line_items'] as $item) {
+        foreach ($line_items as $item) {
             $stmt->execute([
                 $template_id,
-                $item_number++,
+                $item['item_number'],
                 $item['quantity'],
                 $item['description'],
                 $item['unit_price'],
-                isset($item['vat_applicable']) ? 1 : 0,
-                $item['vat_amount'] ?? 0,
-                $item['line_total'] ?? 0
+                $item['vat_applicable'],
+                $item['vat_amount'],
+                $item['line_total']
             ]);
         }
     }
