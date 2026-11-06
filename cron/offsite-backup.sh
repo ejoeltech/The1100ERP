@@ -20,13 +20,15 @@
 #   OFFSITE_KEEP     # of newest bundles retained remotely (default 14).
 #   OFFSITE_QUIET_OK 1 = suppress the daily "OK" Telegram message
 #                     (failures are always reported).
+#   OFFSITE_ALLOW_DELETE 1 = allow removals at the destination. Default 0:
+#                     copies are additive and remote extras are left alone.
 #
 # Schedule AFTER backup.sh, e.g. (15 min after the 02:30 local dump):
 #   45 2 * * *  /path/to/erp/cron/offsite-backup.sh >> /var/log/bluedots-offsite.log 2>&1
 #
 # Safe by design:
 #   * never deletes local files
-#   * remote prune only removes OLD bundles, never the newest
+#   * remote deletion only happens when OFFSITE_ALLOW_DELETE=1
 #   * one destination failing does NOT abort the others
 #   * failures raise a Telegram alert (through cron/notify.php)
 #
@@ -41,6 +43,7 @@ OFFSITE_SCP_DEST="${OFFSITE_SCP_DEST:-}"
 OFFSITE_LOCAL_MIRROR="${OFFSITE_LOCAL_MIRROR:-}"
 OFFSITE_KEEP="${OFFSITE_KEEP:-14}"
 OFFSITE_QUIET_OK="${OFFSITE_QUIET_OK:-0}"
+OFFSITE_ALLOW_DELETE="${OFFSITE_ALLOW_DELETE:-0}"
 HOST="$(hostname)"
 
 # Auto-enable if any destination is configured.
@@ -75,11 +78,12 @@ sync_rsync() {
     PROBLEMS+=("rsync not installed (dest $dest)")
     return 1
   fi
-  if ! rsync -az --delete \
+  local args=(-az \
         --include='erp-backup-*.tar.gz.enc' \
         --include='weekly-erp-backup-*.tar.gz.enc' \
-        --exclude='*' \
-        "$BACKUP_DIR"/ "$dest"/ 2>/tmp/offsite-rsync.err; then
+        --exclude='*')
+  [ "$OFFSITE_ALLOW_DELETE" = "1" ] && args+=(--delete)
+  if ! rsync "${args[@]}" "$BACKUP_DIR"/ "$dest"/ 2>/tmp/offsite-rsync.err; then
     PROBLEMS+=("rsync failed ($dest): $(tail -1 /tmp/offsite-rsync.err)")
     return 1
   fi
@@ -102,7 +106,9 @@ sync_rclone() {
     PROBLEMS+=("rclone not installed (dest $dest)")
     return 1
   fi
-  if ! rclone sync "$BACKUP_DIR" "$dest" \
+  local mode="copy"
+  [ "$OFFSITE_ALLOW_DELETE" = "1" ] && mode="sync"
+  if ! rclone "$mode" "$BACKUP_DIR" "$dest" \
         --include='erp-backup-*.tar.gz.enc' \
         --include='weekly-erp-backup-*.tar.gz.enc' \
         --retries 3 --low-level-retries 5 2>/tmp/offsite-rclone.err; then
@@ -141,11 +147,12 @@ sync_local() {
   log "local mirror -> $dest"
   mkdir -p "$dest"
   if command -v rsync >/dev/null 2>&1; then
-    rsync -a --delete \
+    local args=(-a \
       --include='erp-backup-*.tar.gz.enc' \
       --include='weekly-erp-backup-*.tar.gz.enc' \
-      --exclude='*' \
-      "$BACKUP_DIR"/ "$dest"/ 2>/tmp/offsite-local.err \
+      --exclude='*')
+    [ "$OFFSITE_ALLOW_DELETE" = "1" ] && args+=(--delete)
+    rsync "${args[@]}" "$BACKUP_DIR"/ "$dest"/ 2>/tmp/offsite-local.err \
       || { PROBLEMS+=("local mirror rsync failed ($dest): $(tail -1 /tmp/offsite-local.err)"); return 1; }
   else
     cp -u "$BACKUP_DIR"/erp-backup-*.tar.gz.enc "$dest"/ 2>/dev/null || true
