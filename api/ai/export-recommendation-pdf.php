@@ -6,36 +6,81 @@ session_start();
 
 require_once '../../config.php';
 require_once '../../includes/helpers.php';
+require_once '../../includes/invites.php';
+
+// This endpoint stays public because pages/system-designer.php is a public
+// tool, but it is no longer an anonymous HTML-to-PDF renderer: every request
+// needs the session CSRF token and is throttled per IP.
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    die('Method not allowed');
+}
+requireCsrf();
+
+$clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+if (!throttleCheck('ai_pdf:' . $clientIp, 10, 3600)) {
+    http_response_code(429);
+    header('Retry-After: 3600');
+    die('Too many PDF export requests. Please try again later.');
+}
+
+// Cap the request body before decoding it.
+$rawBody = file_get_contents('php://input');
+if (strlen($rawBody) > 262144) {
+    http_response_code(413);
+    die('Request too large');
+}
 
 // Use mPDF (already installed via composer; Dompdf is not a dependency)
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 header('Content-Type: application/pdf');
+header('X-Content-Type-Options: nosniff');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die('Method not allowed');
+/**
+ * Allow-list formatter for the AI-generated summary block. Every other value
+ * in the recommendation is rendered through htmlspecialchars() by the
+ * template, so this closes the only raw-HTML sink.
+ */
+function sanitizeRecommendationHtml($html)
+{
+    if (!is_string($html)) {
+        return '';
+    }
+    $allowed = '<b><strong><i><em><u><br><p><ul><ol><li><h1><h2><h3><h4><span><div><table><thead><tbody><tr><th><td>';
+    $html = strip_tags($html, $allowed);
+    // Drop every attribute (style, src, href, on*, ...) from the tags that
+    // remain so no remote resources or event handlers reach mPDF.
+    $html = preg_replace('/<([a-z][a-z0-9]*)\b[^>]*>/i', '<$1>', $html);
+    return $html;
 }
 
 try {
     // Get the recommendation data from POST
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode($rawBody, true);
 
-    if (!$input || !isset($input['recommendation']) || !isset($input['form_data'])) {
+    if (!is_array($input) || !isset($input['recommendation']) || !isset($input['form_data'])) {
         throw new Exception('Missing required data');
+    }
+    if (!is_array($input['recommendation']) || !is_array($input['form_data'])) {
+        throw new Exception('Invalid data');
     }
 
     $recommendation = $input['recommendation'];
     $formData = $input['form_data'];
 
+    // Never let the caller supply markup outside this allow-list.
+    $recommendation['summary'] = sanitizeRecommendationHtml($recommendation['summary'] ?? '');
+
     // Prepare data for PDF template
     $data = [];
 
     // Mode label
-    $data['mode_label'] = ($formData['mode'] == 1) ? 'Design Planner' : 'Design Implementation';
+    $data['mode_label'] = (($formData['mode'] ?? null) == 1) ? 'Design Planner' : 'Design Implementation';
 
     // System type label
-    $data['system_type_label'] = ($formData['system_type'] === 'hybrid')
+    $data['system_type_label'] = (($formData['system_type'] ?? '') === 'hybrid')
         ? 'Hybrid Inverter'
         : 'Charge Controller';
 
