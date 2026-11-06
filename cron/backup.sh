@@ -12,14 +12,20 @@
 #   30 2 * * *  /path/to/erp/cron/backup.sh >> /var/log/bluedots-backup.log 2>&1
 #
 set -euo pipefail
+umask 077
 
 # ---- CONFIG (edit these) ------------------------------------------------
 ERP_DIR="/var/www/erp"                 # path to the ERP web root
 BACKUP_DIR="/var/backups/bluedots"     # where bundles are written
 RETENTION_DAYS=14                     # daily bundles kept
 RETENTION_WEEKLY=8                     # weekly bundles kept (Sundays)
-ENCRYPT_PASS="${BLUEDOTS_BACKUP_PASS:-change-me-strong-pass}"  # prefer env var
+ENCRYPT_PASS="${BLUEDOTS_BACKUP_PASS:-}"  # required; no default passphrase
 # -------------------------------------------------------------------------
+
+if [ -z "$ENCRYPT_PASS" ]; then
+  echo "FATAL: BLUEDOTS_BACKUP_PASS is not set. Refusing to create a backup with a default/known key." >&2
+  exit 1
+fi
 
 TS="$(date +%Y%m%d-%H%M%S)"
 DAY_OF_WEEK="$(date +%u)"   # 7 = Sunday
@@ -55,8 +61,8 @@ trap cleanup EXIT
 
 if [ "$OK" -eq 1 ]; then
   log "Dumping database $DB_NAME ..."
-  if ! mysqldump --single-transaction --routines --events \
-        -h "$DB_HOST" -u "$DB_USER" ${DB_PASS:+-p"$DB_PASS"} "$DB_NAME" > "$SQL_DUMP" 2>/tmp/bluedots-mysqldump.err; then
+  if ! MYSQL_PWD="$DB_PASS" mysqldump --single-transaction --routines --events \
+        -h "$DB_HOST" -u "$DB_USER" "$DB_NAME" > "$SQL_DUMP" 2>/tmp/bluedots-mysqldump.err; then
     MSG="Backup FAILED on $HOST: mysqldump error — $(tail -1 /tmp/bluedots-mysqldump.err)"
     OK=0
   fi
@@ -64,7 +70,12 @@ fi
 
 if [ "$OK" -eq 1 ]; then
   log "Archiving files ..."
-  if ! tar -czf "$ARCHIVE" -C "$ERP_DIR" . ; then
+  # Never archive secrets, logs, temp files, git history, or dependencies.
+  if ! tar -czf "$ARCHIVE" \
+        --exclude='./.env' --exclude='./.env.*' --exclude='./config.php' \
+        --exclude='./logs/*' --exclude='./tmp/*' --exclude='./.git/*' \
+        --exclude='./vendor/*' \
+        -C "$ERP_DIR" . ; then
     MSG="Backup FAILED on $HOST: tar archive error"
     OK=0
   fi
@@ -72,10 +83,15 @@ fi
 
 if [ "$OK" -eq 1 ]; then
   log "Encrypting ..."
+  # Pass the key through the environment, never as a command-line argument
+  # (arguments are visible in the process list).
+  export BLUEDOTS_BACKUP_PASS="$ENCRYPT_PASS"
   if ! openssl enc -aes-256-cbc -salt -pbkdf2 -iter 100000 \
-        -in "$ARCHIVE" -out "$ENC" -pass "pass:$ENCRYPT_PASS"; then
+        -in "$ARCHIVE" -out "$ENC" -pass env:BLUEDOTS_BACKUP_PASS; then
     MSG="Backup FAILED on $HOST: encryption error"
     OK=0
+  else
+    chmod 600 "$ENC"
   fi
 fi
 
