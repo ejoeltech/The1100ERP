@@ -5,8 +5,8 @@ session_start();
 require_once 'config.php';
 require_once 'includes/auth.php';
 
-// Secure Session
-secureSession();
+// Session id rotation happens once in completeLoginSession() and is mirrored
+// into user_sessions; calling secureSession() here would desynchronise it.
 setSecurityHeaders();
 
 // Redirect if already logged in
