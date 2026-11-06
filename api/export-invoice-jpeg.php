@@ -1,9 +1,9 @@
 <?php
 include '../includes/session-check.php';
 
-$invoice_id = $_GET['id'] ?? null;
+$invoice_id = (int)($_GET['id'] ?? 0);
 
-if (!$invoice_id) {
+if ($invoice_id <= 0) {
     die('Invoice ID required');
 }
 

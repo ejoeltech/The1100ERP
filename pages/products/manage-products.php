@@ -128,7 +128,7 @@ include '../../includes/header.php';
                     </td>
                     <td class="px-4 py-3">
                         <p class="font-semibold">
-                            <?php echo htmlspecialchars($product['name']); ?>
+                            <?php echo htmlspecialchars($product['product_name']); ?>
                         </p>
                         <?php if ($product['description']): ?>
                             <p class="text-xs text-gray-500">

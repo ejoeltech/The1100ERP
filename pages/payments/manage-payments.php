@@ -157,7 +157,7 @@ $payments = $stmt->fetchAll();
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                                             <a href="view-payment.php?id=<?= $payment['id'] ?>">
-                                                <?= $payment['payment_number'] ?>
+                                                <?= htmlspecialchars($payment['payment_number'], ENT_QUOTES, 'UTF-8') ?>
                                             </a>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

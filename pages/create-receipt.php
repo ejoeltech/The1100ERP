@@ -1,5 +1,5 @@
 <?php
-include '../../includes/session-check.php';
+include '../includes/session-check.php';
 
 // Deprecated: Redirects to the unified payment recorder (guarded endpoint).
 $invoice_id = $_GET['invoice_id'] ?? '';
