@@ -33,6 +33,7 @@ try {
     $items = $stmt->fetchAll();
 
     // Create duplicate
+    $new_name = $template['template_name'] . ' (Copy)';
     $stmt = $pdo->prepare("
         INSERT INTO readymade_quote_templates 
         (template_name, description, payment_terms, grand_total, is_active, default_project_title, subtotal, total_vat, category_id)
@@ -43,7 +44,7 @@ try {
     $category_id = isset($template['category_id']) ? $template['category_id'] : 1;
 
     $stmt->execute([
-        $template['template_name'] . ' (Copy)',
+        $new_name,
         $template['description'],
         $template['payment_terms'],
         $template['grand_total'],

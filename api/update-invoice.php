@@ -52,6 +52,10 @@ try {
         throw new Exception('Invoice not found');
     }
 
+    // Capture this before the update so the finalized-edit audit branch
+    // can actually run (it previously referenced an undefined variable).
+    $is_finalized = (($invoice['status'] ?? '') === 'finalized');
+
     // Phase 4: Check if invoice has receipts (using receipts table)
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM receipts WHERE invoice_id = ? AND deleted_at IS NULL");
     $stmt->execute([$invoice_id]);
