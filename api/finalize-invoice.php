@@ -29,7 +29,7 @@ try {
     }
 
     // WP3: finalizing locks the document; needs edit rights + ownership.
-    requirePermission('edit_invoice');
+    requirePermission('edit_invoice', $invoice, $invoice['created_by'] ?? null);
     if (function_exists('canEditDocument') && !canEditDocument($invoice)) {
         throw new Exception('You do not have permission to finalize this invoice');
     }

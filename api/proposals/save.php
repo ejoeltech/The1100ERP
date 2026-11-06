@@ -24,18 +24,20 @@ try {
 
     if ($id) {
         // Update: fetch first so ownership can be checked per row.
-        $stmt = $pdo->prepare("SELECT created_by FROM proposals WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT created_by, status FROM proposals WHERE id = ?");
         $stmt->execute([$id]);
         $existing = $stmt->fetch();
         if (!$existing) {
             throw new Exception('Proposal not found');
         }
-        // WP3: creators/editors need create_document; sales reps touch own drafts only
-        // (pre-ownership rows with NULL creator are manager+ only).
-        requirePermission('create_document');
-        if (getUserRole() === 'sales_rep' && (int)($existing['created_by'] ?? 0) !== (int)$_SESSION['user_id']) {
-            throw new Exception('You do not have permission to edit this proposal', 403);
+        if (($existing['status'] ?? '') === 'converted') {
+            throw new Exception('Converted proposals cannot be edited');
         }
+        // Admins/managers can edit any draft; sales reps only their own.
+        requirePermission('edit_document', [
+            'status' => 'draft',
+            'created_by' => $existing['created_by'] ?? null,
+        ], $existing['created_by'] ?? null);
         $stmt = $pdo->prepare("UPDATE proposals SET content = ?, system_specs = ?, title = ? WHERE id = ?");
         $stmt->execute([$content, json_encode($specs), $title, $id]);
         $message = "Proposal updated successfully";

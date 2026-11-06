@@ -3,6 +3,9 @@
 if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 // Include at top of every protected page
 require_once __DIR__ . '/security.php';
+if (function_exists('setSecurityHeaders')) {
+    setSecurityHeaders();
+}
 configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -35,8 +38,10 @@ if (!$current_user) {
 // on each request; expiry destroys the session (API callers get 401/403).
 // Exempt: the installer wizard manages its own lifetime (claim file +
 // admin password gates); a slow manual install must not die mid-wizard.
-$reqUri = $_SERVER['REQUEST_URI'] ?? '';
-$isInstaller = strpos($reqUri, '/maintenance/setup/') !== false;
+// Use the script path, never REQUEST_URI: the query string is attacker
+// controlled and must not be able to disable session revocation/timeouts.
+$scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+$isInstaller = strpos($scriptName, '/maintenance/setup/') !== false;
 $now = time();
 if (!isset($_SESSION['sess_created_at'])) {
     $_SESSION['sess_created_at'] = $now;

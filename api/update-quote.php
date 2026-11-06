@@ -37,7 +37,7 @@ try {
     // for sales reps). Mirrors pages/edit-quote.php.
     require_once '../includes/permissions.php';
     // WP3: canEditDocument() alone let viewers/accountants edit drafts.
-    requirePermission('edit_quote');
+    requirePermission('edit_quote', $quote, $quote['created_by'] ?? null);
     if (!canEditDocument($quote)) {
         throw new Exception('You do not have permission to edit this quote');
     }

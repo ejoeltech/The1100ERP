@@ -72,7 +72,7 @@ try {
     // for sales reps). Mirrors pages/edit-invoice.php.
     require_once '../includes/permissions.php';
     // WP3: canEditDocument() alone let viewers/accountants edit drafts.
-    requirePermission('edit_invoice');
+    requirePermission('edit_invoice', $invoice, $invoice['created_by'] ?? null);
     if (!canEditDocument($invoice)) {
         throw new Exception('You do not have permission to edit this invoice');
     }

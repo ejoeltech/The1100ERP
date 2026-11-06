@@ -47,16 +47,21 @@ try {
     $deletePerms = ['quote' => 'delete_quote', 'invoice' => 'delete_invoice', 'receipt' => 'delete_receipt'];
     requirePermission($deletePerms[$document_type]);
 
+    if ($document_type === 'receipt') {
+        throw new Exception('Receipts must be restored individually so invoice balances can be reconciled.');
+    }
+
     $pdo->beginTransaction();
 
     // Restore: clear deleted_at timestamp
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-    $params = $ids;
-    $ownerScope = '';
-    if (getUserRole() === 'sales_rep') {
-        $ownerScope = 'AND created_by = ?';
-        $params[] = $_SESSION['user_id'];
+    $check = $pdo->prepare("SELECT id, created_by, status FROM $table WHERE id IN ($placeholders) AND deleted_at IS NOT NULL");
+    $check->execute($ids);
+    foreach ($check->fetchAll() as $row) {
+        if (!canDeleteDocument($row)) {
+            throw new Exception('You do not have permission to restore one or more selected documents.');
+        }
     }
 
     // Whitelisted table name used directly
@@ -66,10 +71,9 @@ try {
             updated_at = NOW()
         WHERE id IN ($placeholders)
         AND deleted_at IS NOT NULL
-        $ownerScope
     ");
 
-    $stmt->execute($params);
+    $stmt->execute($ids);
 
     $restored_count = $stmt->rowCount();
 

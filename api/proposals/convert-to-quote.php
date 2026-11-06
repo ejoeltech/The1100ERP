@@ -31,8 +31,15 @@ try {
         throw new Exception("Proposal not found");
     }
 
+    if (($proposal['status'] ?? '') === 'converted') {
+        throw new Exception('This proposal has already been converted');
+    }
     // WP3: converting needs create rights + ownership of the source proposal.
-    requirePermission('create_quote');
+    // Viewers/accountants must not convert other users' proposals.
+    requirePermission('create_quote', $proposal, $proposal['created_by'] ?? null);
+    if (!in_array(getUserRole(), ['super_admin', 'admin', 'manager', 'sales_rep'], true)) {
+        throw new Exception('You do not have permission to use this proposal', 403);
+    }
     if (getUserRole() === 'sales_rep' && (int)($proposal['created_by'] ?? 0) !== (int)$_SESSION['user_id']) {
         throw new Exception('You do not have permission to use this proposal', 403);
     }
