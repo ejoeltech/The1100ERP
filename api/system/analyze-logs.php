@@ -7,6 +7,13 @@ requirePermission('manage_settings');
 
 header('Content-Type: application/json');
 
+// Diagnostics are opt-in: log contents leave the server.
+if (!aiDiagnosticsEnabled()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Diagnostics sharing is disabled. Set AI_DIAGNOSTICS_ENABLED=1 after reviewing the data policy.']);
+    exit;
+}
+
 try {
     // 1. Locate Log File
     $logFile = ini_get('error_log');
@@ -52,18 +59,19 @@ try {
         exit;
     }
 
-    // 3. AI Analysis
+    // 3. AI Analysis (redacted before leaving the server)
+    $safeContent = aiRedactDiagnostics($content);
     $prompt = "Analyze the following PHP error log entries. Group duplicates. For each unique error, explain the root cause and specific code fix. 
     Format as HTML list.
     
     LOGS:
-    $content";
+    $safeContent";
 
     $analysis = callGroqAPI($prompt, "You are a Senior PHP DevOps Engineer. Be concise and technical.");
 
     echo json_encode([
         'status' => 'issues_found',
-        'log_preview' => $content,
+        'log_preview' => $safeContent,
         'analysis' => $analysis
     ]);
 

@@ -7,6 +7,13 @@ requirePermission('manage_settings');
 
 header('Content-Type: application/json');
 
+// Diagnostics are opt-in: schema names/row counts leave the server.
+if (!aiDiagnosticsEnabled()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Diagnostics sharing is disabled. Set AI_DIAGNOSTICS_ENABLED=1 after reviewing the data policy.']);
+    exit;
+}
+
 try {
     // 1. Get Schema Information
     $tables = [];
@@ -37,7 +44,8 @@ try {
         $schemaInfo .= "Table: $table ($rowCount rows)\nColumns: $colList\nIndexes: $idxList\n\n";
     }
 
-    // 2. AI Analysis
+    // 2. AI Analysis (redacted: no literals, credentials, paths, or PII)
+    $schemaInfo = aiRedactDiagnostics($schemaInfo);
     $prompt = "Analyze this database schema. Look for:
     1. Missing indexes on foreign keys (ending in _id).
     2. Tables with high row counts but few indexes.

@@ -153,6 +153,39 @@ function getAiProviderConfig($providerId = null) {
 }
 
 /**
+ * Whether admins have opted in to sending schema/log diagnostics to the AI
+ * provider. Default OFF; can be enabled by env or setting.
+ */
+function aiDiagnosticsEnabled()
+{
+    $env = getenv('AI_DIAGNOSTICS_ENABLED');
+    if ($env !== false && trim((string)$env) !== '') {
+        return trim((string)$env) === '1';
+    }
+    return getSetting('ai_diagnostics_enabled', '0') === '1';
+}
+
+/**
+ * Redact common secrets/PII from diagnostics before they leave the server.
+ */
+function aiRedactDiagnostics($text, $maxLength = 12000)
+{
+    if (!is_string($text) || $text === '') {
+        return '';
+    }
+    $text = substr($text, 0, $maxLength);
+    $text = preg_replace('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', '[email]', $text);
+    $text = preg_replace('/\b(?:\d{1,3}\.){3}\d{1,3}\b/', '[ip]', $text);
+    $text = preg_replace('/\b\d{10,11}\b/', '[number]', $text);
+    $text = preg_replace('/\b[0-9a-f]{32,}\b/i', '[token]', $text);
+    $text = preg_replace('/\b[A-Za-z0-9+\/_-]{40,}={0,2}\b/', '[token]', $text);
+    $text = preg_replace('/(password|passwd|pwd|token|secret|api[_-]?key)\s*[=:]\s*[^\s,;]+/i', '$1=[redacted]', $text);
+    $text = preg_replace('/\'[^\']*\'|"[^"]*"/', "'?'", $text);
+    $text = preg_replace('/(?:[A-Za-z]:\\\\|\/)(?:[^\s\'"]+)/', '[path]', $text);
+    return $text;
+}
+
+/**
  * Generic AI call - OpenAI compatible + Gemini special case
  */
 function callAiAPI($prompt, $systemPrompt = '', $options = [], $override = []) {
