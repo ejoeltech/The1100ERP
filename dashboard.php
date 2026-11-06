@@ -22,7 +22,7 @@ $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
     FROM quotes
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
-    AND deleted_at IS NULL
+    AND deleted_at IS NULL $recentOwner
 ");
 $stmt->execute([$currentMonth]);
 $quotes_count = $stmt->fetch()['count'];
@@ -32,7 +32,7 @@ $stmt = $pdo->prepare("
     SELECT COUNT(*) as count 
     FROM invoices
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
-    AND deleted_at IS NULL
+    AND deleted_at IS NULL $recentOwner
 ");
 $stmt->execute([$currentMonth]);
 $invoices_count = $stmt->fetch()['count'];
@@ -43,7 +43,7 @@ $stmt = $pdo->prepare("
     FROM receipts
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
     AND deleted_at IS NULL
-    AND status != 'void'
+    AND status != 'void' $recentOwner
 ");
 $stmt->execute([$currentMonth]);
 $receipts_count = $stmt->fetch()['count'];
@@ -54,7 +54,7 @@ $stmt = $pdo->prepare("
     FROM receipts
     WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
     AND deleted_at IS NULL
-    AND status != 'void'
+    AND status != 'void' $recentOwner
 ");
 $stmt->execute([$currentMonth]);
 $total_revenue = $stmt->fetch()['total'];
@@ -82,7 +82,7 @@ $finalized_count += $quote_counts['finalized'];
 $stmt = $pdo->query("
     SELECT 
         SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END) as draft,
-        SUM(CASE WHEN status IN ('sent', 'paid', 'partially_paid') THEN 1 ELSE 0 END) as finalized
+        SUM(CASE WHEN status IN ('sent', 'paid', 'partial', 'finalized') THEN 1 ELSE 0 END) as finalized
     FROM invoices
     WHERE deleted_at IS NULL $recentOwner
 ");

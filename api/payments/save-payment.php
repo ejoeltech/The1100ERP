@@ -73,18 +73,12 @@ try {
         ]);
         $payment_id = $pdo->lastInsertId();
     } else {
-        // If using credit, verify balance
+        // Lock the customer row and verify credit, but do not deduct the full
+        // requested amount yet: only the amount actually allocated to invoices
+        // should leave the account.
         $stmt = $pdo->prepare("SELECT account_balance FROM customers WHERE id = ? FOR UPDATE");
         $stmt->execute([$customer_id]);
-        $current_balance = $stmt->fetchColumn();
-
-        if ($current_balance < $amount) {
-            throw new Exception("Insufficient credit balance. Available: " . formatNaira($current_balance));
-        }
-
-        // Deduct from credit
-        $stmt = $pdo->prepare("UPDATE customers SET account_balance = account_balance - ? WHERE id = ?");
-        $stmt->execute([$amount, $customer_id]);
+        $current_balance = (float)$stmt->fetchColumn();
     }
 
     // 3. Process Allocations
@@ -99,7 +93,7 @@ try {
         }
 
         // Fetch and lock the invoice to get its current state.
-        $stmt = $pdo->prepare("SELECT invoice_number, customer_id, grand_total, amount_paid, created_by
+        $stmt = $pdo->prepare("SELECT invoice_number, customer_id, customer_name, grand_total, amount_paid, created_by
             FROM invoices WHERE id = ? AND deleted_at IS NULL FOR UPDATE");
         $stmt->execute([$invoice_id]);
         $invoice = $stmt->fetch();
@@ -127,20 +121,22 @@ try {
         }
         $total_allocated += $alloc_amount;
 
-        // Create Receipt
-        // If it's a credit usage, we mark it as 'Credit Applied'
-        $method = $use_credit ? 'Credit Applied' : $payment_method;
+        // Create Receipt. customer_name is NOT NULL on the receipts table;
+        // payment_method must be one of the schema ENUM keys.
+        $method = normalizePaymentMethod($use_credit ? 'Credit Applied' : $payment_method);
 
         $receipt_number = generateReceiptNumber($pdo);
 
         $stmt = $pdo->prepare("
-            INSERT INTO receipts (receipt_number, invoice_id, payment_id, amount_paid, payment_date, payment_method, reference_number, notes, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO receipts (receipt_number, invoice_id, customer_id, customer_name, payment_id, amount_paid, payment_date, payment_method, reference_number, notes, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $receipt_number,
             $invoice_id,
-            $payment_id, // Can be null if using credit only (conceptually, or we could link to a 'credit usage' record if we had one)
+            $invoice['customer_id'],
+            $invoice['customer_name'],
+            $payment_id,
             $alloc_amount,
             $payment_date,
             $method,
@@ -168,7 +164,7 @@ try {
             // We exclude invoices that might have just been fully paid in step 3 (though logic handles it)
             // WP3: sales reps auto-allocate across own invoices only.
             $ownerScope = $isSalesRep ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
-            $stmt = $pdo->prepare("SELECT id, invoice_number, grand_total, amount_paid, balance_due
+            $stmt = $pdo->prepare("SELECT id, invoice_number, customer_id, customer_name, grand_total, amount_paid, balance_due
                 FROM invoices
                 WHERE customer_id = ? AND status != 'paid' AND deleted_at IS NULL $ownerScope
                 ORDER BY invoice_date ASC, id ASC
@@ -194,16 +190,18 @@ try {
                 $receipt_number = generateReceiptNumber($pdo);
 
                 $stmt = $pdo->prepare("
-                    INSERT INTO receipts (receipt_number, invoice_id, payment_id, amount_paid, payment_date, payment_method, reference_number, notes, created_by)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO receipts (receipt_number, invoice_id, customer_id, customer_name, payment_id, amount_paid, payment_date, payment_method, reference_number, notes, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $receipt_number,
                     $inv['id'],
+                    $inv['customer_id'],
+                    $inv['customer_name'],
                     $payment_id,
                     $allocate_here,
                     $payment_date,
-                    $payment_method,
+                    normalizePaymentMethod($payment_method),
                     $reference,
                     $notes . " (Auto-Allocated)",
                     $_SESSION['user_id']
@@ -227,6 +225,20 @@ try {
             // Credit the customer account
             $stmt = $pdo->prepare("UPDATE customers SET account_balance = account_balance + ? WHERE id = ?");
             $stmt->execute([$remaining_balance, $customer_id]);
+        }
+    }
+
+    if ($use_credit) {
+        if ($total_allocated <= 0) {
+            throw new Exception('Select at least one invoice to apply credit to.');
+        }
+        if ($total_allocated > $current_balance) {
+            throw new Exception('Insufficient credit balance. Available: ' . formatNaira($current_balance));
+        }
+        $stmt = $pdo->prepare("UPDATE customers SET account_balance = account_balance - ? WHERE id = ? AND account_balance >= ?");
+        $stmt->execute([$total_allocated, $customer_id, $total_allocated]);
+        if ($stmt->rowCount() !== 1) {
+            throw new Exception('Insufficient credit balance.');
         }
     }
 

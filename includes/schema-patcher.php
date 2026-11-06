@@ -198,6 +198,25 @@ class SchemaPatcher
             $add('error', 'seed', 'Failed seeding leads settings: ' . $e->getMessage());
         }
 
+        // 1f1. Group tables must exist before any permission seeding below.
+        // (Previously the seeds ran before the CREATE TABLE blocks later in
+        // this file, producing false errors on a fresh install.)
+        $exec("CREATE TABLE IF NOT EXISTS `user_groups` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `name` varchar(50) NOT NULL,
+    `description` varchar(255) DEFAULT NULL,
+    `primary_role` varchar(20) NOT NULL DEFAULT 'viewer',
+    `is_system` tinyint(1) NOT NULL DEFAULT 0,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_group_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_groups' table (early)");
+        $exec("CREATE TABLE IF NOT EXISTS `group_permissions` (
+    `group_id` int(11) unsigned NOT NULL,
+    `permission_key` varchar(60) NOT NULL,
+    PRIMARY KEY (`group_id`, `permission_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'group_permissions' table (early)");
+
         // 1f2. HR permission seeds (WP3; mirrors database/wp3-hr-permissions.sql).
         // Seeded ONLY into groups that hold none of the six HR keys, so a
         // deliberate admin revocation is never re-added by a later patch run.
@@ -1022,10 +1041,12 @@ class SchemaPatcher
             $add('error', 'seed', 'Failed seeding solar template: ' . $e->getMessage());
         }
 
-        // 10. Invoice Status Enum (must include 'finalized')
+        // 10. Invoice Status Enum (canonical 'partial'; migrate legacy values)
         try {
+            $pdo->exec("ALTER TABLE invoices MODIFY COLUMN status ENUM('draft','sent','paid','overdue','cancelled','partial','partially_paid','finalized') DEFAULT 'draft'");
+            $pdo->exec("UPDATE invoices SET status = 'partial' WHERE status = 'partially_paid'");
             $pdo->exec("ALTER TABLE invoices MODIFY COLUMN status ENUM('draft','sent','paid','overdue','cancelled','partial','finalized') DEFAULT 'draft'");
-            $add('ok', 'alter', "Updated 'invoices.status' ENUM to include 'finalized'.");
+            $add('ok', 'alter', "Updated 'invoices.status' ENUM and migrated 'partially_paid' to 'partial'.");
         } catch (Exception $e) {
             $add('error', 'alter', 'Failed to update invoice status: ' . $e->getMessage());
         }

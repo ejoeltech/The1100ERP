@@ -11,6 +11,38 @@
 -- DROP EXISTING TABLES (in reverse dependency order)
 -- ============================================
 
+-- Authentication/session state must never survive a reinstall: user IDs are
+-- reused, so stale tokens/sessions could otherwise authenticate new accounts.
+DROP TABLE IF EXISTS api_tokens;
+DROP TABLE IF EXISTS user_sessions;
+DROP TABLE IF EXISTS user_invites;
+DROP TABLE IF EXISTS mfa_recovery_codes;
+DROP TABLE IF EXISTS auth_throttle;
+DROP TABLE IF EXISTS user_permission_overrides;
+DROP TABLE IF EXISTS group_permissions;
+DROP TABLE IF EXISTS user_groups;
+DROP TABLE IF EXISTS ai_usage_logs;
+DROP TABLE IF EXISTS ai_request_cache;
+DROP TABLE IF EXISTS ai_recommendations;
+
+-- HR/PII tables reference users; remove them before users is recreated.
+DROP TABLE IF EXISTS hr_votes;
+DROP TABLE IF EXISTS hr_payroll_items;
+DROP TABLE IF EXISTS hr_loans;
+DROP TABLE IF EXISTS hr_payroll;
+DROP TABLE IF EXISTS hr_attendance;
+DROP TABLE IF EXISTS hr_leave_requests;
+DROP TABLE IF EXISTS hr_recruitment_candidates;
+DROP TABLE IF EXISTS hr_documents;
+DROP TABLE IF EXISTS hr_onboarding_entries;
+DROP TABLE IF EXISTS hr_onboarding_codes;
+DROP TABLE IF EXISTS hr_id_template_defaults;
+DROP TABLE IF EXISTS hr_id_templates;
+DROP TABLE IF EXISTS hr_id_cards;
+DROP TABLE IF EXISTS hr_employees;
+DROP TABLE IF EXISTS hr_designations;
+DROP TABLE IF EXISTS hr_departments;
+
 -- Drop child tables first (those with foreign keys)
 DROP TABLE IF EXISTS audit_log;
 DROP TABLE IF EXISTS readymade_quote_template_items;
@@ -235,7 +267,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     amount_paid DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     balance_due DECIMAL(15,2) NOT NULL DEFAULT 0.00,
     payment_terms VARCHAR(255),
-    status ENUM('draft', 'sent', 'paid', 'partially_paid', 'overdue', 'cancelled', 'finalized') DEFAULT 'draft',
+    status ENUM('draft', 'sent', 'paid', 'overdue', 'cancelled', 'partial', 'finalized') DEFAULT 'draft',
     notes TEXT,
     created_by INT UNSIGNED,
     is_archived TINYINT(1) DEFAULT 0,

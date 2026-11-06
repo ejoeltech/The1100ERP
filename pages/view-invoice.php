@@ -115,7 +115,7 @@ include '../includes/header.php';
 
     <?php
     // Check if invoice is finalized and has balance
-    if ($invoice['status'] === 'finalized' && $invoice['balance_due'] > 0):
+    if ($invoice['balance_due'] > 0 && !in_array($invoice['status'], ['draft', 'cancelled'], true)):
         ?>
         <a href="payments/record-payment.php?invoice_id=<?php echo $invoice_id; ?>"
             class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">

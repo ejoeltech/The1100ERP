@@ -36,6 +36,8 @@ try {
 
     if (!$receipt)
         throw new Exception('Receipt not found');
+    if (!empty($receipt['deleted_at']))
+        throw new Exception('Receipt is deleted and cannot be voided');
     require_once '../includes/permissions.php';
     if (!canDeleteDocument($receipt)) {
         $pdo->rollBack();

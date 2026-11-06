@@ -180,6 +180,29 @@ function generatePaymentNumber($pdo)
 }
 
 /**
+ * Map UI payment labels to the receipts.payment_method ENUM keys.
+ */
+function normalizePaymentMethod($method)
+{
+    $m = strtolower(trim((string)$method));
+    $map = [
+        'cash' => 'cash',
+        'bank transfer' => 'bank_transfer',
+        'bank_transfer' => 'bank_transfer',
+        'transfer' => 'bank_transfer',
+        'cheque' => 'cheque',
+        'check' => 'cheque',
+        'pos' => 'card',
+        'card' => 'card',
+        'online' => 'other',
+        'online transfer' => 'other',
+        'credit applied' => 'other',
+        'other' => 'other',
+    ];
+    return $map[$m] ?? 'other';
+}
+
+/**
  * Parse a number from a form input (removing commas)
  * @param mixed $input Input string or number
  * @return float Parsed float value

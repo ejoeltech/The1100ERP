@@ -130,13 +130,19 @@ include '../includes/header.php';
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex flex-col gap-2">
-                                    <?php if ($invoice['status'] === 'finalized'): ?>
-                                        <span
-                                            class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Finalized</span>
-                                    <?php else: ?>
-                                        <span
-                                            class="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded-full">Draft</span>
-                                    <?php endif; ?>
+                                    <?php
+                                    $status = $invoice['status'] ?? 'draft';
+                                    $statusClass = match ($status) {
+                                        'finalized', 'paid' => 'bg-green-100 text-green-800',
+                                        'partial' => 'bg-amber-100 text-amber-800',
+                                        'sent' => 'bg-blue-100 text-blue-800',
+                                        'cancelled', 'overdue' => 'bg-red-100 text-red-800',
+                                        default => 'bg-gray-100 text-gray-800',
+                                    };
+                                    ?>
+                                    <span class="px-3 py-1 <?php echo $statusClass; ?> text-xs font-semibold rounded-full">
+                                        <?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $status))); ?>
+                                    </span>
 
                                     <!-- Receipt Conversion Status -->
                                     <?php if ($invoice['receipt_id']): ?>

@@ -10,7 +10,7 @@ try {
 
     $invoice_id = intval($_POST['invoice_id'] ?? 0);
     $receipt_date = $_POST['receipt_date'] ?? date('Y-m-d');
-    $payment_method = trim($_POST['payment_method'] ?? '');
+    $payment_method = normalizePaymentMethod($_POST['payment_method'] ?? '');
     $amount_paid = floatval($_POST['amount_paid'] ?? 0);
     $payment_reference = trim($_POST['payment_reference'] ?? '');
     $notes = trim($_POST['notes'] ?? '');
