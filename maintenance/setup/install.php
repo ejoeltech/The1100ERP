@@ -5,7 +5,7 @@
  */
 
 // CRITICAL: unified session store/flags FIRST (same as the app and wizard UI),
-// otherwise the finalize auto-login is invisible to session-check.
+// so wizard and post-install requests share the same session configuration.
 require_once __DIR__ . '/../../includes/security.php';
 configureSessionCookies();
 session_start();
@@ -207,6 +207,25 @@ function importSchema()
         $pdo = new PDO($dsn, $user, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
+
+        // H-12: install-schema.sql starts with DROP TABLE. Never run it over a
+        // database that already contains application data without an explicit,
+        // typed confirmation.
+        $coreTables = ['users', 'customers', 'products', 'quotes', 'invoices', 'receipts', 'settings'];
+        $hasData = false;
+        foreach ($coreTables as $coreTable) {
+            try {
+                if ((int)$pdo->query("SELECT COUNT(*) FROM `$coreTable`")->fetchColumn() > 0) {
+                    $hasData = true;
+                    break;
+                }
+            } catch (PDOException $e) {
+                // Table does not exist yet; safe to continue.
+            }
+        }
+        if ($hasData && ($_POST['confirm_import'] ?? '') !== 'ERASE') {
+            throw new Exception('This database already contains data. Importing the schema would drop core tables. Use Factory Reset, or pass confirm_import=ERASE only after a verified backup.');
+        }
 
         // Read schema file (ships inside the installer folder)
         $schemaFile = __DIR__ . '/install-schema.sql';
@@ -563,25 +582,8 @@ function finalizeInstallation()
 
         @chmod($configFile, 0644);
 
-        // Auto-login the new admin in this (wizard) session so Step 7
-        // cleanup works immediately with no separate login.
-        try {
-            $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4";
-            $pdo = new PDO($dsn, $dbUser, $dbPassword, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            $stmt = $pdo->query("SELECT id, username, full_name, role FROM users WHERE role IN ('super_admin', 'admin') ORDER BY id ASC LIMIT 1");
-            if ($admin = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                session_regenerate_id(true);
-                $_SESSION['user_id'] = $admin['id'];
-                $_SESSION['username'] = $admin['username'];
-                $_SESSION['full_name'] = $admin['full_name'];
-                $_SESSION['role'] = $admin['role'];
-            }
-        } catch (Exception $e) {
-            // Non-fatal: user logs in manually, cleanup runs from System Update instead.
-        }
-
         $response['success'] = true;
-        $response['message'] = 'Installation finalized successfully';
+        $response['message'] = 'Installation finalized. Log in with the administrator account you created.';
         $response['redirect'] = '../../login.php';
     } catch (Exception $e) {
         throw new Exception('Failed to finalize installation: ' . $e->getMessage());
