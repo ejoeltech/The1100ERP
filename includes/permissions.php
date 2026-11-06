@@ -295,14 +295,15 @@ function hasLegacyRolePermission($action, $resource, $ownerId, $role, $userId)
         case 'edit_invoice':
             // If finalized, only admin can edit
             if ($resource && isset($resource['status']) && $resource['status'] === 'finalized') {
-                return $role === 'admin';
+                return in_array($role, ['super_admin', 'admin'], true);
             }
             // Sales rep can only edit own documents
             if ($role === 'sales_rep') {
                 return $ownerId == $userId;
             }
-            // Admin and Manager can edit any draft
-            return true;
+            // Drafts: admin/manager only. Accountants and viewers must not
+            // edit documents just because the legacy matrix is the fallback.
+            return in_array($role, ['super_admin', 'admin', 'manager'], true);
 
         // Edit Finalized (Admin only)
         case 'edit_finalized':
@@ -559,6 +560,14 @@ function canDeleteDocument($document)
 {
     $role = getUserRole();
 
-    // Only Admin can delete
-    return in_array($role, ['super_admin', 'admin'], true);
+    // Admins can delete any document. Other roles granted a delete
+    // permission may only delete documents they created.
+    if (in_array($role, ['super_admin', 'admin'], true)) {
+        return true;
+    }
+
+    $userId = $_SESSION['user_id'] ?? null;
+    return $userId !== null
+        && isset($document['created_by'])
+        && (int)$document['created_by'] === (int)$userId;
 }

@@ -67,6 +67,8 @@ try {
     // WP3 IDOR: canonical edit gate (finalized = admin only, drafts = own
     // for sales reps). Mirrors pages/edit-invoice.php.
     require_once '../includes/permissions.php';
+    // WP3: canEditDocument() alone let viewers/accountants edit drafts.
+    requirePermission('edit_invoice');
     if (!canEditDocument($invoice)) {
         throw new Exception('You do not have permission to edit this invoice');
     }

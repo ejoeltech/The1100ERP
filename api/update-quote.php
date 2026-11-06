@@ -13,16 +13,16 @@ try {
     $pdo->beginTransaction();
 
     // Extract form data
-    $quote_id = intval($_POST['quote_id']);
-    $quote_title = trim($_POST['quote_title']);
-    $customer_name = trim($_POST['customer_name']);
-    $salesperson = trim($_POST['salesperson']);
-    $quote_date = $_POST['quote_date'];
-    $payment_terms = trim($_POST['payment_terms']);
+    $quote_id = intval($_POST['quote_id'] ?? 0);
+    $quote_title = trim($_POST['quote_title'] ?? '');
+    $customer_name = trim($_POST['customer_name'] ?? '');
+    $salesperson = trim($_POST['salesperson'] ?? '');
+    $quote_date = $_POST['quote_date'] ?? date('Y-m-d');
+    $payment_terms = trim($_POST['payment_terms'] ?? '');
     // WP3-D: money figures are recomputed server-side; posted totals ignored.
     // Status is allow-listed (draft/finalized only).
     $status = sanitizeDocumentStatus($_POST['status'] ?? 'draft');
-    $line_items = $_POST['line_items'];
+    $line_items = $_POST['line_items'] ?? [];
 
     // Fetch existing quote
     $stmt = $pdo->prepare("SELECT * FROM quotes WHERE id = ? AND deleted_at IS NULL");
@@ -36,6 +36,8 @@ try {
     // WP3 IDOR: canonical edit gate (finalized = admin only, drafts = own
     // for sales reps). Mirrors pages/edit-quote.php.
     require_once '../includes/permissions.php';
+    // WP3: canEditDocument() alone let viewers/accountants edit drafts.
+    requirePermission('edit_quote');
     if (!canEditDocument($quote)) {
         throw new Exception('You do not have permission to edit this quote');
     }

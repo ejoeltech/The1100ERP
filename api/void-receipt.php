@@ -36,6 +36,13 @@ try {
 
     if (!$receipt)
         throw new Exception('Receipt not found');
+    require_once '../includes/permissions.php';
+    if (!canDeleteDocument($receipt)) {
+        $pdo->rollBack();
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: you cannot void this receipt']);
+        exit;
+    }
     if ($receipt['status'] === 'void')
         throw new Exception('Receipt is already void');
 
