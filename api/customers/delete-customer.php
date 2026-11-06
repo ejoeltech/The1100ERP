@@ -13,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// WP4: authentication alone let any logged-in user soft-delete customers.
+requirePermission('manage_customers');
+
 try {
     $data = json_decode(file_get_contents('php://input'), true);
     $id = $data['id'] ?? null;
