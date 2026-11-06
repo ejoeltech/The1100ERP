@@ -351,7 +351,10 @@ function setSecurityHeaders() {
     // Content Security Policy
     // Note: 'unsafe-inline' + 'unsafe-eval' currently required for Tailwind CDN (uses eval) and dynamic styles.
     // Everything else is locked down: no plugins, no foreign frames/forms, no base hijack.
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
+    // Remaining debt: 'unsafe-inline'/'unsafe-eval' are required by the
+    // current inline handlers and Tailwind CDN. Remove them after migrating
+    // inline scripts to nonces/hashed files.
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
 }
 
 // ============================================
