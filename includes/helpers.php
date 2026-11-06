@@ -89,56 +89,94 @@ function isValidEmail($email)
 }
 
 /**
- * Generate the next quote number
- * @param PDO $pdo Database connection
- * @return string Next quote number (e.g. QUOT-YYYY-001)
+ * Read the highest existing number for a prefix so a brand-new counter can
+ * start after it. Used only to bootstrap document_sequences from live data.
  */
-function generateQuoteNumber($pdo)
+function documentNumberBootstrap($pdo, $table, $column, $prefix)
 {
-    $year = date('Y');
-    $prefix = 'QUOT-' . $year . '-';
-
-    $stmt = $pdo->prepare("SELECT quote_number FROM quotes WHERE quote_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$prefix . '%']);
-    $lastQuote = $stmt->fetch();
-
-    if ($lastQuote) {
-        $lastNumber = intval(substr($lastQuote['quote_number'], strlen($prefix)));
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table)
+        || !preg_match('/^[A-Za-z0-9_]{1,64}$/', $column)) {
+        throw new Exception('Invalid document number source');
     }
-
-    return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    $stmt = $pdo->prepare("SELECT `$column` FROM `$table` WHERE `$column` LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$prefix . '%']);
+    $last = $stmt->fetchColumn();
+    return $last !== false ? (int)substr((string)$last, strlen($prefix)) : 0;
 }
 
 /**
- * Generate the next receipt number
- * @param PDO $pdo Database connection
- * @return string Next receipt number (e.g. REC-YYYY-001)
+ * Atomically allocate the next document number. The counter row is
+ * incremented with LAST_INSERT_ID() so concurrent requests cannot receive
+ * the same value. $table/$column are only read to bootstrap a new counter.
  */
-function generateReceiptNumber($pdo)
+function nextDocumentNumber($pdo, $sequenceKey, $table, $column, $prefix, $padding = 3)
 {
-    $year = date('Y');
-    $prefix = 'REC-' . $year . '-';
+    $bootstrap = documentNumberBootstrap($pdo, $table, $column, $prefix);
+    $initial = $bootstrap + 1;
 
-    // We use a locking read or just optimistic logic. 
-    // Since this is called within a transaction in save-payment, we should be careful.
-    // However, save-payment locks rows, not the whole table.
-    // For simplicity in this context, we'll select the max.
-
-    $stmt = $pdo->prepare("SELECT receipt_number FROM receipts WHERE receipt_number LIKE ? ORDER BY id DESC LIMIT 1");
-    $stmt->execute([$prefix . '%']);
-    $lastReceipt = $stmt->fetch();
-
-    if ($lastReceipt) {
-        $lastNumber = intval(substr($lastReceipt['receipt_number'], strlen($prefix)));
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
+    try {
+        $stmt = $pdo->prepare("INSERT INTO document_sequences (sequence_key, last_value) VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE last_value = LAST_INSERT_ID(GREATEST(last_value + 1, ?))");
+        $stmt->execute([$sequenceKey, $initial, $initial]);
+        $value = $stmt->rowCount() === 1 ? $initial : (int)$pdo->lastInsertId();
+    } catch (PDOException $e) {
+        // Schema patch not applied yet: keep document creation working and
+        // log loudly. Concurrent requests can race until the patch is run.
+        if (stripos($e->getMessage(), 'document_sequences') === false) {
+            throw $e;
+        }
+        error_log('document_sequences missing; falling back to non-atomic document numbering. Run the schema patcher.');
+        $value = $initial;
     }
 
-    return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    return $prefix . str_pad((string)$value, $padding, '0', STR_PAD_LEFT);
+}
+
+/**
+ * Preview the next number without consuming it (used by create forms).
+ */
+function previewDocumentNumber($pdo, $sequenceKey, $table, $column, $prefix, $padding = 3)
+{
+    $bootstrap = documentNumberBootstrap($pdo, $table, $column, $prefix);
+    $current = 0;
+    try {
+        $stmt = $pdo->prepare("SELECT last_value FROM document_sequences WHERE sequence_key = ?");
+        $stmt->execute([$sequenceKey]);
+        $current = (int)$stmt->fetchColumn();
+    } catch (PDOException $e) {
+        // See note in nextDocumentNumber().
+    }
+    $next = max($bootstrap, $current) + 1;
+    return $prefix . str_pad((string)$next, $padding, '0', STR_PAD_LEFT);
+}
+
+function generateQuoteNumber($pdo)
+{
+    $prefix = 'QUOT-' . date('Y') . '-';
+    return nextDocumentNumber($pdo, 'quote:' . date('Y'), 'quotes', 'quote_number', $prefix, 3);
+}
+
+function previewQuoteNumber($pdo)
+{
+    $prefix = 'QUOT-' . date('Y') . '-';
+    return previewDocumentNumber($pdo, 'quote:' . date('Y'), 'quotes', 'quote_number', $prefix, 3);
+}
+
+function generateReceiptNumber($pdo)
+{
+    $prefix = 'REC-' . date('Y') . '-';
+    return nextDocumentNumber($pdo, 'receipt:' . date('Y'), 'receipts', 'receipt_number', $prefix, 3);
+}
+
+function generateInvoiceNumber($pdo)
+{
+    return nextDocumentNumber($pdo, 'invoice', 'invoices', 'invoice_number', 'INV-', 4);
+}
+
+function generatePaymentNumber($pdo)
+{
+    $ym = date('ym');
+    return nextDocumentNumber($pdo, 'payment:' . $ym, 'payments', 'payment_number', 'PAY-' . $ym . '-', 3);
 }
 
 /**

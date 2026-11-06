@@ -685,6 +685,13 @@ class SchemaPatcher
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'audit_seq' table");
         $exec("INSERT IGNORE INTO `audit_seq` (`id`, `tick`) VALUES (1, 0);", "Seed 'audit_seq' sentinel row");
+        // Atomic counters for quote/invoice/receipt/payment numbers. Replaces
+        // the race-prone MAX(number)+1 logic in helpers and API endpoints.
+        $exec("CREATE TABLE IF NOT EXISTS `document_sequences` (
+    `sequence_key` varchar(64) NOT NULL,
+    `last_value` int(10) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (`sequence_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'document_sequences' table");
         // WP9: Nigeria-payroll v10 parity (the v10 SQL file used MariaDB-invalid
         // ADD COLUMN IF NOT EXISTS, so fresh installs missed every column below;
         // $addCol is existence-checked, keeping web-driven runs idempotent).

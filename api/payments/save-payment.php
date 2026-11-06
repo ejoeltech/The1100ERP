@@ -43,10 +43,8 @@ try {
 
     // If NOT using existing credit, record a new payment
     if (!$use_credit) {
-        // Generate Payment Number
-        $stmt = $pdo->query("SELECT COUNT(*) FROM payments WHERE YEAR(created_at) = YEAR(CURRENT_DATE)");
-        $count = $stmt->fetchColumn() + 1;
-        $payment_number = 'PAY-' . date('ym') . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        // Allocate the payment number atomically.
+        $payment_number = generatePaymentNumber($pdo);
 
         $stmt = $pdo->prepare("
             INSERT INTO payments (payment_number, customer_id, amount, payment_date, payment_method, reference, notes, created_by)

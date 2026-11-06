@@ -47,21 +47,9 @@ try {
         throw new Exception('Quote already converted to invoice');
     }
 
-    // Generate invoice number
-    $stmt = $pdo->query("
-        SELECT invoice_number 
-        FROM invoices 
-        ORDER BY id DESC 
-        LIMIT 1
-    ");
-    $lastInvoice = $stmt->fetch();
-    if ($lastInvoice) {
-        $lastNumber = intval(substr($lastInvoice['invoice_number'], 4));
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
-    }
-    $invoice_number = 'INV-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    // Allocate the invoice number atomically (INV-0001 format).
+    require_once '../includes/helpers.php';
+    $invoice_number = generateInvoiceNumber($pdo);
 
     // Fetch quote line items
     $stmt = $pdo->prepare("SELECT * FROM quote_line_items WHERE quote_id = ? ORDER BY item_number");

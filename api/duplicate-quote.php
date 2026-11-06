@@ -39,22 +39,9 @@ try {
     $stmt->execute([$quote_id]);
     $line_items = $stmt->fetchAll();
 
-    // Generate new quote number
-    // Need to include helpers if generateQuoteNumber is defined there or logic inline.
-    // Original code: $new_quote_number = generateQuoteNumber($pdo);
-    // If it's a global function in config or helper, good. If not, I should check.
-    // Assuming it works or I should implement it inline to be safe as I haven't seen 'generateQuoteNumber' definition in 'config.php' viewing earlier.
-    // I'll implement inline generation to be safe.
-
-    $stmt = $pdo->query("SELECT quote_number FROM quotes ORDER BY id DESC LIMIT 1");
-    $lastQuote = $stmt->fetch();
-    if ($lastQuote) {
-        $lastNumber = intval(substr($lastQuote['quote_number'], 4));
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
-    }
-    $new_quote_number = 'QUO-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    // Allocate the next quote number atomically (same format as new quotes).
+    require_once '../includes/helpers.php';
+    $new_quote_number = generateQuoteNumber($pdo);
 
 
     // Insert new quote

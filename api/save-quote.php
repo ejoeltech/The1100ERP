@@ -12,8 +12,9 @@ try {
     // Start transaction
     $pdo->beginTransaction();
 
-    // Extract form data
-    $quote_number = $_POST['quote_number'];
+    // Extract form data. The number is allocated server-side so a stale or
+    // tampered form value can never duplicate another quote.
+    $quote_number = generateQuoteNumber($pdo);
     $quote_title = trim($_POST['quote_title']);
     $customer_name = trim($_POST['customer_name']);
     $salesperson = trim($_POST['salesperson']);

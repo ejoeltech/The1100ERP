@@ -3,7 +3,7 @@
 require_once '../config.php';
 
 $pageTitle = 'Create Quote - ERP System';
-$nextQuoteNumber = generateQuoteNumber($pdo);
+$nextQuoteNumber = previewQuoteNumber($pdo);
 $todayDate = date('Y-m-d');
 
 // Check if coming from a readymade quote template

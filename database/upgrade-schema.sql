@@ -243,6 +243,13 @@ CREATE TABLE IF NOT EXISTS `audit_seq` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT IGNORE INTO `audit_seq` (`id`, `tick`) VALUES (1, 0);
 
+-- Atomic counters for quote/invoice/receipt/payment numbers.
+CREATE TABLE IF NOT EXISTS `document_sequences` (
+    `sequence_key` varchar(64) NOT NULL,
+    `last_value` int(10) unsigned NOT NULL DEFAULT 0,
+    PRIMARY KEY (`sequence_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ================== 5. documents extra columns =============================
 ALTER TABLE `customers` ADD COLUMN `deleted_at` TIMESTAMP NULL DEFAULT NULL;
 ALTER TABLE `products` ADD COLUMN `deleted_at` TIMESTAMP NULL DEFAULT NULL;
