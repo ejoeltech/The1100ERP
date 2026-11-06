@@ -29,7 +29,8 @@ if (!$codeRow || !empty($codeRow['is_used']) || (!empty($codeRow['expires_at']) 
     header("Location: ../../../signup.php");
     exit;
 }
-$signup_code = $codeRow['code'];
+// The plaintext code is never stored with the entry; verification is by hash.
+$signup_code = '';
 // Fallbacks keep applicants out of a 500 if this page is deployed ahead of
 // includes/invites.php during a partial update.
 $employment_type = function_exists('onboardingTypeFromRole')
@@ -259,7 +260,7 @@ function signupValue($field, $entry, $fallback = '', $postKey = null)
 
         <div class="bg-blue-50 border-b border-blue-100 px-8 py-3 text-sm text-blue-900">
             Registering as <strong><?php echo htmlspecialchars($employment_type_label, ENT_QUOTES, 'UTF-8'); ?></strong>
-            <span class="text-blue-500">• code <?php echo htmlspecialchars($signup_code, ENT_QUOTES, 'UTF-8'); ?></span>
+            <span class="text-blue-500">• code on file</span>
         </div>
 
         <?php if ($error): ?>

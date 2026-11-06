@@ -749,6 +749,18 @@ class SchemaPatcher
             } catch (Exception $e) {
                 $add('error', 'seed', 'Failed normalising onboarding code types: ' . $e->getMessage());
             }
+            // v14: onboarding codes are stored only as hashes. The legacy
+            // plaintext column becomes nullable and is cleared.
+            try {
+                $pdo->exec("ALTER TABLE hr_onboarding_codes MODIFY COLUMN code VARCHAR(20) NULL DEFAULT NULL");
+                $pdo->exec("UPDATE hr_onboarding_codes SET code = NULL WHERE code_hash IS NOT NULL");
+                if ($hasOnboardEntries) {
+                    $pdo->exec("UPDATE hr_onboarding_entries SET signup_code = '' WHERE signup_code IS NOT NULL AND signup_code <> ''");
+                }
+                $add('ok', 'columns', 'Removed stored plaintext onboarding codes.');
+            } catch (Exception $e) {
+                $add('error', 'columns', 'Failed clearing plaintext onboarding codes: ' . $e->getMessage());
+            }
         } else {
             $add('info', 'columns', 'Skipped onboarding type normalisation (table not installed).');
         }

@@ -229,9 +229,22 @@ function issueOnboardingCode($role, $createdBy = null)
     global $pdo;
     $role = onboardingTypeFromRole($role);
     $code = onboardGenerateCode();
-    $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, code_hash, role, created_by, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))");
-    // NOTE: plaintext `code` column is legacy; verification uses code_hash only.
-    $stmt->execute([$code, hash('sha256', $code), $role, $createdBy, ONBOARD_CODE_TTL_DAYS]);
+    $hash = hash('sha256', $code);
+
+    // Store only the hash. The legacy plaintext column is set to NULL after
+    // migration; before migration it is NOT NULL, so use an unrelated random
+    // placeholder rather than persisting the real code.
+    try {
+        $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, code_hash, role, created_by, expires_at) VALUES (NULL, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))");
+        $stmt->execute([$hash, $role, $createdBy, ONBOARD_CODE_TTL_DAYS]);
+    } catch (PDOException $e) {
+        if (stripos($e->getMessage(), 'cannot be null') === false) {
+            throw $e;
+        }
+        $placeholder = 'OB-HIDDEN-' . substr(bin2hex(random_bytes(6)), 0, 6);
+        $stmt = $pdo->prepare("INSERT INTO hr_onboarding_codes (code, code_hash, role, created_by, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? DAY))");
+        $stmt->execute([$placeholder, $hash, $role, $createdBy, ONBOARD_CODE_TTL_DAYS]);
+    }
     return $code;
 }
 
@@ -252,11 +265,19 @@ function renewOnboardingCode($codeId)
     $code = onboardGenerateCode();
     $pdo->beginTransaction();
     try {
-        $pdo->prepare("UPDATE hr_onboarding_codes SET code = ?, code_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), failed_attempts = 0 WHERE id = ?")
-            ->execute([$code, hash('sha256', $code), ONBOARD_CODE_TTL_DAYS, (int)$codeId]);
-        // Keep the cached code in sync for drafts created under the old code.
-        $pdo->prepare("UPDATE hr_onboarding_entries SET signup_code = ? WHERE code_id = ?")
-            ->execute([$code, (int)$codeId]);
+        // New codes are stored only as a hash. On a not-yet-migrated DB the
+        // plaintext column is still NOT NULL, so fall back to leaving its
+        // legacy value alone rather than failing the renewal.
+        try {
+            $pdo->prepare("UPDATE hr_onboarding_codes SET code = NULL, code_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), failed_attempts = 0 WHERE id = ?")
+                ->execute([hash('sha256', $code), ONBOARD_CODE_TTL_DAYS, (int)$codeId]);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'cannot be null') === false) {
+                throw $e;
+            }
+            $pdo->prepare("UPDATE hr_onboarding_codes SET code_hash = ?, expires_at = DATE_ADD(NOW(), INTERVAL ? DAY), failed_attempts = 0 WHERE id = ?")
+                ->execute([hash('sha256', $code), ONBOARD_CODE_TTL_DAYS, (int)$codeId]);
+        }
         $pdo->commit();
         return $code;
     } catch (Exception $e) {

@@ -295,8 +295,9 @@ include_once '../../../includes/header.php';
                         ?>
                         <div class="bg-gray-50 p-2 rounded text-sm border">
                             <div class="flex justify-between items-center gap-2">
-                                <span class="font-mono font-bold select-all">
-                                    <?php echo htmlspecialchars($c['code'], ENT_QUOTES, 'UTF-8'); ?>
+                                <span class="font-mono font-bold text-gray-500"
+                                    title="The code is shown only once when it is created or renewed.">
+                                    •••••• hidden
                                 </span>
                                 <?php if ($c['is_used']): ?>
                                     <span class="bg-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded whitespace-nowrap">Used</span>
