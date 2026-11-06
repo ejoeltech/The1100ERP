@@ -207,6 +207,18 @@ CREATE TABLE IF NOT EXISTS `user_invites` (
     KEY `idx_invite_expiry` (`expires_at`),
     CONSTRAINT `user_invites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS `api_tokens` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` int(10) unsigned NOT NULL,
+    `token_hash` char(64) NOT NULL,
+    `expires_at` datetime NOT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `last_used_at` datetime DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_api_token_hash` (`token_hash`),
+    KEY `idx_api_token_user` (`user_id`),
+    CONSTRAINT `api_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS `auth_throttle` (
     `bucket` varchar(128) NOT NULL,
     `window_start` datetime NOT NULL,

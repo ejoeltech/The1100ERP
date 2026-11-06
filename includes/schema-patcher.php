@@ -673,6 +673,18 @@ class SchemaPatcher
     KEY `idx_invite_expiry` (`expires_at`),
     CONSTRAINT `user_invites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'user_invites' table");
+        $exec("CREATE TABLE IF NOT EXISTS `api_tokens` (
+    `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+    `user_id` int(10) unsigned NOT NULL,
+    `token_hash` char(64) NOT NULL,
+    `expires_at` datetime NOT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `last_used_at` datetime DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_api_token_hash` (`token_hash`),
+    KEY `idx_api_token_user` (`user_id`),
+    CONSTRAINT `api_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;", "Create 'api_tokens' table");
         $exec("CREATE TABLE IF NOT EXISTS `auth_throttle` (
     `bucket` varchar(128) NOT NULL,
     `window_start` datetime NOT NULL,
@@ -744,6 +756,30 @@ class SchemaPatcher
             $addCol('hr_onboarding_entries', 'employment_type', "VARCHAR(20) NOT NULL DEFAULT 'staff'");
         } else {
             $add('info', 'columns', 'Skipped hr_onboarding_entries.employment_type (table not installed).');
+        }
+        // v13: encrypted NIN/BVN envelopes are longer than the original
+        // varchar(50) columns; widen before any encryption is written.
+        $widenPii = function ($table, $column) use ($pdo, $add) {
+            try {
+                $stmt = $pdo->query("SHOW COLUMNS FROM `$table` LIKE " . $pdo->quote($column));
+                $col = $stmt->fetch();
+                if (!$col) {
+                    $add('info', 'columns', "Skipped $table.$column (column not installed).");
+                    return;
+                }
+                if (stripos((string)$col['Type'], 'varchar(255)') === false) {
+                    $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN `$column` VARCHAR(255) DEFAULT NULL");
+                    $add('ok', 'columns', "Widened $table.$column for encrypted PII.");
+                } else {
+                    $add('info', 'columns', "$table.$column already wide enough for encrypted PII.");
+                }
+            } catch (Exception $e) {
+                $add('error', 'columns', "Failed widening $table.$column: " . $e->getMessage());
+            }
+        };
+        foreach (['hr_employees', 'hr_onboarding_entries'] as $piiTable) {
+            $widenPii($piiTable, 'nin_number');
+            $widenPii($piiTable, 'bvn_number');
         }
         $exec("CREATE TABLE IF NOT EXISTS `hr_payroll_items` (
     `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
