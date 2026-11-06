@@ -149,28 +149,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'signature_path' => $signature_path
             ];
 
-            // Columns shared by insert and update, built once so the
-            // employment_type column can be included only when it exists.
-            $fields = [
-                'full_name' => $data['full_name'],
-                'phone' => $data['phone'],
-                'email' => $data['email'],
-                'date_of_birth' => $data['date_of_birth'],
-                'gender' => $data['gender'],
-                'address' => $data['address'],
-                'nin_number' => $data['nin_number'],
-                'bvn_number' => $data['bvn_number'],
-                'next_of_kin_name' => $data['next_of_kin_name'],
-                'next_of_kin_relationship' => $data['next_of_kin_relationship'],
-                'next_of_kin_phone' => $data['next_of_kin_phone'],
-                'passport_path' => $data['passport_path'],
-                'signature_path' => $data['signature_path'],
-            ];
-            if ($hasEmploymentType) {
-                $fields['employment_type'] = $data['employment_type'];
-            }
-
             try {
+                // CR-11: NIN/BVN are encrypted before they leave this request.
+                // encryptPII() fails closed when ENCRYPTION_KEY is missing.
+                $data['nin_number'] = encryptPII($data['nin_number']);
+                $data['bvn_number'] = encryptPII($data['bvn_number']);
+
+                // Columns shared by insert and update, built once so the
+                // employment_type column can be included only when it exists.
+                $fields = [
+                    'full_name' => $data['full_name'],
+                    'phone' => $data['phone'],
+                    'email' => $data['email'],
+                    'date_of_birth' => $data['date_of_birth'],
+                    'gender' => $data['gender'],
+                    'address' => $data['address'],
+                    'nin_number' => $data['nin_number'],
+                    'bvn_number' => $data['bvn_number'],
+                    'next_of_kin_name' => $data['next_of_kin_name'],
+                    'next_of_kin_relationship' => $data['next_of_kin_relationship'],
+                    'next_of_kin_phone' => $data['next_of_kin_phone'],
+                    'passport_path' => $data['passport_path'],
+                    'signature_path' => $data['signature_path'],
+                ];
+                if ($hasEmploymentType) {
+                    $fields['employment_type'] = $data['employment_type'];
+                }
+
                 if ($entry) {
                     // Update
                     $assignments = [];
@@ -197,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$code_id]);
                     $entry = $stmt->fetch();
                 }
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 // Never expose SQL or applicant data in the public response.
                 error_log('Onboarding submission failed: ' . $e->getMessage());
                 $error = 'We could not save your registration right now. Please try again in a moment.';
@@ -214,7 +219,15 @@ function signupValue($field, $entry, $fallback = '', $postKey = null)
     if (array_key_exists($postKey, $_POST)) {
         return (string)$_POST[$postKey];
     }
-    return (string)($entry[$field] ?? $fallback);
+    $value = $entry[$field] ?? $fallback;
+    if (in_array($field, ['nin_number', 'bvn_number'], true)) {
+        try {
+            $value = decryptPII($value);
+        } catch (Exception $e) {
+            $value = '';
+        }
+    }
+    return (string)$value;
 }
 ?>
 <!DOCTYPE html>

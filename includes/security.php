@@ -366,32 +366,108 @@ function setSecurityHeaders() {
 // PII Encryption (Field-Level)
 // ============================================
 
-/**
- * Encrypt sensitive PII using AES-256-GCM
- * Requires ENCRYPTION_KEY in .env
- */
-function encryptPII($data) {
-    if (empty($data)) return $data;
-    $key = getenv('ENCRYPTION_KEY');
-    if (!$key) return $data; // Fallback if no key (not ideal for security)
-    
-    $iv = random_bytes(12);
-    $tag = '';
-    $ciphertext = openssl_encrypt($data, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
-    return base64_encode($iv . $tag . $ciphertext);
+if (!defined('PII_ENVELOPE_PREFIX')) {
+    define('PII_ENVELOPE_PREFIX', 'pii:v2:');
 }
 
 /**
- * Decrypt sensitive PII
+ * Derive the PII encryption key. Fails closed when ENCRYPTION_KEY is missing
+ * so PII can never be silently stored in plaintext. The legacy (unversioned)
+ * envelope used the raw env value; it is only used to read old rows.
  */
-function decryptPII($data) {
-    if (empty($data) || strlen($data) < 30) return $data;
-    $key = getenv('ENCRYPTION_KEY');
-    if (!$key) return $data;
-    
-    $decoded = base64_decode($data);
-    $iv = substr($decoded, 0, 12);
-    $tag = substr($decoded, 12, 16);
-    $ciphertext = substr($decoded, 28);
-    return openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+function piiEncryptionKey($version = 'v2')
+{
+    $secret = getenv('ENCRYPTION_KEY');
+    if ($secret === false || trim((string)$secret) === '') {
+        throw new RuntimeException('ENCRYPTION_KEY is not configured; refusing to handle PII.');
+    }
+    if ($version === 'legacy') {
+        return $secret;
+    }
+    return hash('sha256', '1100erp:pii:' . $version . ':' . $secret, true);
+}
+
+/**
+ * Whether a stored value is already in one of our encrypted envelopes.
+ */
+function piiIsEncrypted($data)
+{
+    if (!is_string($data) || $data === '') {
+        return false;
+    }
+    if (strpos($data, PII_ENVELOPE_PREFIX) === 0) {
+        return true;
+    }
+    // Legacy envelope: base64(12-byte IV + 16-byte tag + ciphertext).
+    if (strlen($data) < 30) {
+        return false;
+    }
+    $decoded = base64_decode($data, true);
+    return $decoded !== false && strlen($decoded) > 28;
+}
+
+/**
+ * Encrypt sensitive PII using AES-256-GCM.
+ * Returns the value unchanged when it is already encrypted so imports and
+ * repeated saves are idempotent.
+ */
+function encryptPII($data)
+{
+    if ($data === null || $data === '') return $data;
+    if (!is_string($data)) $data = (string)$data;
+    if (piiIsEncrypted($data)) return $data;
+
+    $key = piiEncryptionKey('v2');
+    $iv = random_bytes(12);
+    $tag = '';
+    $ciphertext = openssl_encrypt($data, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+    if ($ciphertext === false) {
+        throw new RuntimeException('PII encryption failed.');
+    }
+    return PII_ENVELOPE_PREFIX . base64_encode($iv . $tag . $ciphertext);
+}
+
+/**
+ * Decrypt sensitive PII. Supports the v2 envelope, the legacy raw-key
+ * envelope, and plaintext rows (which a migration should encrypt).
+ */
+function decryptPII($data)
+{
+    if ($data === null || $data === '') return $data;
+    if (!is_string($data)) return $data;
+
+    if (strpos($data, PII_ENVELOPE_PREFIX) === 0) {
+        $key = piiEncryptionKey('v2');
+        $decoded = base64_decode(substr($data, strlen(PII_ENVELOPE_PREFIX)), true);
+        if ($decoded === false || strlen($decoded) <= 28) {
+            return '';
+        }
+        $iv = substr($decoded, 0, 12);
+        $tag = substr($decoded, 12, 16);
+        $ciphertext = substr($decoded, 28);
+        $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+        return $plain === false ? '' : $plain;
+    }
+
+    // Legacy encrypted value: try the old raw-key envelope.
+    if (strlen($data) >= 30) {
+        $decoded = base64_decode($data, true);
+        if ($decoded !== false && strlen($decoded) > 28) {
+            $key = piiEncryptionKey('legacy');
+            $iv = substr($decoded, 0, 12);
+            $tag = substr($decoded, 12, 16);
+            $ciphertext = substr($decoded, 28);
+            $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag);
+            if ($plain !== false) {
+                return $plain;
+            }
+            // A value that looks like our legacy envelope but will not
+            // decrypt is truncated/corrupt; never echo ciphertext as PII.
+            error_log('PII legacy decryption failed; the stored value may be truncated.');
+            return '';
+        }
+    }
+
+    // Plaintext row from before encryption was enforced.
+    return $data;
 }
