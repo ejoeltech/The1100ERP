@@ -19,6 +19,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// H-11: restoring overwrites all data. Require password re-auth and a
+// typed confirmation in addition to the admin session + CSRF.
+if (($_POST['confirm'] ?? '') !== 'RESTORE') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Type RESTORE to confirm this restore.']);
+    exit;
+}
+$reauthPassword = $_POST['admin_password'] ?? '';
+$stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$reauthUser = $stmt->fetch();
+if (!$reauthUser || !verifyPassword($reauthPassword, $reauthUser['password'])) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Incorrect admin password.']);
+    exit;
+}
+
 $tempDir = null;
 
 try {
@@ -138,13 +155,13 @@ try {
         $sqlFileToRestore = $file['tmp_name'];
     }
 
-    // Perform DB Restore
+    // Perform DB Restore. Pass the password through the child environment so
+    // it never appears in the process list or shell command.
     $command = sprintf(
-        '%s --host=%s --user=%s --password=%s %s < %s',
+        '%s --host=%s --user=%s %s < %s',
         $mysqlCommand,
         escapeshellarg(DB_HOST),
         escapeshellarg(DB_USER),
-        escapeshellarg(DB_PASS),
         escapeshellarg(DB_NAME),
         escapeshellarg($sqlFileToRestore) // WP11: escaped, not hand-quoted
     );
@@ -153,7 +170,12 @@ try {
         $command = 'cmd /c "' . $command . '"';
     }
 
-    exec($command . ' 2>&1', $output, $returnVar);
+    putenv('MYSQL_PWD=' . DB_PASS);
+    try {
+        exec($command . ' 2>&1', $output, $returnVar);
+    } finally {
+        putenv('MYSQL_PWD');
+    }
 
     if ($returnVar !== 0) {
         // WP8/WP11: mysql output can leak paths — log it, generic to user.

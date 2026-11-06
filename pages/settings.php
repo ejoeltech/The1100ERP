@@ -1549,10 +1549,19 @@ include '../includes/header.php';
             if (!confirm('CRITICAL WARNING: This will DELETE existing data and import the selected file. Are you absolutely sure?')) {
                 return;
             }
+            const adminPassword = prompt('Enter your admin password to confirm the restore:');
+            if (!adminPassword) return;
+            const confirmation = prompt('Type RESTORE to confirm:');
+            if (confirmation !== 'RESTORE') {
+                alert('Restore cancelled.');
+                return;
+            }
 
             const formData = new FormData();
             formData.append('file', file);
             formData.append('include_media', document.getElementById('restoreMedia').checked ? '1' : '0');
+            formData.append('admin_password', adminPassword);
+            formData.append('confirm', confirmation);
 
             const originalText = btn.innerHTML;
             btn.innerHTML = 'Restoring...';
@@ -1592,8 +1601,18 @@ include '../includes/header.php';
                 return;
             }
 
+            const adminPassword = prompt('Enter your admin password to apply this update:');
+            if (!adminPassword) return;
+            const confirmation = prompt('Type APPLY to confirm:');
+            if (confirmation !== 'APPLY') {
+                alert('Update cancelled.');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('admin_password', adminPassword);
+            formData.append('confirm', confirmation);
 
             const statusDiv = document.getElementById('patch-status');
             const originalText = btn.innerHTML;

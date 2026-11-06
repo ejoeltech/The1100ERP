@@ -11,6 +11,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// H-11: a stolen admin session alone must not be enough to run uploaded
+// code. Require the current password and a typed confirmation.
+if (($_POST['confirm'] ?? '') !== 'APPLY') {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Type APPLY to confirm this update.']);
+    exit;
+}
+$reauthPassword = $_POST['admin_password'] ?? '';
+$stmt = $pdo->prepare("SELECT password FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$reauthUser = $stmt->fetch();
+if (!$reauthUser || !verifyPassword($reauthPassword, $reauthUser['password'])) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Incorrect admin password.']);
+    exit;
+}
+
 try {
     if (!isset($_FILES['file'])) {
         throw new Exception('No file uploaded.');
