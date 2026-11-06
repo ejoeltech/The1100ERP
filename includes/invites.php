@@ -34,9 +34,10 @@ function throttleCheck($bucket, $maxAttempts, $windowSecs = 3600)
         $stmt->execute([$bucket]);
         return true;
     } catch (Exception $e) {
-        // Throttle table missing (migration not applied): fail open for
-        // availability, the code/invite checks below still enforce.
-        return true;
+        // Fail closed: if the throttle store is unavailable, do not allow a
+        // possibly unlimited number of attempts.
+        error_log('Throttle check failed; denying attempt: ' . $e->getMessage());
+        return false;
     }
 }
 

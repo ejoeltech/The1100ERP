@@ -214,18 +214,15 @@ function sessionStillValid($userId)
         return true;
     }
     try {
-        // Grace: users with no registered sessions yet (pre-WP4 logins) pass
-        // until their next full login registers one.
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM user_sessions WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        if ((int)$stmt->fetchColumn() === 0) {
-            return true;
-        }
+        // Fail closed: a session is valid only when its registered row exists.
+        // Users with no registered session row must log in again.
         $stmt = $pdo->prepare("SELECT 1 FROM user_sessions WHERE session_hash = ? AND user_id = ?");
         $stmt->execute([currentSessionHash(), $userId]);
         return (bool)$stmt->fetchColumn();
     } catch (Exception $e) {
-        return true;
+        // A DB outage must not silently disable session revocation.
+        error_log('Session revocation check failed; rejecting session: ' . $e->getMessage());
+        return false;
     }
 }
 
