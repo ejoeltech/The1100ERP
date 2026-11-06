@@ -34,7 +34,9 @@ include '../includes/header.php';
     <!-- Content Sections -->
     <div id="content-quotes" class="tab-content">
         <?php
-        $stmt = $pdo->query("SELECT * FROM quotes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
+        $roleData = getRoleFilter('q');
+        $stmt = $pdo->prepare("SELECT q.* FROM quotes q WHERE q.deleted_at IS NOT NULL" . $roleData['sql'] . " ORDER BY q.deleted_at DESC");
+        $stmt->execute($roleData['params']);
         $quotes = $stmt->fetchAll();
         if ($quotes): ?>
             <div class="overflow-x-auto">
@@ -98,13 +100,15 @@ include '../includes/header.php';
     <div id="content-invoices" class="tab-content hidden">
         <?php
         // Fetch invoices with customer name
-        $stmt = $pdo->query("
+        $roleData = getRoleFilter('i');
+        $stmt = $pdo->prepare("
             SELECT i.*, c.customer_name 
             FROM invoices i 
             LEFT JOIN customers c ON i.customer_id = c.id
-            WHERE i.deleted_at IS NOT NULL 
+            WHERE i.deleted_at IS NOT NULL" . $roleData['sql'] . "
             ORDER BY i.deleted_at DESC
         ");
+        $stmt->execute($roleData['params']);
         $invoices = $stmt->fetchAll();
         if ($invoices): ?>
             <div class="overflow-x-auto">
@@ -169,7 +173,9 @@ include '../includes/header.php';
     <div id="content-receipts" class="tab-content hidden">
         <?php
         // Fetch receipts
-        $stmt = $pdo->query("SELECT * FROM receipts WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC");
+        $roleData = getRoleFilter('r');
+        $stmt = $pdo->prepare("SELECT r.* FROM receipts r WHERE r.deleted_at IS NOT NULL" . $roleData['sql'] . " ORDER BY r.deleted_at DESC");
+        $stmt->execute($roleData['params']);
         $receipts = $stmt->fetchAll();
         if ($receipts): ?>
             <div class="overflow-x-auto">
@@ -204,7 +210,7 @@ include '../includes/header.php';
                                     <?= $r['payment_date'] ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <?= $r['reference_number'] ?>
+                                    <?= htmlspecialchars($r['reference_number'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= $r['payment_method'] ?>

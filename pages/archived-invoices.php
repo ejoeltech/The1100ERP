@@ -91,7 +91,7 @@ include '../includes/header.php';
                                 <?php echo formatNaira($quote['grand_total']); ?>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <a href="view-quote.php?id=<?php echo $quote['id']; ?>"
+                                <a href="view-invoice.php?id=<?php echo (int)$quote['id']; ?>"
                                     class="text-primary hover:text-blue-700 font-semibold text-sm mr-3">View</a>
                             </td>
                         </tr>

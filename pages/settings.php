@@ -1766,15 +1766,15 @@ include '../includes/header.php';
     async function performFactoryReset(event) {
         event.preventDefault();
         const password = document.getElementById('resetPassword').value;
-        const confirm = document.getElementById('resetConfirm').value;
+        const confirmText = document.getElementById('resetConfirm').value;
         const csrf = document.getElementById('resetCsrf').value;
 
-        if (confirm !== 'RESET') {
+        if (confirmText !== 'RESET') {
             alert('Type RESET to confirm.');
             return;
         }
 
-        if (!confirm('Final Warning: This will delete ALL data. The installer is kept so you can reinstall immediately. Continue?')) {
+        if (!window.confirm('Final Warning: This will delete ALL data. The installer is kept so you can reinstall immediately. Continue?')) {
             return;
         }
 

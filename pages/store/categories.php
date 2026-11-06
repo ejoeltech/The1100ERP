@@ -65,6 +65,8 @@ include '../../includes/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
+let categories = [];
+
 document.addEventListener('DOMContentLoaded', loadCategories);
 
 async function loadCategories() {
@@ -74,6 +76,7 @@ async function loadCategories() {
         
         const tbody = document.getElementById('categoriesTableBody');
         tbody.innerHTML = '';
+        categories = res.success ? (res.data || []) : [];
 
         if (res.success && res.data.length > 0) {
             res.data.forEach(cat => {
@@ -84,9 +87,9 @@ async function loadCategories() {
                     <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(cat.description || '-')}</td>
                     <td class="px-6 py-4 text-center">
                         <div class="flex items-center justify-center gap-3">
-                            <button onclick='editCategory(${JSON.stringify(cat)})' class="text-primary hover:text-blue-700 font-bold text-sm">Edit</button>
+                            <button onclick="editCategoryById(${Number(cat.id)})" class="text-primary hover:text-blue-700 font-bold text-sm">Edit</button>
                             <span class="text-gray-300">|</span>
-                            <button onclick="deleteCategory(${cat.id})" class="text-red-600 hover:text-red-800 font-bold text-sm">Delete</button>
+                            <button onclick="deleteCategory(${Number(cat.id)})" class="text-red-600 hover:text-red-800 font-bold text-sm">Delete</button>
                         </div>
                     </td>
                 `;
@@ -184,6 +187,11 @@ async function deleteCategory(id) {
             Swal.fire('Error', 'Failed to delete category', 'error');
         }
     }
+}
+
+function editCategoryById(id) {
+    const cat = categories.find(c => Number(c.id) === Number(id));
+    if (cat) editCategory(cat);
 }
 
 function editCategory(cat) {

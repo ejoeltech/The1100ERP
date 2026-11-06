@@ -301,11 +301,11 @@ async function loadItems() {
                         <span class="px-2.5 py-1 ${condColors[item.condition_status] || condColors.good} text-xs font-bold rounded-full uppercase">${escapeHtml(item.condition_status)}</span>
                     </td>
                     <td class="px-6 py-4 text-center whitespace-nowrap">
-                        <button onclick='openAdjustModal(${item.id}, "out", ${JSON.stringify(item.name)})' class="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-xs font-bold" title="Issue out">Issue</button>
-                        <button onclick='openAdjustModal(${item.id}, "in", ${JSON.stringify(item.name)})' class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs font-bold" title="Restock / return">In</button>
-                        <button onclick='openHistory(${item.id}, ${JSON.stringify(item.name)})' class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-xs font-bold" title="History">Log</button>
-                        <button onclick='openItemModal(${item.id})' class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs font-bold" title="Edit">Edit</button>
-                        <button onclick='archiveItem(${item.id})' class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-xs font-bold" title="Archive">Archive</button>
+                        <button onclick="openAdjustModal(${Number(item.id)}, 'out', accessoryNameById(${Number(item.id)}))" class="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 text-xs font-bold" title="Issue out">Issue</button>
+                        <button onclick="openAdjustModal(${Number(item.id)}, 'in', accessoryNameById(${Number(item.id)}))" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs font-bold" title="Restock / return">In</button>
+                        <button onclick="openHistory(${Number(item.id)}, accessoryNameById(${Number(item.id)}))" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-xs font-bold" title="History">Log</button>
+                        <button onclick="openItemModal(${Number(item.id)})" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs font-bold" title="Edit">Edit</button>
+                        <button onclick="archiveItem(${Number(item.id)})" class="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-xs font-bold" title="Archive">Archive</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -391,6 +391,17 @@ async function saveItem() {
         btn.disabled = false;
         btn.innerText = 'Save Accessory';
     }
+}
+
+function accessoryNameById(id) {
+    const rows = document.querySelectorAll('#itemsTableBody tr');
+    for (const tr of rows) {
+        try {
+            const item = tr.dataset.item ? JSON.parse(tr.dataset.item) : null;
+            if (item && Number(item.id) === Number(id)) return String(item.name ?? '');
+        } catch (e) {}
+    }
+    return '';
 }
 
 function openAdjustModal(id, type, name) {

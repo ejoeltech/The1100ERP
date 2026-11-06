@@ -183,6 +183,8 @@ document.getElementById('searchInput').addEventListener('input', () => {
     searchTimer = setTimeout(loadItems, 500);
 });
 
+let storeItems = [];
+
 async function loadItems() {
     const search = document.getElementById('searchInput').value;
     const catId = document.getElementById('categoryFilter').value;
@@ -194,6 +196,7 @@ async function loadItems() {
         
         const tbody = document.getElementById('itemsTableBody');
         tbody.innerHTML = '';
+        storeItems = res.success ? (res.data || []) : [];
 
         if (res.success && res.data.length > 0) {
             res.data.forEach(item => {
@@ -230,7 +233,7 @@ async function loadItems() {
                     </td>
                     <td class="px-6 py-4 text-center">
                         <span class="px-2.5 py-1 ${item.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} text-xs font-bold rounded-full uppercase">
-                            ${item.status}
+                            ${escapeHtml(item.status)}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-center">
@@ -238,10 +241,10 @@ async function loadItems() {
                             <a href="edit-item.php?id=${item.id}" class="text-primary hover:text-blue-700 p-1" title="Edit Item">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </a>
-                            <button onclick="duplicateItem(${JSON.stringify(item).replace(/'/g, "&apos;")})" class="text-secondary hover:text-green-700 p-1" title="Duplicate Item">
+                            <button onclick="duplicateItemById(${Number(item.id)})" class="text-secondary hover:text-green-700 p-1" title="Duplicate Item">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
                             </button>
-                            <button onclick="archiveItem(${item.id})" class="text-orange-600 hover:text-orange-800 p-1" title="Archive Item">
+                            <button onclick="archiveItem(${Number(item.id)})" class="text-orange-600 hover:text-orange-800 p-1" title="Archive Item">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
                             </button>
                         </div>
@@ -350,6 +353,11 @@ async function archiveItem(id) {
             Swal.fire('Error', 'Failed to archive item', 'error');
         }
     }
+}
+
+function duplicateItemById(id) {
+    const item = storeItems.find(i => Number(i.id) === Number(id));
+    if (item) duplicateItem(item);
 }
 
 function duplicateItem(item) {
