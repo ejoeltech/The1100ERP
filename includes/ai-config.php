@@ -229,10 +229,9 @@ function callAiAPI($prompt, $systemPrompt = '', $options = [], $override = []) {
 
 function callGeminiAPI($prompt, $systemPrompt, $apiKey, $model, $baseUrl, $options) {
     $fullPrompt = $systemPrompt ? $systemPrompt . "\n\nUser: " . $prompt : $prompt;
-    // Replace {model} placeholder
+    // Replace {model} placeholder. The API key goes in a header, never in
+    // the URL, so it cannot leak into access/proxy logs.
     $url = str_replace('{model}', $model, $baseUrl);
-    // Gemini expects ?key=API_KEY
-    $url .= (strpos($url, '?') === false ? '?' : '&') . 'key=' . $apiKey;
 
     $data = [
         'contents' => [['parts' => [['text' => $fullPrompt]]]],
@@ -244,7 +243,10 @@ function callGeminiAPI($prompt, $systemPrompt, $apiKey, $model, $baseUrl, $optio
 
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'x-goog-api-key: ' . $apiKey,
+    ]);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($ch, CURLOPT_TIMEOUT, $options['timeout'] ?? 30);
