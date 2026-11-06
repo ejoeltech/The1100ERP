@@ -30,6 +30,7 @@ if ($month < 1 || $month > 12 || $year < 2000) {
 
 try {
     $payroll = new HR_Payroll($pdo);
+    $pdo->beginTransaction();
 
     // Active employees only.
     $stmt = $pdo->query("SELECT id FROM hr_employees WHERE termination_date IS NULL OR termination_date > CURDATE()");
@@ -37,6 +38,7 @@ try {
 
     $generated = 0;
     $updated = 0;
+    $skipped = 0;
 
     $upsert = $pdo->prepare("
         INSERT INTO hr_payroll (
@@ -66,10 +68,16 @@ try {
     foreach ($employeeIds as $empId) {
         $r = $payroll->computeMonthly($empId, $month, $year);
 
-        // Detect existing to classify generated vs updated.
-        $chk = $pdo->prepare("SELECT id FROM hr_payroll WHERE employee_id = ? AND month = ? AND year = ?");
+        // Lock and inspect the existing row. Approved/paid payroll is an
+        // audit record: a re-run must never overwrite its amounts.
+        $chk = $pdo->prepare("SELECT id, status FROM hr_payroll WHERE employee_id = ? AND month = ? AND year = ? FOR UPDATE");
         $chk->execute([$empId, $month, $year]);
-        $exists = $chk->fetch();
+        $existing = $chk->fetch();
+
+        if ($existing && $existing['status'] !== 'generated') {
+            $skipped++;
+            continue;
+        }
 
         $upsert->execute([
             $r['employee_id'], $r['month'], $r['year'],
@@ -79,22 +87,29 @@ try {
             $r['other_deductions'], $r['total_deductions'], $r['net_salary'], $r['employer_cost']
         ]);
 
-        if ($exists) {
+        if ($existing) {
             $updated++;
         } else {
             $generated++;
         }
     }
 
+    $pdo->commit();
+
     echo json_encode([
         'success' => true,
-        'message' => "Payroll computed for " . ($generated + $updated) . " employees.",
+        'message' => "Payroll computed for " . ($generated + $updated) . " employees."
+            . ($skipped > 0 ? " Skipped $skipped approved/paid row(s)." : ''),
         'generated' => $generated,
         'updated' => $updated,
+        'skipped' => $skipped,
         'month' => $month,
         'year' => $year
     ]);
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("Payroll generate error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
