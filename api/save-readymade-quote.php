@@ -17,6 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// WP4: manual session bootstrap, so enforce CSRF explicitly. The form already
+// renders csrfField(); this closes the last write endpoint without the check.
+requireCsrf();
+
 try {
     $pdo->beginTransaction();
 
