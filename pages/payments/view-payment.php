@@ -40,7 +40,7 @@ $pageTitle = 'Payment ' . $payment['payment_number'];
 include '../../includes/header.php';
 ?>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-4xl mx-auto">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
@@ -194,7 +194,7 @@ include '../../includes/header.php';
             </div>
 
         </div>
-    </main>
+
     </div>
     <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         async function voidReceipt(id) {
@@ -271,6 +271,5 @@ include '../../includes/header.php';
             }
         }
     </script>
-</body>
 
-</html>
+    <?php include '../../includes/footer.php'; ?>

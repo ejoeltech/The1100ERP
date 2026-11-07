@@ -25,7 +25,7 @@ include '../../includes/header.php';
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-5xl mx-auto">
             <div class="flex justify-between items-center mb-6">
                 <div>
@@ -175,10 +175,6 @@ include '../../includes/header.php';
             </div>
         </div>
         </div>
-        </div>
-    </main>
-
-    <?php include '../../includes/footer.php'; ?>
 
     <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
         // Init Tom Select
@@ -486,6 +482,5 @@ include '../../includes/header.php';
             }
         }
     </script>
-</body>
 
-</html>
+    <?php include '../../includes/footer.php'; ?>
