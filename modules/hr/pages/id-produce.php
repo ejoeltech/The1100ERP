@@ -126,10 +126,24 @@ window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
 </div>
 <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 function loadErpEmployee(id) {
-  document.getElementById('employee_id').value = id || '';
   const e = (window.ERP_EMPLOYEES || {})[id];
   const set = (k, v) => { const el = document.getElementById(k); if (el) el.value = v || ''; };
-  if (!e) { render(); return; }
+  // Drop any pending file pick from the previous card so it cannot be uploaded
+  // onto the newly selected employee.
+  ['photoFile', 'logoFile', 'signatureFile'].forEach(k => {
+    const el = document.getElementById(k); if (el) el.value = '';
+  });
+  document.getElementById('employee_id').value = e ? id : '';
+  if (!e) {
+    // Explicit "Manual entry" must not keep the previous employee's identity.
+    ['staff_name', 'staff_id', 'job_title', 'department', 'phone', 'email', 'hire_date'].forEach(k => set(k, ''));
+    if (document.getElementById('employment_type')) document.getElementById('employment_type').value = 'Full-time';
+    photoData = '';
+    signaturePath = presetSignature || '';
+    signatureData = assetUrl(signaturePath);
+    render();
+    return;
+  }
   set('staff_name', e.full_name);
   set('staff_id', e.employee_code);
   set('job_title', e.designation);
@@ -141,11 +155,8 @@ function loadErpEmployee(id) {
     const map = {full_time: 'Full-time', part_time: 'Part-time', contract: 'Contract', intern: 'Intern'};
     set('employment_type', map[e.employment_status] || e.employment_status);
   }
-  if (e.photo) {
-    photoData = e.photo;
-    const dp = document.getElementById('dPhoto'); if (dp) dp.src = photoData;
-    const cp = document.getElementById('cPhoto'); if (cp) cp.src = photoData;
-  }
+  // Always assign (including empty) so the previous employee's face is cleared.
+  photoData = e.photo || '';
   if (e.signature) {
     signaturePath = e.signature;
     signatureData = assetUrl(e.signature);

@@ -20,6 +20,60 @@ function canEditCards() {
     return function_exists('hasPermission') && hasPermission('hr_manage');
 }
 
+/**
+ * Validate a stored image path before it is written to the database or used
+ * for file deletion. Only files directly inside the known upload folders are
+ * accepted, so a crafted path cannot escape with "..", backslashes or NULs.
+ * Returns the normalized path, or '' when the value is not allowed.
+ */
+function cleanStoredImagePath($path, $allowLogo = true) {
+    $path = trim((string)$path);
+    if ($path === '' || strlen($path) > 255 || strpos($path, "\0") !== false || strpos($path, '\\') !== false) {
+        return '';
+    }
+    $prefixes = [
+        'modules/hr/assets/uploads/idcards/',
+        'modules/hr/assets/uploads/employees/',
+        '../assets/uploads/employees/',
+        'modules/hr/assets/uploads/onboarding/',
+        '../assets/uploads/onboarding/',
+    ];
+    if ($allowLogo) {
+        $prefixes[] = '../../../uploads/logo/';
+        $prefixes[] = 'uploads/logo/';
+    }
+    foreach ($prefixes as $prefix) {
+        if (strpos($path, $prefix) !== 0) continue;
+        $name = substr($path, strlen($prefix));
+        // Exactly one file name: no slashes, no "." / "..", no hidden dotfile.
+        if ($name !== '' && basename($name) === $name
+            && $name[0] !== '.'
+            && preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $name)) {
+            return $prefix . $name;
+        }
+    }
+    return '';
+}
+
+/**
+ * Resolve an ID-card upload path for deletion. Only the idcards folder may be
+ * removed (employee/template files can be shared), and the real path must stay
+ * inside that folder after symlink/.. resolution.
+ */
+function idCardDeletablePath($path) {
+    $path = cleanStoredImagePath($path, false);
+    if ($path === '' || strpos($path, 'modules/hr/assets/uploads/idcards/') !== 0) {
+        return null;
+    }
+    $base = realpath(__DIR__ . '/../assets/uploads/idcards');
+    $real = realpath(dirname(__DIR__, 3) . '/' . $path);
+    if ($base === false || $real === false) {
+        return null;
+    }
+    $basePrefix = rtrim($base, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    return strpos($real, $basePrefix) === 0 ? $real : null;
+}
+
 function cleanJson($s) {
     $s = substr(trim($s ?? ''), 0, 20000);
     if ($s === '' || $s === 'null') return '{}';
@@ -65,16 +119,16 @@ try {
         $f = $_POST;
         $id = intval($f['id'] ?? 0);
         // keep old files / accept preset-provided paths when editing without re-upload
-        $oldPhoto = trim($f['photo_path'] ?? '');
-        $oldLogo = trim($f['logo_path'] ?? '');
-        $oldSignature = trim($f['signature_path'] ?? '');
+        $oldPhoto = cleanStoredImagePath($f['photo_path'] ?? '');
+        $oldLogo = cleanStoredImagePath($f['logo_path'] ?? '');
+        $oldSignature = cleanStoredImagePath($f['signature_path'] ?? '');
         if ($id > 0) {
             $st = $pdo->prepare('SELECT photo_path, logo_path, signature_path FROM hr_id_cards WHERE id=?');
             $st->execute([$id]);
             if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-                if ($oldPhoto === '') $oldPhoto = $r['photo_path'];
-                if ($oldLogo === '') $oldLogo = $r['logo_path'];
-                if ($oldSignature === '') $oldSignature = $r['signature_path'];
+                if ($oldPhoto === '') $oldPhoto = cleanStoredImagePath($r['photo_path'] ?? '');
+                if ($oldLogo === '') $oldLogo = cleanStoredImagePath($r['logo_path'] ?? '');
+                if ($oldSignature === '') $oldSignature = cleanStoredImagePath($r['signature_path'] ?? '');
             }
         }
         $data = [
@@ -146,13 +200,12 @@ try {
         $st = $pdo->prepare('SELECT photo_path, logo_path, signature_path FROM hr_id_cards WHERE id=?');
         $st->execute([$id]);
         $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) out(['ok' => false, 'error' => 'Card not found'], 404);
         $st = $pdo->prepare('DELETE FROM hr_id_cards WHERE id=?');
         $st->execute([$id]);
         foreach (['photo_path', 'logo_path'] as $k) {
-            $p = $row[$k] ?? '';
-            if ($p !== '' && strpos($p, 'modules/hr/assets/uploads/idcards/') === 0) {
-                @unlink(dirname(__DIR__, 3) . '/' . $p);
-            }
+            $file = idCardDeletablePath($row[$k] ?? '');
+            if ($file !== null) @unlink($file);
         }
         out(['ok' => true]);
     }
@@ -171,14 +224,14 @@ try {
         $signature = saveUpload('signature');
         $f = $_POST;
         $id = intval($f['id'] ?? 0);
-        $oldLogo = trim($f['logo_path'] ?? '');
-        $oldSignature = trim($f['signature_path'] ?? '');
+        $oldLogo = cleanStoredImagePath($f['logo_path'] ?? '');
+        $oldSignature = cleanStoredImagePath($f['signature_path'] ?? '');
         if ($id > 0) {
             $st = $pdo->prepare('SELECT logo_path, signature_path FROM hr_id_templates WHERE id=?');
             $st->execute([$id]);
             if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-                if ($oldLogo === '') $oldLogo = $r['logo_path'];
-                if ($oldSignature === '') $oldSignature = $r['signature_path'];
+                if ($oldLogo === '') $oldLogo = cleanStoredImagePath($r['logo_path'] ?? '');
+                if ($oldSignature === '') $oldSignature = cleanStoredImagePath($r['signature_path'] ?? '');
             }
         }
         $name = trim($f['name'] ?? '');
@@ -233,14 +286,14 @@ try {
         $signature = saveUpload('signature');
         $f = $_POST;
         $base = max(1, min(7, intval($f['base'] ?? 1)));
-        $oldLogo = trim($f['logo_path'] ?? '');
-        $oldSignature = trim($f['signature_path'] ?? '');
+        $oldLogo = cleanStoredImagePath($f['logo_path'] ?? '');
+        $oldSignature = cleanStoredImagePath($f['signature_path'] ?? '');
         if ($logo === null || $oldLogo === '') {
             $st = $pdo->prepare('SELECT logo_path, signature_path FROM hr_id_template_defaults WHERE base=?');
             $st->execute([$base]);
             if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-                $oldLogo = $r['logo_path'];
-                if ($oldSignature === '') $oldSignature = $r['signature_path'];
+                $oldLogo = cleanStoredImagePath($r['logo_path'] ?? '');
+                if ($oldSignature === '') $oldSignature = cleanStoredImagePath($r['signature_path'] ?? '');
             }
         }
         $st = $pdo->prepare('INSERT INTO hr_id_template_defaults (base, color1, color2, layout_json, labels_json, back_json, code_json, logo_path, signature_path)

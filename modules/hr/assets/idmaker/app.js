@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const F = ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','layout','color1','color2'];
+const F = ['employee_id','org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','layout','color1','color2'];
 let photoData = '', logoData = '', editingId = 0;
 // HR signature shown behind every card. signaturePath is the saved relative
 // path (sent back to the API); signatureData is what the preview displays
@@ -459,8 +459,13 @@ function render(){
     const em = val('email'), dom = em.includes('@') ? em.split('@')[1] : '';
     $('dBWeb').textContent = dom ? 'www.' + dom : (val('org_name') || '');
   }
-  if(photoData && $('dPhoto')) $('dPhoto').src = photoData;
-  if(logoData){ if($('dLogo')) $('dLogo').src = logoData; if($('dLogoB')) $('dLogoB').src = logoData; }
+  const photoSrc = photoData ? assetUrl(photoData) : (window.IDM_FALLBACK_PHOTO || '');
+  if($('dPhoto')) $('dPhoto').src = photoSrc;
+  if($('cPhoto')) $('cPhoto').src = photoSrc;
+  const logoSrc = logoData ? assetUrl(logoData) : (window.IDM_FALLBACK_LOGO || '');
+  if($('dLogo')) $('dLogo').src = logoSrc;
+  if($('dLogoB')) $('dLogoB').src = logoSrc;
+  if($('cLogo')) $('cLogo').src = logoSrc;
   // HR signature: one image behind the front, back and corporate cards
   document.querySelectorAll('img.dx-signature').forEach(img=>{
     if(signatureData){ img.src = signatureData; } else { img.removeAttribute('src'); }
@@ -534,8 +539,10 @@ async function save(){
   fd.append('code_json', JSON.stringify(collectCode()));
   fd.append('id', editingId);
   fd.append('template_id', currentPresetId);
-  if(!($('photoFile') && $('photoFile').files[0]) && presetPhoto) fd.append('photo_path', presetPhoto);
-  if(!($('logoFile') && $('logoFile').files[0]) && presetLogo) fd.append('logo_path', presetLogo);
+  if(!($('photoFile') && $('photoFile').files[0]) && photoData && !/^data:/i.test(photoData)) fd.append('photo_path', photoData);
+  else if(!($('photoFile') && $('photoFile').files[0]) && presetPhoto) fd.append('photo_path', presetPhoto);
+  if(!($('logoFile') && $('logoFile').files[0]) && logoData && !/^data:/i.test(logoData)) fd.append('logo_path', logoData);
+  else if(!($('logoFile') && $('logoFile').files[0]) && presetLogo) fd.append('logo_path', presetLogo);
   if(!($('signatureFile') && $('signatureFile').files[0]) && (signaturePath || presetSignature)) fd.append('signature_path', signaturePath || presetSignature);
   const pf = $('photoFile') && $('photoFile').files[0]; if(pf) fd.append('photo', pf);
   const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
@@ -585,15 +592,15 @@ async function loadCard(id){
   photoData = c.photo_path||''; logoData = c.logo_path||'';
   signaturePath = c.signature_path || ''; signatureData = assetUrl(signaturePath);
   presetSignature = signaturePath;
-  if(photoData && $('dPhoto')) $('dPhoto').src = photoData;
-  if(logoData){ if($('dLogo')) $('dLogo').src = logoData; if($('dLogoB')) $('dLogoB').src = logoData; }
   setLayout(c.layout||'horizontal');
   $('editLabel').textContent = 'Editing #' + c.id;
   render(); window.scrollTo({top:0, behavior:'smooth'});
 }
 function resetForm(){
   editingId = 0; if($('editLabel')) $('editLabel').textContent='New card';
-  ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','emergency_contact','phone','email','address','principal'].forEach(k=>{ if($(k)) $(k).value=''; });
+  ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','emergency_contact','phone','email','address','principal','employee_id','erp_employee'].forEach(k=>{ if($(k)) $(k).value=''; });
+  if($('org_name')) $('org_name').value = (window.ERP_COMPANY && window.ERP_COMPANY.name) || '';
+  if($('org_address')) $('org_address').value = (window.ERP_COMPANY && window.ERP_COMPANY.address) || '';
   if($('employment_type')) $('employment_type').value='Full-time';
   photoData=''; logoData='';
   signatureData=''; signaturePath=''; presetSignature='';
