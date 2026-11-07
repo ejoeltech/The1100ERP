@@ -1,5 +1,6 @@
 <?php
 include '../includes/session-check.php';
+requirePermission('view_reports');
 
 $pageTitle = 'Archived Quotes - ERP System';
 

@@ -1,5 +1,6 @@
 <?php
 include '../includes/session-check.php';
+requirePermission('view_reports');
 
 $pageTitle = 'Archived Receipts - ERP System';
 
@@ -33,7 +34,7 @@ include '../includes/header.php';
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 class="text-3xl font-bold text-gray-900">Archived Receipts</h2>
-            <p class="text-sm text-gray-600 mt-1">Archived quotes can be restored or permanently deleted</p>
+            <p class="text-sm text-gray-600 mt-1">Archived receipts can be restored or permanently deleted</p>
         </div>
         <a href="view-receipts.php" class="px-4 py-2 text-primary hover:bg-blue-50 rounded-lg font-semibold">
             ← Back to Active Receipts
@@ -47,7 +48,7 @@ include '../includes/header.php';
                     d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
             <h3 class="text-xl font-semibold text-gray-700 mb-2">No archived receipts</h3>
-            <p class="text-purple-500">Archived quotes will appear here</p>
+            <p class="text-purple-500">Archived receipts will appear here</p>
         </div>
     <?php else: ?>
         <div class="overflow-x-auto">

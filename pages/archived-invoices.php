@@ -1,5 +1,6 @@
 <?php
 include '../includes/session-check.php';
+requirePermission('view_reports');
 
 $pageTitle = 'Archived Invoices - ERP System';
 
@@ -32,7 +33,7 @@ include '../includes/header.php';
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 class="text-3xl font-bold text-gray-900">Archived Invoices</h2>
-            <p class="text-sm text-gray-600 mt-1">Archived quotes can be restored or permanently deleted</p>
+            <p class="text-sm text-gray-600 mt-1">Archived invoices can be restored or permanently deleted</p>
         </div>
         <a href="view-invoices.php" class="px-4 py-2 text-primary hover:bg-blue-50 rounded-lg font-semibold">
             ← Back to Active Invoices
@@ -46,7 +47,7 @@ include '../includes/header.php';
                     d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
             </svg>
             <h3 class="text-xl font-semibold text-gray-700 mb-2">No archived invoices</h3>
-            <p class="text-gray-500">Archived quotes will appear here</p>
+            <p class="text-gray-500">Archived invoices will appear here</p>
         </div>
     <?php else: ?>
         <div class="overflow-x-auto">
@@ -59,7 +60,6 @@ include '../includes/header.php';
                         </th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Quote #</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Title</th>
-                        <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">Balance Due</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Customer</th>
                         <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Archived On</th>
                         <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">Total</th>
