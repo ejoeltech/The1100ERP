@@ -11,7 +11,7 @@ $src = Split-Path (Split-Path $MyInvocation.MyCommand.Path -Parent) -Parent
 #   all *.md, empty database/ leftovers.
 robocopy $src $Dest /E `
   /XD .git tmp uploads logs storage exports docs database `
-  /XF config.php .env .env.example config.php restore.php php-errors.log *.md
+  /XF config.php .env .env.example config.php restore.php php-errors.log *.md *.zip *.7z Actual
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
 
 foreach ($d in @('uploads\logo', 'modules\hr\assets\uploads\idcards', 'modules\hr\assets\uploads\employees', 'modules\hr\assets\uploads\onboarding', 'tmp\mpdf', 'storage', 'logs', 'exports')) {
@@ -30,7 +30,7 @@ Copy-Item (Join-Path $src 'database\upgrade-schema.sql') (Join-Path $Dest 'upgra
 
 # Sanity: fail loudly if anything secret or stateful slipped in.
 # (config.sample.php is REQUIRED as the installer template, so it is exempt.)
-$bad = Get-ChildItem -Path $Dest -Recurse -Include *.md, .env*, config.php, restore.php, ALLOW_INSTALL, install.token, .install-attempts -File |
+$bad = Get-ChildItem -Path $Dest -Recurse -Include *.md, *.zip, *.7z, .env*, config.php, restore.php, ALLOW_INSTALL, install.token, .install-attempts, Actual -File |
     Where-Object { $_.Name -ne 'config.sample.php' }
 if ($bad) { throw ("Banned files in package: " + (($bad.FullName) -join ', ')) }
 if (Test-Path (Join-Path $Dest '.git')) { throw '.git leaked into package' }
