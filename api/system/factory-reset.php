@@ -8,6 +8,7 @@
 define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/security.php';
+require_once '../../includes/invites.php';
 
 header('Content-Type: application/json');
 
@@ -37,6 +38,14 @@ if (($_POST['confirm'] ?? '') !== 'RESET') {
 $password = $_POST['password'] ?? '';
 if (empty($password)) {
     echo json_encode(['success' => false, 'message' => 'Password required']);
+    exit;
+}
+
+// H-11: throttle password guesses even for a stolen admin session.
+$reauthIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!throttleCheck('reauth:' . ($_SESSION['user_id'] ?? 0) . ':' . $reauthIp, 5, 900)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Too many re-authentication attempts. Try again later.']);
     exit;
 }
 

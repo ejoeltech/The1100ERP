@@ -388,11 +388,11 @@ function setSecurityHeaders() {
     header("Referrer-Policy: strict-origin-when-cross-origin");
     
     // Content Security Policy
-    // Note: 'unsafe-inline' + 'unsafe-eval' currently required for Tailwind CDN (uses eval) and dynamic styles.
+    // Tailwind's Play CDN injects styles dynamically, so style-src still needs
+    // 'unsafe-inline'. Inline <script> elements carry a per-request nonce;
+    // inline event handlers (onclick etc.) still need script-src-attr until
+    // they are migrated to addEventListener. unsafe-eval is not allowed.
     // Everything else is locked down: no plugins, no foreign frames/forms, no base hijack.
-    // Inline <script> elements carry a per-request nonce. Inline event
-    // handlers (onclick etc.) still need script-src-attr; migrate them next.
-    // unsafe-eval was removed after verifying it is not required.
     $nonce = cspNonce();
     header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
 }

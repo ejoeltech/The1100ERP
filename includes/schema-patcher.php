@@ -892,6 +892,12 @@ class SchemaPatcher
         }
         try {
             $pdo->exec("UPDATE `hr_onboarding_codes` SET `code_hash` = SHA2(`code`, 256) WHERE `code_hash` IS NULL");
+            // Clear plaintext even when the v14 block above ran before the
+            // code_hash column existed (legacy databases).
+            $pdo->exec("UPDATE `hr_onboarding_codes` SET `code` = NULL WHERE `code_hash` IS NOT NULL");
+            if ($hasOnboardEntries) {
+                $pdo->exec("UPDATE `hr_onboarding_entries` SET `signup_code` = '' WHERE `signup_code` IS NOT NULL AND `signup_code` <> ''");
+            }
             $pdo->exec("UPDATE `hr_onboarding_codes` SET `expires_at` = DATE_ADD(NOW(), INTERVAL 30 DAY) WHERE `expires_at` IS NULL");
             $add('ok', 'seed', 'Backfilled onboarding code hashes/expiry.');
         } catch (Exception $e) {
