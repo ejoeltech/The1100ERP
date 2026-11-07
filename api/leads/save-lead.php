@@ -5,6 +5,9 @@
 
 require_once '../../config.php';
 require_once '../../includes/invites.php';
+require_once '../../includes/audit.php';
+require_once '../../includes/notifications.php';
+require_once '../../includes/ai-rate-limiter.php';
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = array_filter(array_map('trim', explode(',', (string)getenv('LEAD_ALLOWED_ORIGINS'))));
@@ -47,7 +50,7 @@ function leadRespond($success, $message, $status = 200)
 
 try {
     // Real per-IP throttle; the old block only prepared a query and never ran.
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $ip = AiRateLimiter::getClientIP();
     if (!throttleCheck('lead_ip:' . $ip, 5, 3600)) {
         throw new InvalidArgumentException('Too many submissions. Please try again later.');
     }

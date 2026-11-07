@@ -34,7 +34,7 @@ try {
             balance_due
         FROM invoices
         WHERE customer_id = ?
-        AND status != 'paid'
+        AND status IN ('finalized', 'partial')
         AND deleted_at IS NULL
         $ownerScope
         ORDER BY invoice_date ASC

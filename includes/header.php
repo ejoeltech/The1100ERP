@@ -51,7 +51,8 @@ if (function_exists('setSecurityHeaders')) {
         }
         // Expose base path to JS
         window.AppConfig = {
-            basePath: '<?php echo $base_path; ?>'
+            basePath: '<?php echo $base_path; ?>',
+            vatRate: <?php echo defined('VAT_RATE') ? ((float)VAT_RATE / 100) : 0.075; ?>
         };
     </script>
     <script src="<?php echo $base_path; ?>/assets/js/helpers.js?v=<?php echo time(); ?>"></script>

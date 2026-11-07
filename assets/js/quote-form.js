@@ -149,7 +149,7 @@ function calculateLine(lineNumber) {
     const baseAmount = quantity * unitPrice;
     // VAT should probably only apply to positive base amounts, or apply proportionally to negative? 
     // Usually, VAT on discount is a reduction in VAT.
-    const vatAmount = vatEnabled ? (baseAmount * 0.075) : 0;
+    const vatAmount = vatEnabled ? (baseAmount * (window.AppConfig?.vatRate ?? 0.075)) : 0;
     const lineTotal = baseAmount + vatAmount;
 
     // Update display
@@ -178,7 +178,7 @@ function calculateTotals() {
         const vatEnabled = row.querySelector('[name*="[vat_applicable]"]')?.checked || false;
 
         const baseAmount = quantity * unitPrice;
-        const vatAmount = vatEnabled ? (baseAmount * 0.075) : 0;
+        const vatAmount = vatEnabled ? (baseAmount * (window.AppConfig?.vatRate ?? 0.075)) : 0;
 
         subtotal += baseAmount;
         totalVAT += vatAmount;

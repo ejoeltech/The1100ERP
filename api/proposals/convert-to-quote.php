@@ -174,33 +174,41 @@ try {
         ];
     }
 
+    $vatRate = (defined('VAT_RATE') ? (float)VAT_RATE : 7.5) / 100.0;
     $stmtLine = $pdo->prepare("
         INSERT INTO quote_line_items (
             quote_id, item_number, quantity, description, 
-            unit_price, vat_applicable, line_total, item_id, item_name
-        ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+            unit_price, vat_applicable, vat_amount, line_total, item_id, item_name
+        ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
     ");
 
     $itemNum = 1;
     $subtotal = 0;
+    $totalVat = 0;
     foreach ($finalItems as $fItem) {
+        $base = round((float)$fItem['line_total'], 2);
+        $lineVat = round($base * $vatRate, 2);
+        $lineTotal = round($base + $lineVat, 2);
         $stmtLine->execute([
             $quoteId,
             $itemNum,
             $fItem['qty'],
             $fItem['desc'],
             $fItem['unit_price'],
-            $fItem['line_total'],
+            $lineVat,
+            $lineTotal,
             $fItem['item_id'],
             $fItem['item_name']
         ]);
-        $subtotal += $fItem['line_total'];
+        $subtotal += $base;
+        $totalVat += $lineVat;
         $itemNum++;
     }
 
     // 4.5 Update Quote Totals
-    $totalVat = $subtotal * 0.075;
-    $grandTotal = $subtotal + $totalVat;
+    $subtotal = round($subtotal, 2);
+    $totalVat = round($totalVat, 2);
+    $grandTotal = round($subtotal + $totalVat, 2);
     $stmt = $pdo->prepare("UPDATE quotes SET subtotal = ?, total_vat = ?, grand_total = ? WHERE id = ?");
     $stmt->execute([$subtotal, $totalVat, $grandTotal, $quoteId]);
 

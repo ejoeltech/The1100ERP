@@ -150,10 +150,25 @@ function inspectZipArchive($tmpPath, $forbidden = [])
                 throw new Exception('Unreadable ZIP entry.');
             }
             $n = str_replace('\\', '/', $name);
-            if ($n[0] === '/' || preg_match('/^[A-Za-z]:/', $n) || strpos($n, '..') !== false) {
+            if ($n[0] === '/' || preg_match('/^[A-Za-z]:/', $n) || strpos($n, '..') !== false || strpos($n, "\0") !== false) {
                 throw new Exception('ZIP entry escapes target directory.');
             }
-            if ($forbidden && in_array(strtolower(basename($n)), $forbidden, true)) {
+
+            // Never accept symlinks (including entries whose external mode
+            // marks them as links) or auto-prepend/secret override files.
+            $opsys = 0;
+            $attr = 0;
+            if (method_exists($zip, 'getExternalAttributesIndex')
+                && $zip->getExternalAttributesIndex($i, $opsys, $attr)
+                && $opsys === ZipArchive::OPSYS_UNIX
+                && (($attr >> 16) & 0xF000) === 0xA000) {
+                throw new Exception('ZIP entry is a symlink.');
+            }
+            $base = strtolower(basename($n));
+            if ($base === '.user.ini' || strpos($base, '.env') === 0) {
+                throw new Exception('Forbidden file in archive: ' . basename($n));
+            }
+            if ($forbidden && in_array($base, $forbidden, true)) {
                 throw new Exception('Forbidden file in archive: ' . basename($n));
             }
         }

@@ -1,6 +1,12 @@
 <?php
+// WP3: refuse direct web execution; this file only works when included.
+if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); }
 /**
  * API Authentication Token System
+ *
+ * Optional facility for future machine-to-machine endpoints. No shipped
+ * endpoint currently issues or accepts Bearer tokens; keep it included only
+ * by code that has explicitly opted in.
  */
 
 /**

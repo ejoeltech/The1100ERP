@@ -43,7 +43,11 @@ try {
         // WP6: identifiers cannot be bound — strict pattern + sensitive-table
         // blocklist (a crafted file must not write users/secrets/sessions).
         $table = (string)$table;
-        $sensitive = ['users', 'user_invites', 'mfa_recovery_codes', 'user_sessions', 'auth_throttle', 'settings'];
+        $sensitive = [
+            'users', 'user_invites', 'mfa_recovery_codes', 'user_sessions', 'auth_throttle', 'settings',
+            'api_tokens', 'audit_log', 'ai_usage_logs', 'ai_request_cache', 'ai_recommendations',
+            'user_permission_overrides', 'group_permissions', 'user_groups',
+        ];
         if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table) || in_array(strtolower($table), $sensitive, true)) {
             $skippedTables[] = $table;
             continue;
@@ -87,7 +91,16 @@ try {
         $stmt = $pdo->prepare($sql);
 
         foreach ($rows as $row) {
-            $stmt->execute(array_values($row));
+            $values = array_values($row);
+            if (in_array($table, ['hr_employees', 'hr_onboarding_entries'], true)) {
+                foreach ($columns as $idx => $column) {
+                    if (in_array($column, ['nin_number', 'bvn_number'], true)
+                        && isset($values[$idx]) && (string)$values[$idx] !== '') {
+                        $values[$idx] = encryptPII((string)$values[$idx]);
+                    }
+                }
+            }
+            $stmt->execute($values);
             $totalRecords++;
         }
 

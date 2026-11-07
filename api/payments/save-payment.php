@@ -94,7 +94,8 @@ try {
 
         // Fetch and lock the invoice to get its current state.
         $stmt = $pdo->prepare("SELECT invoice_number, customer_id, customer_name, grand_total, amount_paid, created_by
-            FROM invoices WHERE id = ? AND deleted_at IS NULL FOR UPDATE");
+            FROM invoices WHERE id = ? AND deleted_at IS NULL
+            AND status IN ('finalized', 'partial') FOR UPDATE");
         $stmt->execute([$invoice_id]);
         $invoice = $stmt->fetch();
 
@@ -166,7 +167,7 @@ try {
             $ownerScope = $isSalesRep ? 'AND created_by = ' . (int)$_SESSION['user_id'] : '';
             $stmt = $pdo->prepare("SELECT id, invoice_number, customer_id, customer_name, grand_total, amount_paid, balance_due
                 FROM invoices
-                WHERE customer_id = ? AND status != 'paid' AND deleted_at IS NULL $ownerScope
+                WHERE customer_id = ? AND status IN ('finalized', 'partial') AND deleted_at IS NULL $ownerScope
                 ORDER BY invoice_date ASC, id ASC
                 FOR UPDATE");
             $stmt->execute([$customer_id]);
