@@ -1,8 +1,8 @@
 <?php
 include '../includes/session-check.php';
 
-// Only privileged session users can save settings (WP3: token-auth branch
-// removed with dead includes/api-auth.php — no issuer, no api_tokens table).
+// Only privileged session users can save settings (WP3: the unused
+// token-auth branch was removed; no shipped endpoint issues API tokens).
 requirePermission('manage_settings');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

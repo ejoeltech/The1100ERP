@@ -1,14 +1,5 @@
 <?php
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/permissions.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once '../includes/session-check.php';
 
 requirePermission('delete_document');
 require_once '../includes/security.php';

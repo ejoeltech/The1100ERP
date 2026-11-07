@@ -167,9 +167,18 @@ function logout()
         );
     }
     session_destroy();
-    // WP10: relative target — no Host-header influence on the redirect.
-    $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    header('Location: ' . $base . '/login.php');
+    // API/AJAX callers get JSON 401; normal pages redirect to the real login
+    // page regardless of how deep the current script is.
+    $isApi = (defined('IS_API') && IS_API)
+        || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+        || (strpos($_SERVER['REQUEST_URI'] ?? '', '/api/') !== false);
+    if ($isApi) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Session expired. Please login again.']);
+        exit;
+    }
+    header('Location: ' . loginRedirectPath());
     exit;
 }
 

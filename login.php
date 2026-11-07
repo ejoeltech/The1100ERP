@@ -5,6 +5,17 @@ session_start();
 require_once 'config.php';
 require_once 'includes/auth.php';
 
+// Fail with a clear migration message instead of a login/throttle loop when
+// the WP2/WP4 tables have not been created yet.
+try {
+    $pdo->query("SELECT 1 FROM user_sessions LIMIT 1");
+    $pdo->query("SELECT 1 FROM auth_throttle LIMIT 1");
+} catch (PDOException $e) {
+    error_log('Login schema check failed: ' . $e->getMessage());
+    http_response_code(503);
+    die('Database upgrade required. Run Settings → Maintenance → System Updates → Run Schema Patcher.');
+}
+
 // Session id rotation happens once in completeLoginSession() and is mirrored
 // into user_sessions; calling secureSession() here would desynchronise it.
 setSecurityHeaders();

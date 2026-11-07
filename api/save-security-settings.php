@@ -1,16 +1,6 @@
 <?php
 // Save security feature toggles (super_admin only).
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/auth.php';
-require_once '../includes/permissions.php';
-
-if (!isLoggedIn()) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once '../includes/session-check.php';
 
 if (!function_exists('isSuperAdmin') || !isSuperAdmin()) {
     header('Location: ../pages/users/manage-users.php?error=' . urlencode('Only a super admin can change security settings'));

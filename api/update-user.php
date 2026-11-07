@@ -1,17 +1,7 @@
 <?php
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/auth.php';
-require_once '../includes/permissions.php';
+require_once '../includes/session-check.php';
 require_once '../includes/audit.php';
 require_once '../includes/invites.php';
-
-if (!isLoggedIn()) {
-    header('Location: ../login.php');
-    exit;
-}
 
 requirePermission('edit_user');
 require_once '../includes/security.php';

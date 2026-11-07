@@ -1,16 +1,5 @@
 <?php
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/helpers.php';
-require_once '../includes/security.php';
-
-// Check authentication
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once '../includes/session-check.php';
 
 // WP4: explicit CSRF check (manual session bootstrap, no central gate).
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -44,7 +33,7 @@ try {
     }
 
     // Verify invoice exists
-    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL");
+    $stmt = $pdo->prepare("SELECT * FROM invoices WHERE id = ? AND deleted_at IS NULL FOR UPDATE");
     $stmt->execute([$invoice_id]);
     $invoice = $stmt->fetch();
 

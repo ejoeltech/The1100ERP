@@ -1,15 +1,5 @@
 <?php
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/permissions.php';
-require_once '../includes/helpers.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once '../includes/session-check.php';
 
 requirePermission('create_document');
 

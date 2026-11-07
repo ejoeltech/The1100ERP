@@ -1,17 +1,7 @@
 <?php
 // Create or update a user group (custom groups allowed; system groups keep locked names)
-require_once '../includes/security.php';
-configureSessionCookies();
-session_start();
-require_once '../config.php';
-require_once '../includes/auth.php';
-require_once '../includes/permissions.php';
+require_once '../includes/session-check.php';
 require_once '../includes/audit.php';
-
-if (!isLoggedIn()) {
-    header('Location: ../login.php');
-    exit;
-}
 
 requirePermission('manage_access');
 require_once '../includes/security.php';

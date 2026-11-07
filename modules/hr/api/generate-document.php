@@ -1,24 +1,11 @@
 <?php
 // HR Document Generator API
 header('Content-Type: application/json');
-require_once '../../../config.php';
+require_once '../../../includes/session-check.php';
 require_once '../../../includes/groq-config.php';
 require_once '../classes/HR_Employee.php';
 
-// Check permissions (Basic session check)
-require_once '../../../includes/security.php';
-configureSessionCookies();
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
 // WP3: generating documents for any employee needs hr_manage.
-// (Self-service copies, if ever added, must resolve the employee from the session.)
-require_once '../../../includes/permissions.php';
-require_once '../../../includes/security.php';
 if (function_exists('hasPermission') && !hasPermission('hr_manage')) {
     http_response_code(403);
     echo json_encode(['error' => 'Forbidden: HR management permission required']);
