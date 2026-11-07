@@ -11,6 +11,9 @@ configureSessionCookies();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+if (function_exists('setSecurityHeaders')) {
+    setSecurityHeaders();
+}
 
 if (!isset($_SESSION['onboarding_code_id'])) {
     header("Location: ../../../signup.php");

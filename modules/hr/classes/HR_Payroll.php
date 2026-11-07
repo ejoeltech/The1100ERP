@@ -124,7 +124,9 @@ class HR_Payroll
         $bonus = $items['bonus'];
         $commission = $items['commission'];
         $itemAllowance = $items['allowance'] + $items['overtime'];
-        $otherDeductions = $items['deduction'] + $items['loan_repayment']; // loan handled separately below
+        // Active hr_loans repayments are added separately below; including
+        // loan_repayment items here would deduct the same loan twice.
+        $otherDeductions = $items['deduction'];
 
         $grossTotal = $gross + $overtimePay + $bonus + $commission + $itemAllowance;
 
@@ -141,11 +143,12 @@ class HR_Payroll
         }
         $paye = round($paye, 2);
 
-        // NHF 2.5%
-        $nhf = empty($emp['nhf_exempt']) ? round(0.025 * $grossTotal, 2) : 0.0;
+        // NHF and employee pension rates are configurable in Settings.
+        $nhfPct = (float) getSetting('payroll_nhf_pct', 2.5) / 100.0;
+        $nhf = empty($emp['nhf_exempt']) ? round($nhfPct * $grossTotal, 2) : 0.0;
 
-        // Pension: employee 8% (deducted), employer 10% (cost).
-        $pensionEmployee = empty($emp['pension_exempt']) ? round(0.08 * $grossTotal, 2) : 0.0;
+        $pensionEmployeePct = (float) getSetting('payroll_pension_employee_pct', 8) / 100.0;
+        $pensionEmployee = empty($emp['pension_exempt']) ? round($pensionEmployeePct * $grossTotal, 2) : 0.0;
         $pensionEmployerPct = (float) getSetting('payroll_pension_employer_pct', 10) / 100.0;
         $pensionMin = (float) getSetting('payroll_pension_min_ngn', 3000);
         $pensionEmployer = empty($emp['pension_exempt'])

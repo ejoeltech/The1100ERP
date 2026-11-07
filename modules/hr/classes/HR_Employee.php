@@ -68,8 +68,12 @@ class HR_Employee
         $employee = $stmt->fetch();
         if ($employee) {
             require_once dirname(__DIR__, 3) . '/includes/security.php';
-            $employee['nin_number'] = decryptPII($employee['nin_number']);
-            $employee['bvn_number'] = decryptPII($employee['bvn_number']);
+            $storedNin = (string)($employee['nin_number'] ?? '');
+            $storedBvn = (string)($employee['bvn_number'] ?? '');
+            $employee['nin_number'] = decryptPII($storedNin);
+            $employee['bvn_number'] = decryptPII($storedBvn);
+            $employee['pii_decrypt_failed'] = ($storedNin !== '' && $employee['nin_number'] === '')
+                || ($storedBvn !== '' && $employee['bvn_number'] === '');
         }
         return $employee;
     }
@@ -86,8 +90,22 @@ class HR_Employee
         return $stmt->fetch();
     }
 
+    private function assertDesignationMatchesDepartment($departmentId, $designationId)
+    {
+        if (empty($departmentId) || empty($designationId)) {
+            return;
+        }
+        $stmt = $this->pdo->prepare("SELECT department_id FROM hr_designations WHERE id = ?");
+        $stmt->execute([(int)$designationId]);
+        $desigDept = $stmt->fetchColumn();
+        if ($desigDept !== false && $desigDept !== null && (int)$desigDept !== (int)$departmentId) {
+            throw new Exception('The selected designation belongs to a different department.');
+        }
+    }
+
     public function createEmployee($data)
     {
+        $this->assertDesignationMatchesDepartment($data['department_id'] ?? null, $data['designation_id'] ?? null);
         try {
             $this->pdo->beginTransaction();
 
@@ -175,6 +193,7 @@ class HR_Employee
     {
         // Maps split between hr_employees and users; encrypts PII; transactional
         require_once dirname(__DIR__, 3) . '/includes/security.php';
+        $this->assertDesignationMatchesDepartment($data['department_id'] ?? null, $data['designation_id'] ?? null);
 
         $userFields = ['full_name', 'email', 'phone'];
         $hrAllowed = [
@@ -185,11 +204,19 @@ class HR_Employee
             'bank_name','account_number','account_name'
         ];
 
-        // Fetch user_id for this employee
-        $stmt = $this->pdo->prepare("SELECT user_id FROM hr_employees WHERE id = ?");
+        // Fetch user_id and existing PII so a blank field (e.g. after a
+        // decryption failure) cannot overwrite the stored ciphertext.
+        $stmt = $this->pdo->prepare("SELECT user_id, nin_number, bvn_number FROM hr_employees WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch();
         if (!$row) return false;
+        foreach (['nin_number', 'bvn_number'] as $piiField) {
+            if (array_key_exists($piiField, $data)
+                && trim((string)$data[$piiField]) === ''
+                && !empty($row[$piiField])) {
+                unset($data[$piiField]);
+            }
+        }
 
         $this->pdo->beginTransaction();
         try {

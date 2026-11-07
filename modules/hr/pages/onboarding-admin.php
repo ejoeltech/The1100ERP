@@ -113,90 +113,112 @@ if (isset($_POST['invite_staff'])) {
 
 // Handle Import
 if (isset($_POST['import_entry'])) {
-    $entry_id = $_POST['entry_id'];
+    $entry_id = (int)($_POST['entry_id'] ?? 0);
 
-    // Fetch entry details. The code row carries the type chosen when HR
-    // issued the code, so import still works before schema v12 adds
-    // hr_onboarding_entries.employment_type.
-    $stmt = $pdo->prepare("SELECT e.*, c.role AS code_role
-        FROM hr_onboarding_entries e
-        JOIN hr_onboarding_codes c ON c.id = e.code_id
-        WHERE e.id = ?");
-    $stmt->execute([$entry_id]);
-    $entry = $stmt->fetch();
+    // Lock the entry + code while importing so two admins cannot create
+    // duplicate employees from the same submission.
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare("SELECT e.*, c.role AS code_role, c.is_used AS code_is_used
+            FROM hr_onboarding_entries e
+            JOIN hr_onboarding_codes c ON c.id = e.code_id
+            WHERE e.id = ? FOR UPDATE");
+        $stmt->execute([$entry_id]);
+        $entry = $stmt->fetch();
 
-    if ($entry && $entry['status'] == 'submitted') {
-        $pdo->beginTransaction();
-        try {
-            // 1. Create User Account (WP2: unknowable password + invite; never
-            // phone numbers or guessable defaults, never displayed).
-            $username = strtolower(explode(' ', trim($entry['full_name']))[0]) . rand(100, 999);
-            $role = 'viewer'; // Least privilege; code role is never trusted.
-            $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, full_name, role, is_active, must_change_password) VALUES (?, ?, ?, ?, ?, ?, 1, 1)");
-            $stmt->execute([$username, hashPassword(bin2hex(random_bytes(32))), $entry['email'], $entry['phone'], $entry['full_name'], $role]);
-            $user_id = $pdo->lastInsertId();
-            $invite_token = createUserInvite($user_id, $_SESSION['user_id']);
-
-            // 2. Create HR Employee Record
-            // Need to generate employee code
-            $emp_code = 'EMP-' . str_pad($user_id, 4, '0', STR_PAD_LEFT);
-            // Signup code type drives the employment status; UI types mirror
-            // the hr_employees enum (staff -> full_time, intern, contract).
-            $employmentType = onboardingTypeFromRole(
-                $entry['code_role'] ?? $entry['employment_type'] ?? 'staff'
-            );
-            $employmentStatus = $employmentType === 'staff' ? 'full_time' : $employmentType;
-            if (!in_array($employmentStatus, ['full_time', 'part_time', 'contract', 'intern'], true)) {
-                $employmentStatus = 'full_time';
-            }
-
-            // full_name/email/phone live on users (already inserted above).
-            // hr_employees holds the HR-specific fields, and join_date is
-            // required, so default it to the import date.
-            $sql_hr = "INSERT INTO hr_employees (
-                user_id, employee_code, join_date, employment_status,
-                date_of_birth, gender, address, secondary_phone,
-                passport_path, signature_path, nin_number, bvn_number,
-                next_of_kin_name, next_of_kin_phone, next_of_kin_relationship
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-            $stmt = $pdo->prepare($sql_hr);
-            $stmt->execute([
-                $user_id,
-                $emp_code,
-                date('Y-m-d'),
-                $employmentStatus,
-                $entry['date_of_birth'] ?: null,
-                $entry['gender'] ?: null,
-                $entry['address'] ?: null,
-                null,
-                $entry['passport_path'] ?: null,
-                $entry['signature_path'] ?: null,
-                encryptPII($entry['nin_number'] ?? null),
-                encryptPII($entry['bvn_number'] ?? null),
-                $entry['next_of_kin_name'] ?: null,
-                $entry['next_of_kin_phone'] ?: null,
-                $entry['next_of_kin_relationship'] ?: null
-            ]);
-
-            // 3. Mark Code as Used & Entry Imported
-            $pdo->prepare("UPDATE hr_onboarding_codes SET is_used = 1 WHERE id = ?")->execute([$entry['code_id']]);
-            $pdo->prepare("UPDATE hr_onboarding_entries SET status = 'imported' WHERE id = ?")->execute([$entry_id]);
-
-            $pdo->commit();
-            $inviteLink = '../../pages/users/accept-invite.php?token=' . urlencode($invite_token);
-            // WP5: username derives from applicant-supplied full_name — escape at build.
-            $success = "Employee Imported Successfully as " . htmlspecialchars(onboardingTypeLabel($employmentType), ENT_QUOTES, 'UTF-8')
-                . "! Username: " . htmlspecialchars($username, ENT_QUOTES, 'UTF-8')
-                . "<br>One-time invite (48h, single use, shown once): <a class='font-mono break-all' href='$inviteLink'>$inviteLink</a>";
-            if (!invitesGloballyEnabled()) {
-                $success .= "<br><span class='text-amber-700'>Invite links are disabled in Security settings — set a temporary password for this user instead.</span>";
-            }
-
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $error = "Import Failed: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+        if (!$entry || $entry['status'] !== 'submitted' || !empty($entry['code_is_used'])) {
+            throw new Exception('This entry is no longer importable.');
         }
+
+        // 1. Create User Account (WP2: unknowable password + invite; never
+        // phone numbers or guessable defaults, never displayed).
+        $username = strtolower(explode(' ', trim($entry['full_name']))[0]) . rand(100, 999);
+        $role = 'viewer'; // Least privilege; code role is never trusted.
+        $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, full_name, role, is_active, must_change_password) VALUES (?, ?, ?, ?, ?, ?, 1, 1)");
+        $stmt->execute([$username, hashPassword(bin2hex(random_bytes(32))), $entry['email'], $entry['phone'], $entry['full_name'], $role]);
+        $user_id = $pdo->lastInsertId();
+        $invite_token = createUserInvite($user_id, $_SESSION['user_id']);
+
+        // 2. Create HR Employee Record
+        $emp_code = 'EMP-' . str_pad($user_id, 4, '0', STR_PAD_LEFT);
+        $employmentType = onboardingTypeFromRole($entry['code_role'] ?? $entry['employment_type'] ?? 'staff');
+        $employmentStatus = $employmentType === 'staff' ? 'full_time' : $employmentType;
+        if (!in_array($employmentStatus, ['full_time', 'part_time', 'contract', 'intern'], true)) {
+            $employmentStatus = 'full_time';
+        }
+
+        // Normalize onboarding upload paths to the HR-pages-relative form.
+        $normalizeUpload = function ($path) {
+            $path = (string)$path;
+            if (strpos($path, 'modules/hr/assets/uploads/') === 0) {
+                return '../assets/uploads/' . substr($path, strlen('modules/hr/assets/uploads/'));
+            }
+            return $path !== '' ? $path : null;
+        };
+        $passportPath = $normalizeUpload($entry['passport_path'] ?? '');
+        $signaturePath = $normalizeUpload($entry['signature_path'] ?? '');
+
+        // Decrypt existing PII and re-encrypt under the current key. If a
+        // legacy value is corrupt, do not copy the ciphertext forward.
+        $piiWarning = false;
+        $encodePii = function ($value) use (&$piiWarning) {
+            if ($value === null || $value === '') return null;
+            $plain = decryptPII($value);
+            if ($plain === '') {
+                $piiWarning = true;
+                return null;
+            }
+            return encryptPII($plain);
+        };
+        $ninValue = $encodePii($entry['nin_number'] ?? null);
+        $bvnValue = $encodePii($entry['bvn_number'] ?? null);
+
+        $sql_hr = "INSERT INTO hr_employees (
+            user_id, employee_code, join_date, employment_status,
+            date_of_birth, gender, address, secondary_phone,
+            passport_path, signature_path, nin_number, bvn_number,
+            next_of_kin_name, next_of_kin_phone, next_of_kin_relationship
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        $stmt = $pdo->prepare($sql_hr);
+        $stmt->execute([
+            $user_id,
+            $emp_code,
+            date('Y-m-d'),
+            $employmentStatus,
+            $entry['date_of_birth'] ?: null,
+            $entry['gender'] ?: null,
+            $entry['address'] ?: null,
+            null,
+            $passportPath,
+            $signaturePath,
+            $ninValue,
+            $bvnValue,
+            $entry['next_of_kin_name'] ?: null,
+            $entry['next_of_kin_phone'] ?: null,
+            $entry['next_of_kin_relationship'] ?: null
+        ]);
+
+        // 3. Mark Code as Used & Entry Imported
+        $pdo->prepare("UPDATE hr_onboarding_codes SET is_used = 1 WHERE id = ?")->execute([$entry['code_id']]);
+        $pdo->prepare("UPDATE hr_onboarding_entries SET status = 'imported' WHERE id = ?")->execute([$entry_id]);
+
+        $pdo->commit();
+        $inviteLink = '../../pages/users/accept-invite.php?token=' . urlencode($invite_token);
+        $success = "Employee Imported Successfully as " . htmlspecialchars(onboardingTypeLabel($employmentType), ENT_QUOTES, 'UTF-8')
+            . "! Username: " . htmlspecialchars($username, ENT_QUOTES, 'UTF-8')
+            . "<br>One-time invite (48h, single use, shown once): <a class='font-mono break-all' href='$inviteLink'>$inviteLink</a>";
+        if ($piiWarning) {
+            $success .= "<br><span class='text-amber-700'>Some NIN/BVN values could not be decrypted and were not imported. Re-enter them in the employee record.</span>";
+        }
+        if (!invitesGloballyEnabled()) {
+            $success .= "<br><span class='text-amber-700'>Invite links are disabled in Security settings — set a temporary password for this user instead.</span>";
+        }
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = "Import Failed: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
     }
 }
 
@@ -365,9 +387,9 @@ include_once '../../../includes/header.php';
                                             <?php echo htmlspecialchars($e['phone']); ?>
                                         </p>
                                         <p class="text-xs text-gray-500 mt-1">Code:
-                                            <?php echo htmlspecialchars($e['code'], ENT_QUOTES, 'UTF-8'); ?> •
+                                            hidden •
                                             Type:
-                                            <?php echo htmlspecialchars(onboardingTypeLabel($e['employment_type'] ?? $e['code_role'] ?? 'staff'), ENT_QUOTES, 'UTF-8'); ?> •
+                                            <?php echo htmlspecialchars(onboardingTypeLabel($e['code_role'] ?? $e['employment_type'] ?? 'staff'), ENT_QUOTES, 'UTF-8'); ?> •
                                             Submitted:
                                             <?php echo date('d M H:i', strtotime($e['updated_at'])); ?>
                                         </p>

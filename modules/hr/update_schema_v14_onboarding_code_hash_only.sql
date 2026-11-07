@@ -5,6 +5,11 @@
 ALTER TABLE `hr_onboarding_codes`
   MODIFY COLUMN `code` VARCHAR(20) NULL DEFAULT NULL;
 
+-- Backfill hashes first so outstanding legacy codes keep working.
+UPDATE `hr_onboarding_codes`
+SET `code_hash` = SHA2(`code`, 256)
+WHERE `code_hash` IS NULL AND `code` IS NOT NULL;
+
 UPDATE `hr_onboarding_codes`
 SET `code` = NULL
 WHERE `code_hash` IS NOT NULL;

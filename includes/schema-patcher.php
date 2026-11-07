@@ -772,6 +772,8 @@ class SchemaPatcher
             // plaintext column becomes nullable and is cleared.
             try {
                 $pdo->exec("ALTER TABLE hr_onboarding_codes MODIFY COLUMN code VARCHAR(20) NULL DEFAULT NULL");
+                // Backfill legacy hashes before clearing the plaintext code.
+                $pdo->exec("UPDATE hr_onboarding_codes SET code_hash = SHA2(code, 256) WHERE code_hash IS NULL AND code IS NOT NULL");
                 $pdo->exec("UPDATE hr_onboarding_codes SET code = NULL WHERE code_hash IS NOT NULL");
                 if ($hasOnboardEntries) {
                     $pdo->exec("UPDATE hr_onboarding_entries SET signup_code = '' WHERE signup_code IS NOT NULL AND signup_code <> ''");

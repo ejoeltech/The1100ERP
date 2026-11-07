@@ -129,7 +129,7 @@ include_once '../../../includes/header.php';
                             <?php echo number_format($pay['allowances'] + $pay['bonus'] + $pay['commission'] + $pay['overtime'], 2); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-red-500">
-                            -<?php echo number_format($pay['deductions'], 2); ?>
+                            -<?php echo number_format($pay['total_deductions'] ?? $pay['deductions'], 2); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-green-600">
                             <?php echo CURRENCY_SYMBOL . number_format($pay['net_salary'], 2); ?>
