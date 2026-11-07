@@ -95,12 +95,15 @@ class HR_Employee
     private function assertDesignationMatchesDepartment($departmentId, $designationId)
     {
         if (empty($departmentId) || empty($designationId)) {
-            return;
+            throw new Exception('Department and job title are required for an employee record.');
         }
         $stmt = $this->pdo->prepare("SELECT department_id FROM hr_designations WHERE id = ?");
         $stmt->execute([(int)$designationId]);
         $desigDept = $stmt->fetchColumn();
-        if ($desigDept !== false && $desigDept !== null && (int)$desigDept !== (int)$departmentId) {
+        if ($desigDept === false) {
+            throw new Exception('The selected job title does not exist.');
+        }
+        if ($desigDept !== null && (int)$desigDept !== (int)$departmentId) {
             throw new Exception('The selected designation belongs to a different department.');
         }
     }

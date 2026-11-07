@@ -459,7 +459,7 @@ function render(){
   }
   const empName = val('staff_name') || 'EMPLOYEE NAME';
   const staffId = val('staff_id') || 'EMP-0000';
-  const title = val('job_title') || val('department') || val('employment_type') || 'Staff';
+  const title = val('job_title') || val('department') || '';
   // Designed front
   if($('dCoName')) $('dCoName').textContent = val('org_name') || 'Your Company';
   if($('dName')) $('dName').textContent = empName.toUpperCase();
@@ -716,6 +716,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
     const b = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
     const ps = $('presetSelect') || $('presetSelectAuto');
     if(!ps || !(+ps.value > 0)) applyBaseDefault(b);
+    const presetEmp = parseInt(window.IDM_PRESELECT_EMPLOYEE || 0, 10);
+    if(presetEmp && $('erp_employee') && typeof loadErpEmployee === 'function'){
+      $('erp_employee').value = String(presetEmp);
+      loadErpEmployee(String(presetEmp));
+    }
   });
   render(); loadRecords();
 });

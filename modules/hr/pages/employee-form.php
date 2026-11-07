@@ -254,7 +254,7 @@ include_once '../../../includes/header.php';
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <select name="department_id" class="w-full rounded-lg border-gray-300 focus:ring-primary">
+                <select name="department_id" required class="w-full rounded-lg border-gray-300 focus:ring-primary">
                     <option value="">-- Select --</option>
                     <?php foreach ($departments as $dept): ?>
                         <option value="<?php echo $dept['id']; ?>" <?php echo ($_POST['department_id'] ?? $employee['department_id'] ?? '') == $dept['id'] ? 'selected' : ''; ?>>
@@ -265,7 +265,7 @@ include_once '../../../includes/header.php';
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                <select name="designation_id" class="w-full rounded-lg border-gray-300 focus:ring-primary">
+                <select name="designation_id" required class="w-full rounded-lg border-gray-300 focus:ring-primary">
                     <option value="">-- Select --</option>
                     <?php foreach ($designations as $des): ?>
                         <option value="<?php echo $des['id']; ?>" <?php echo ($_POST['designation_id'] ?? $employee['designation_id'] ?? '') == $des['id'] ? 'selected' : ''; ?>>

@@ -16,6 +16,15 @@ $pageTitle = 'Onboarding Management | ' . COMPANY_NAME;
 $currentPage = 'hr_onboarding';
 
 $onboardingTypes = onboardingTypes();
+try {
+    $departments = $pdo->query("SELECT id, name FROM hr_departments ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $designations = $pdo->query("SELECT id, title, department_id FROM hr_designations ORDER BY title ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $departments = [];
+    $designations = [];
+}
+$deptNames = [];
+foreach ($departments as $d) { $deptNames[(int)$d['id']] = $d['name']; }
 $success = '';
 $error = '';
 
@@ -131,6 +140,24 @@ if (isset($_POST['import_entry'])) {
             throw new Exception('This entry is no longer importable.');
         }
 
+        // HR must choose the department and job title before import; the public
+        // application cannot know them, and the ID card needs them.
+        $departmentId = (int)($_POST['department_id'] ?? 0);
+        $designationId = (int)($_POST['designation_id'] ?? 0);
+        if (empty($_POST['department_id']) || empty($_POST['designation_id'])) {
+            throw new Exception('Choose a department and job title before importing.');
+        }
+        $st = $pdo->prepare("SELECT name FROM hr_departments WHERE id = ?");
+        $st->execute([$departmentId]);
+        if (!$st->fetchColumn()) {
+            throw new Exception('The selected department does not exist.');
+        }
+        $st = $pdo->prepare("SELECT department_id FROM hr_designations WHERE id = ?");
+        $st->execute([$designationId]);
+        if ((int)$st->fetchColumn() !== $departmentId) {
+            throw new Exception('The selected job title does not belong to that department.');
+        }
+
         // 1. Create User Account (WP2: unknowable password + invite; never
         // phone numbers or guessable defaults, never displayed).
         $username = strtolower(explode(' ', trim($entry['full_name']))[0]) . rand(100, 999);
@@ -176,10 +203,11 @@ if (isset($_POST['import_entry'])) {
 
         $sql_hr = "INSERT INTO hr_employees (
             user_id, employee_code, join_date, employment_status,
+            department_id, designation_id,
             date_of_birth, gender, address, secondary_phone,
             passport_path, signature_path, nin_number, bvn_number,
             next_of_kin_name, next_of_kin_phone, next_of_kin_relationship
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $stmt = $pdo->prepare($sql_hr);
         $stmt->execute([
@@ -187,6 +215,8 @@ if (isset($_POST['import_entry'])) {
             $emp_code,
             date('Y-m-d'),
             $employmentStatus,
+            $departmentId,
+            $designationId,
             $entry['date_of_birth'] ?: null,
             $entry['gender'] ?: null,
             $entry['address'] ?: null,
@@ -397,10 +427,31 @@ include_once '../../../includes/header.php';
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
-                                    <form method="POST"
+                                    <form method="POST" class="flex flex-col gap-1 min-w-[200px]"
                                         onsubmit="return confirm('Import this employee? This will create a User account.');">
                                         <?php echo csrfField(); ?>
                                         <input type="hidden" name="entry_id" value="<?php echo (int)$e['id']; ?>">
+                                        <select name="department_id" required
+                                            class="text-xs border-gray-300 rounded px-2 py-1">
+                                            <option value="">— Department —</option>
+                                            <?php foreach ($departments as $dept): ?>
+                                                <option value="<?php echo (int)$dept['id']; ?>">
+                                                    <?php echo htmlspecialchars($dept['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <select name="designation_id" required
+                                            class="text-xs border-gray-300 rounded px-2 py-1">
+                                            <option value="">— Job title —</option>
+                                            <?php foreach ($designations as $des): ?>
+                                                <option value="<?php echo (int)$des['id']; ?>">
+                                                    <?php
+                                                    $deptName = $deptNames[(int)($des['department_id'] ?? 0)] ?? 'Unassigned';
+                                                    echo htmlspecialchars($des['title'] . ' — ' . $deptName, ENT_QUOTES, 'UTF-8');
+                                                    ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                         <button type="submit" name="import_entry"
                                             class="px-4 py-2 bg-green-600 text-white text-sm rounded font-bold hover:bg-green-700">Import</button>
                                     </form>

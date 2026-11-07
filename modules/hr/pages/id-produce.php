@@ -13,6 +13,7 @@ try {
 
 $pageTitle = 'Produce ID Cards | ' . COMPANY_NAME;
 $currentPage = 'hr_idproduce';
+$preselectEmployeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
 
 $companyLogo = (defined('COMPANY_LOGO') && COMPANY_LOGO) ? '../../../' . COMPANY_LOGO : '../../../uploads/logo/placeholder_logo.png';
 $companyName = COMPANY_NAME;
@@ -53,6 +54,7 @@ window.ERP_COMPANY = {
   logo: '<?= addslashes($companyLogo) ?>'
 };
 window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
+window.IDM_PRESELECT_EMPLOYEE = <?= (int)$preselectEmployeeId ?>;
 </script>
 
 <div id="idmaker">
@@ -67,9 +69,12 @@ window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
     <select id="erp_employee" onchange="loadErpEmployee(this.value)">
       <option value="">— Manual entry —</option>
       <?php foreach ($employees as $e): ?>
-        <option value="<?= (int)$e['id'] ?>"><?= htmlspecialchars(($e['full_name'] ?? '') . ' (' . ($e['employee_code'] ?? '') . ')') ?></option>
+        <option value="<?= (int)$e['id'] ?>" <?= $preselectEmployeeId === (int)$e['id'] ? 'selected' : '' ?>><?= htmlspecialchars(($e['full_name'] ?? '') . ' (' . ($e['employee_code'] ?? '') . ')') ?></option>
       <?php endforeach; ?>
     </select>
+    <p id="hrDataWarning" style="display:none;color:#b45309;font-size:12px;margin:4px 0 0">
+      This employee has no department or job title on file. Update the employee record before producing the card.
+    </p>
     <input type="hidden" id="employee_id" value="">
     <input type="hidden" id="template" value="1">
     <input type="hidden" id="color1" value="#0d6b3f">
@@ -128,6 +133,8 @@ window.ERP_EMPLOYEES = <?= json_encode($empMap) ?>;
 function loadErpEmployee(id) {
   const e = (window.ERP_EMPLOYEES || {})[id];
   const set = (k, v) => { const el = document.getElementById(k); if (el) el.value = v || ''; };
+  const warn = document.getElementById('hrDataWarning');
+  if (warn) warn.style.display = 'none';
   // Drop any pending file pick from the previous card so it cannot be uploaded
   // onto the newly selected employee.
   ['photoFile', 'logoFile', 'signatureFile'].forEach(k => {
@@ -166,6 +173,7 @@ function loadErpEmployee(id) {
   }
   document.getElementById('org_name').value = window.ERP_COMPANY.name;
   document.getElementById('org_address').value = window.ERP_COMPANY.address;
+  if (warn) warn.style.display = (!e.designation || !e.department) ? 'block' : 'none';
   render();
 }
 </script>

@@ -136,6 +136,10 @@ include_once '../../../includes/header.php';
                                 <?php echo date('M d, Y', strtotime($emp['join_date'])); ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <?php if (hasPermission('hr_manage')): ?>
+                                    <a href="id-produce.php?employee_id=<?php echo (int)$emp['id']; ?>"
+                                        class="text-primary hover:text-blue-900 mr-3">Make ID</a>
+                                <?php endif; ?>
                                 <a href="employee-form.php?id=<?php echo (int)$emp['id']; ?>"
                                     class="text-primary hover:text-blue-900 mr-3">Edit</a>
                             </td>
