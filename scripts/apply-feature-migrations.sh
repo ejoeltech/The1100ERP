@@ -41,12 +41,30 @@ export MYSQL_PWD="$DB_PASS"
 MYSQL="mysql --host=$DB_HOST --port=$PORT --user=$DB_USER --default-character-set=utf8mb4 $DB_NAME"
 trap 'unset MYSQL_PWD' EXIT
 
+# Run a migration file in --force mode (mysql otherwise stops at the first
+# "Duplicate column name", skipping the rest of the file). Expected idempotency
+# errors are ignored; anything else is surfaced and fails the run.
+run_sql_file() {
+  local file="$1" out=""
+  out=$($MYSQL --force < "$file" 2>&1) || true
+  if [ -n "$out" ]; then
+    local unexpected
+    unexpected=$(printf '%s\n' "$out" | grep -Ev \
+      'Duplicate column name|Duplicate key name|Duplicate entry|already exists|check that column/key exists|Can.t DROP.*check that' || true)
+    if [ -n "$unexpected" ]; then
+      printf '%s\n' "$unexpected" >&2
+      return 1
+    fi
+  fi
+  return 0
+}
+
 echo "==> Applying HR payroll + leads migrations to '$DB_NAME' on $DB_HOST:$PORT"
 
 # 1) HR base schema (idempotent: all CREATE TABLE IF NOT EXISTS)
 if [ -f "$ROOT/modules/hr/hr_schema.sql" ]; then
   echo "  [1/3] HR base schema (hr_schema.sql)"
-  $MYSQL < "$ROOT/modules/hr/hr_schema.sql" || { echo "FAILED hr_schema.sql"; exit 1; }
+  run_sql_file "$ROOT/modules/hr/hr_schema.sql" || { echo "FAILED hr_schema.sql"; exit 1; }
 fi
 
 # 2) HR incremental migrations (all additive). Discover every vN file so new
@@ -55,7 +73,7 @@ echo "  [2/3] HR incremental migrations"
 mapfile -t HR_MIGRATIONS < <(find "$ROOT/modules/hr" -maxdepth 1 -name 'update_schema_v*.sql' -print | sort -V)
 for f in "${HR_MIGRATIONS[@]}"; do
   echo "        - $(basename "$f")"
-  $MYSQL < "$f" || { echo "FAILED $(basename "$f")"; exit 1; }
+  run_sql_file "$f" || { echo "FAILED $(basename "$f")"; exit 1; }
 done
 
 # 3) Leads schema + settings seed is owned by the schema patcher now

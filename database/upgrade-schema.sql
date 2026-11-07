@@ -379,6 +379,48 @@ CREATE TABLE IF NOT EXISTS `hr_loans` (
     CONSTRAINT `hr_loans_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE `hr_loans` ADD COLUMN `status` ENUM('active','completed','cancelled') DEFAULT 'active';
+ALTER TABLE `hr_loans` ADD COLUMN `approved_by` INT(10) UNSIGNED DEFAULT NULL;
+
+-- v2: HR profile / PII / next-of-kin columns.
+ALTER TABLE `hr_employees` ADD COLUMN `passport_path` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `signature_path` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `secondary_phone` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `nin_number` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `bvn_number` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `next_of_kin_name` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `next_of_kin_phone` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `next_of_kin_relationship` VARCHAR(100) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_1_name` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_1_phone` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_1_org` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_2_name` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_2_phone` VARCHAR(50) DEFAULT NULL;
+ALTER TABLE `hr_employees` ADD COLUMN `reference_2_org` VARCHAR(255) DEFAULT NULL;
+
+-- v11: HR signature behind ID card designs (tables exist only if the maker
+-- has been opened; these ALTERs stay harmless when it has).
+ALTER TABLE `hr_id_cards` ADD COLUMN `signature_path` VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE `hr_id_templates` ADD COLUMN `signature_path` VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE `hr_id_template_defaults` ADD COLUMN `signature_path` VARCHAR(255) NOT NULL DEFAULT '';
+
+-- v12: onboarding codes carry staff/intern/contract; entries mirror it.
+ALTER TABLE `hr_onboarding_codes` MODIFY COLUMN `role` VARCHAR(50) DEFAULT 'staff';
+UPDATE `hr_onboarding_codes` SET `role` = 'staff' WHERE `role` NOT IN ('staff', 'intern', 'contract');
+ALTER TABLE `hr_onboarding_entries` ADD COLUMN `employment_type` VARCHAR(20) NOT NULL DEFAULT 'staff';
+
+-- v13: encrypted NIN/BVN envelopes need room.
+ALTER TABLE `hr_employees` MODIFY COLUMN `nin_number` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_employees` MODIFY COLUMN `bvn_number` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_onboarding_entries` MODIFY COLUMN `nin_number` VARCHAR(255) DEFAULT NULL;
+ALTER TABLE `hr_onboarding_entries` MODIFY COLUMN `bvn_number` VARCHAR(255) DEFAULT NULL;
+
+-- v14: onboarding codes are hashed only; clear cached plaintext.
+ALTER TABLE `hr_onboarding_codes` MODIFY COLUMN `code` VARCHAR(20) NULL DEFAULT NULL;
+UPDATE `hr_onboarding_codes` SET `code_hash` = SHA2(`code`, 256) WHERE `code_hash` IS NULL AND `code` IS NOT NULL;
+UPDATE `hr_onboarding_codes` SET `code` = NULL WHERE `code_hash` IS NOT NULL;
+UPDATE `hr_onboarding_entries` SET `signup_code` = '' WHERE `signup_code` IS NOT NULL AND `signup_code` <> '';
+
 -- ================== 8. settings seeds ======================================
 INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
 ('lead_followup_enabled', '1'),
