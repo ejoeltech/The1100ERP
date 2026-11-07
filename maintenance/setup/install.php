@@ -29,6 +29,12 @@ if (install_is_installed()) {
     if (($_POST['action'] ?? '') === 'final_check' && $finalizeSessionOk) {
         // Same wizard session that just finalized: run the final schema check
         // without auto-logging an admin in. Cleanup still requires real login.
+        if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Invalid or expired security token. Reload the installer and try again.']);
+            exit;
+        }
         require_once dirname(__DIR__, 2) . '/config.php';
         unset($_SESSION['install_finalized_ok']);
         $response = ['success' => false, 'message' => ''];
@@ -62,6 +68,22 @@ header('Content-Type: application/json');
 
 // Get action
 $action = $_POST['action'] ?? '';
+
+// WP4: every state-changing installer call must carry the session token
+// minted by index.php. Without this a third-party page could drive the
+// wizard against a localhost install and replace the admin account.
+$csrfRequired = [
+    'test_connection', 'create_database', 'import_schema', 'create_admin',
+    'init_settings', 'finalize', 'final_check',
+];
+if (in_array($action, $csrfRequired, true) && !validateCSRFToken($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Invalid or expired security token. Reload the installer and try again.',
+    ]);
+    exit;
+}
 
 // Response array
 $response = ['success' => false, 'message' => ''];
@@ -191,6 +213,17 @@ function createDatabase()
         $pdo = new PDO($dsn, $user, $password, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
+
+        // Shared-hosting DB users often cannot CREATE DATABASE even when the
+        // host already provisioned it. Treat an existing database as success
+        // so CREATE is optional, not a hard installer requirement.
+        $stmt = $pdo->prepare("SHOW DATABASES LIKE ?");
+        $stmt->execute([$dbname]);
+        if ($stmt->fetch()) {
+            $response['success'] = true;
+            $response['message'] = 'Database already exists';
+            return;
+        }
 
         // Create database
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbname` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");

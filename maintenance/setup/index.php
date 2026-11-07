@@ -350,6 +350,25 @@ $requirements = checkRequirements();
         // Server-minted CSRF token for Step-7 AJAX (same session the gate validates).
         window.INSTALL_CSRF = <?php echo json_encode(generateCSRFToken()); ?>;
         window.step7Checked = false;
+
+        // WP4: attach the token to every installer POST, including the
+        // wizard.js calls that do not send it explicitly. A page on another
+        // origin cannot read this token, so it cannot drive install steps.
+        (function () {
+            const baseFetch = window.fetch.bind(window);
+            window.fetch = function (input, init) {
+                const url = typeof input === 'string' ? input : (input && input.url) || '';
+                if (url.indexOf('install.php') !== -1) {
+                    init = init || {};
+                    const method = (init.method || (input && input.method) || 'GET').toUpperCase();
+                    if (method === 'POST' && init.body && typeof init.body.append === 'function'
+                        && typeof init.body.has === 'function' && !init.body.has('csrf_token')) {
+                        init.body.append('csrf_token', window.INSTALL_CSRF);
+                    }
+                }
+                return baseFetch(input, init);
+            };
+        })();
         // Step 7: final schema check via the gated install.php action
         // (replaces the deleted run-schema-update.php).
         async function runStep7Check() {
