@@ -7,6 +7,7 @@ define('IS_API', true);
 require_once '../../includes/session-check.php';
 require_once '../../includes/security.php';
 require_once '../../includes/passwords.php';
+require_once '../../includes/invites.php';
 
 header('Content-Type: application/json');
 
@@ -31,6 +32,13 @@ if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
 $password = $_POST['password'] ?? '';
 if (empty($password)) {
     echo json_encode(['success' => false, 'message' => 'Password required']);
+    exit;
+}
+
+$reauthIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+if (!throttleCheck('reauth:' . ($_SESSION['user_id'] ?? 0) . ':' . $reauthIp, 5, 900)) {
+    http_response_code(429);
+    echo json_encode(['success' => false, 'message' => 'Too many re-authentication attempts. Try again later.']);
     exit;
 }
 
