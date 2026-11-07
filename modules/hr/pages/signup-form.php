@@ -3,6 +3,7 @@
 require_once '../../../config.php';
 require_once '../../../includes/security.php';
 require_once '../../../includes/invites.php';
+require_once '../includes/uploads.php';
 
 // The onboarding landing page starts the session with hardened cookie
 // settings. This page must use the exact same save path/config or the
@@ -336,7 +337,7 @@ function signupValue($field, $entry, $fallback = '', $postKey = null)
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Passport Photo</label>
                             <?php if (!empty($entry['passport_path'])): ?>
-                                <img src="../../../<?php echo htmlspecialchars($entry['passport_path'], ENT_QUOTES, 'UTF-8'); ?>"
+                                <img src="<?php echo htmlspecialchars(hrUploadImageUrl($entry['passport_path']), ENT_QUOTES, 'UTF-8'); ?>"
                                     class="h-20 w-20 object-cover rounded mb-2 border">
                             <?php endif; ?>
                             <input type="file" name="passport" accept="image/*" class="w-full text-sm">
@@ -344,7 +345,7 @@ function signupValue($field, $entry, $fallback = '', $postKey = null)
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Signature Scan</label>
                             <?php if (!empty($entry['signature_path'])): ?>
-                                <img src="../../../<?php echo htmlspecialchars($entry['signature_path'], ENT_QUOTES, 'UTF-8'); ?>"
+                                <img src="<?php echo htmlspecialchars(hrUploadImageUrl($entry['signature_path']), ENT_QUOTES, 'UTF-8'); ?>"
                                     class="h-10 object-contain mb-2 border bg-gray-50">
                             <?php endif; ?>
                             <input type="file" name="signature" accept="image/*" class="w-full text-sm">

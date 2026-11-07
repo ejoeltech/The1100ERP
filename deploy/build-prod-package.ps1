@@ -14,10 +14,10 @@ robocopy $src $Dest /E `
   /XF config.php .env .env.example config.php restore.php php-errors.log *.md
 if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
 
-foreach ($d in @('uploads\logo', 'tmp\mpdf', 'storage', 'logs', 'exports')) {
+foreach ($d in @('uploads\logo', 'modules\hr\assets\uploads\idcards', 'modules\hr\assets\uploads\employees', 'modules\hr\assets\uploads\onboarding', 'tmp\mpdf', 'storage', 'logs', 'exports')) {
     New-Item -ItemType Directory -Force (Join-Path $Dest $d) | Out-Null
 }
-foreach ($f in @('storage\.htaccess', 'logs\.htaccess', 'tmp\.htaccess', 'exports\.htaccess', 'uploads\.htaccess')) {
+foreach ($f in @('storage\.htaccess', 'logs\.htaccess', 'tmp\.htaccess', 'exports\.htaccess', 'uploads\.htaccess', 'modules\hr\assets\uploads\.htaccess')) {
     Copy-Item (Join-Path $src $f) (Join-Path $Dest (Split-Path $f -Parent)) -Force
 }
 foreach ($f in @('maintenance\setup\lock', 'maintenance\setup\ALLOW_INSTALL', 'maintenance\setup\install.token', 'maintenance\setup\.install-attempts')) {

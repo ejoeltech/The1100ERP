@@ -3,6 +3,7 @@
 // require_once '../../../config.php'; // Removed to prevent double inclusion
 require_once '../../../includes/session-check.php';
 require_once '../classes/HR_Employee.php';
+require_once '../includes/uploads.php';
 
 requirePermission('hr_view');
 
@@ -80,10 +81,9 @@ include_once '../../../includes/header.php';
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0 h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
                                         <?php 
-                                        $path = $emp['passport_path'];
-                                        $diskPath = dirname(__DIR__, 3) . '/' . str_replace('../', 'modules/hr/', $path);
-                                        if (!empty($path) && file_exists($diskPath)): ?>
-                                            <img src="<?php echo htmlspecialchars($path); ?>" 
+                                        $path = $emp['passport_path'] ?? '';
+                                        if (!empty($path) && hrUploadFileExists($path)): ?>
+                                            <img src="<?php echo htmlspecialchars(hrUploadImageUrl($path), ENT_QUOTES, 'UTF-8'); ?>"
                                                  class="h-full w-full object-cover">
                                         <?php else: ?>
                                             <span class="text-primary font-bold">

@@ -57,6 +57,7 @@ $installerPrefix = 'maintenance/setup/';
 $infoPatterns = [
     '#^includes/#',
     '#modules/.*/classes/#',
+    '#^modules/hr/includes/#',
     '#-template\.php$#',
     '#(header|footer|sidebar|chat-widget|pick-item-modal|email-modal)\.php$#',
     '#^config(\.sample)?\.php$#',

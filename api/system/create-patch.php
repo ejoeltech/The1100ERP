@@ -141,7 +141,7 @@ foreach ($files as $name => $file) {
 
 // uploads/ is excluded from patch contents, but its static guard is code.
 // Add the known .htaccess guards explicitly as .new files.
-foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess'] as $htPath) {
+foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess', 'modules/hr/assets/uploads/.htaccess'] as $htPath) {
     $abs = $rootPath . '/' . $htPath;
     if (is_file($abs) && $zip->locateName($htPath . '.new') === false) {
         $zip->addFile($abs, $htPath . '.new');
@@ -154,7 +154,7 @@ $updateScript = <<<'PHP'
 <?php
 set_time_limit(300);
 $root = __DIR__;
-foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess'] as $ht) {
+foreach (['.htaccess', 'exports/.htaccess', 'uploads/.htaccess', 'modules/hr/assets/uploads/.htaccess'] as $ht) {
     $src = $root . '/' . $ht . '.new';
     $dst = $root . '/' . $ht;
     if (is_file($src)) {

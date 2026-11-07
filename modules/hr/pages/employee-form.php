@@ -2,6 +2,7 @@
 // HR Employee Form (Add/Edit)
 // require_once '../../../config.php'; // Removed to prevent double inclusion
 require_once '../../../includes/session-check.php';
+require_once '../includes/uploads.php';
 require_once '../classes/HR_Employee.php';
 
 requirePermission('hr_manage');
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uploadDir = ensureUploadDir(dirname(__DIR__, 3) . '/modules/hr/assets/uploads/employees/');
         $dbUploadDir = '../assets/uploads/employees/'; // Correct relative path from HR pages
 
-        $passport_path = isset($_POST['existing_passport']) ? $_POST['existing_passport'] : null;
+        $passport_path = isset($_POST['existing_passport']) ? cleanStoredImagePath($_POST['existing_passport'], false) : null;
         if (isset($_FILES['passport']) && $_FILES['passport']['error'] == 0) {
             try {
                 $ext = validateImageUpload($_FILES['passport']);
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $signature_path = isset($_POST['existing_signature']) ? $_POST['existing_signature'] : null;
+        $signature_path = isset($_POST['existing_signature']) ? cleanStoredImagePath($_POST['existing_signature'], false) : null;
         if (isset($_FILES['signature']) && $_FILES['signature']['error'] == 0) {
             try {
                 $ext = validateImageUpload($_FILES['signature']);
@@ -155,9 +156,8 @@ include_once '../../../includes/header.php';
                     onclick="document.getElementById('passportInput').click()">
                     <?php 
                         $path = $_POST['existing_passport'] ?? $employee['passport_path'] ?? null;
-                        $diskPath = dirname(__DIR__, 3) . '/' . str_replace('../', 'modules/hr/', $path);
-                        if ($path && file_exists($diskPath)): ?>
-                        <img src="<?php echo htmlspecialchars($path); ?>"
+                        if ($path && hrUploadFileExists($path)): ?>
+                        <img src="<?php echo htmlspecialchars(hrUploadImageUrl($path), ENT_QUOTES, 'UTF-8'); ?>"
                             class="w-32 h-32 object-cover mx-auto rounded-md mb-2">
                         <input type="hidden" name="existing_passport" value="<?php echo htmlspecialchars($path); ?>">
                     <?php else: ?>
@@ -412,9 +412,8 @@ include_once '../../../includes/header.php';
             <label class="cursor-pointer block">
                 <?php 
                     $path = $_POST['existing_signature'] ?? $employee['signature_path'] ?? null;
-                    $diskPath = dirname(__DIR__, 3) . '/' . str_replace('../', 'modules/hr/', $path);
-                    if ($path && file_exists($diskPath)): ?>
-                    <img src="<?php echo htmlspecialchars($path); ?>" class="h-20 object-contain mx-auto mb-2">
+                    if ($path && hrUploadFileExists($path)): ?>
+                    <img src="<?php echo htmlspecialchars(hrUploadImageUrl($path), ENT_QUOTES, 'UTF-8'); ?>" class="h-20 object-contain mx-auto mb-2">
                     <input type="hidden" name="existing_signature" value="<?php echo htmlspecialchars($path); ?>">
                     <p class="text-xs text-green-600">Signature Uploaded</p>
                 <?php else: ?>

@@ -1,0 +1,12 @@
+# HR uploads contain employee PII (photos, signatures, onboarding scans).
+# They may only be served by modules/hr/api/image.php after an HR permission
+# check; direct requests to any file below this directory are refused.
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

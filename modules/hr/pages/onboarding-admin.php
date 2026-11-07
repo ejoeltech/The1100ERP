@@ -2,6 +2,7 @@
 // HR Onboarding Admin
 // require_once '../../../config.php'; // Removed to prevent double inclusion
 require_once '../../../includes/session-check.php';
+require_once '../includes/uploads.php';
 require_once '../../../includes/invites.php';
 requireLogin();
 requirePermission('hr_manage');
@@ -375,7 +376,7 @@ include_once '../../../includes/header.php';
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex gap-4">
                                     <?php if ($e['passport_path']): ?>
-                                        <img src="../../../<?php echo htmlspecialchars($e['passport_path'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        <img src="<?php echo htmlspecialchars(hrUploadImageUrl($e['passport_path']), ENT_QUOTES, 'UTF-8'); ?>"
                                             class="w-12 h-12 rounded-full object-cover bg-gray-200">
                                     <?php endif; ?>
                                     <div>

@@ -423,7 +423,9 @@ function val(id){ const el = $(id); return el ? el.value.trim() : ''; }
 function assetUrl(p){
   p = String(p || '');
   if(!p) return '';
-  if(/^(data:|blob:|https?:|\/\/|\.\.\/)/i.test(p)) return p;
+  if(/^(data:|blob:|https?:|\/\/|\.\.\/\.\.\/\.\.\/)/i.test(p)) return p;
+  const upload = p.match(/^(?:modules\/hr\/assets\/uploads\/|\.\.\/assets\/uploads\/)(.+)$/);
+  if(upload) return '../api/image.php?path=' + encodeURIComponent('modules/hr/assets/uploads/' + upload[1]);
   if(p.startsWith('modules/')) return '../../../' + p;
   return p;
 }
