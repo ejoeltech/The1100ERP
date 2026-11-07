@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const F = ['employee_id','org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','layout','color1','color2'];
+const F = ['employee_id','org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','color1','color2'];
 let photoData = '', logoData = '', editingId = 0;
 // HR signature shown behind every card. signaturePath is the saved relative
 // path (sent back to the API); signatureData is what the preview displays
@@ -531,26 +531,39 @@ async function downloadPNG(elId, name){
 }
 
 async function save(){
-  const fd = new FormData();
-  F.forEach(k=>fd.append(k, val(k)));
-  fd.append('layout_json', JSON.stringify(layout));
-  fd.append('labels_json', JSON.stringify(LABELS));
-  fd.append('back_json', JSON.stringify(collectBack()));
-  fd.append('code_json', JSON.stringify(collectCode()));
-  fd.append('id', editingId);
-  fd.append('template_id', currentPresetId);
-  if(!($('photoFile') && $('photoFile').files[0]) && photoData && !/^data:/i.test(photoData)) fd.append('photo_path', photoData);
-  else if(!($('photoFile') && $('photoFile').files[0]) && presetPhoto) fd.append('photo_path', presetPhoto);
-  if(!($('logoFile') && $('logoFile').files[0]) && logoData && !/^data:/i.test(logoData)) fd.append('logo_path', logoData);
-  else if(!($('logoFile') && $('logoFile').files[0]) && presetLogo) fd.append('logo_path', presetLogo);
-  if(!($('signatureFile') && $('signatureFile').files[0]) && (signaturePath || presetSignature)) fd.append('signature_path', signaturePath || presetSignature);
-  const pf = $('photoFile') && $('photoFile').files[0]; if(pf) fd.append('photo', pf);
-  const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
-  const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
-  fd.append('action','save');
-  const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
-  if(r.ok){ alert('Saved (ID '+r.id+')'); editingId = 0; if($('editLabel')) $('editLabel').textContent='New card'; loadRecords(); }
-  else alert('Save failed: '+(r.error||'unknown'));
+  if(save._busy) return;
+  save._busy = true;
+  try{
+    const fd = new FormData();
+    F.forEach(k=>fd.append(k, val(k)));
+    fd.append('layout_json', JSON.stringify(layout));
+    fd.append('labels_json', JSON.stringify(LABELS));
+    fd.append('back_json', JSON.stringify(collectBack()));
+    fd.append('code_json', JSON.stringify(collectCode()));
+    fd.append('id', editingId);
+    fd.append('template_id', currentPresetId);
+    if(!($('photoFile') && $('photoFile').files[0]) && photoData && !/^data:/i.test(photoData)) fd.append('photo_path', photoData);
+    else if(!($('photoFile') && $('photoFile').files[0]) && presetPhoto) fd.append('photo_path', presetPhoto);
+    if(!($('logoFile') && $('logoFile').files[0]) && logoData && !/^data:/i.test(logoData)) fd.append('logo_path', logoData);
+    else if(!($('logoFile') && $('logoFile').files[0]) && presetLogo) fd.append('logo_path', presetLogo);
+    if(!($('signatureFile') && $('signatureFile').files[0]) && (signaturePath || presetSignature)) fd.append('signature_path', signaturePath || presetSignature);
+    const pf = $('photoFile') && $('photoFile').files[0]; if(pf) fd.append('photo', pf);
+    const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
+    const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
+    fd.append('action','save');
+    const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
+    const r = await res.json().catch(()=>({}));
+    if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
+    if(r.id === undefined) throw new Error('Unexpected response from the server.');
+    alert('Saved (ID '+r.id+')');
+    editingId = 0;
+    if($('editLabel')) $('editLabel').textContent='New card';
+    loadRecords();
+  }catch(e){
+    alert('Save failed: '+(e && e.message ? e.message : 'unknown'));
+  }finally{
+    save._busy = false;
+  }
 }
 async function loadRecords(){
   if(!$('rows')) return;
@@ -775,6 +788,13 @@ function hrMap(){
     photo: val('map_photo') || 'photo',
   };
 }
+function employmentLabel(v){
+  const s = String(v || '').trim();
+  if(!s) return '';
+  const key = s.toLowerCase().replace(/[\s-]+/g, '_');
+  const map = {full_time:'Full-time', part_time:'Part-time', contract:'Contract', intern:'Intern'};
+  return map[key] || s;
+}
 function normStaff(o){
   const m = hrMap();
   const alt = {
@@ -793,6 +813,8 @@ function normStaff(o){
     phone: String(tryPaths(o, alt.phone)), email: String(tryPaths(o, alt.email)),
     photo: String(tryPaths(o, alt.photo)),
     signature: String(tryPaths(o, alt.signature)),
+    join_date: String(tryPaths(o, ['join_date','date_joined','hire_date','employment_date'])),
+    employment_type: employmentLabel(tryPaths(o, ['employment_type','employment_status','staff_type'])),
     employee_id: o.employee_id ?? '',
   };
 }
@@ -834,6 +856,8 @@ function parseCSVText(){
       title: g('job_title')||g('title')||g('position'), dept: g('department')||g('dept'),
       phone: g('phone')||g('mobile'), email: g('email'), photo: g('photo')||g('photo_url')||g('avatar'),
       signature: g('signature')||g('signature_path')||g('signature_url'),
+      join_date: g('join_date')||g('date_joined')||g('hire_date'),
+      employment_type: employmentLabel(g('employment_type')||g('employment_status')),
     };
   }).filter(s=>s.name || s.id);
   renderHRTable();
@@ -873,6 +897,8 @@ function fillStaffForm(s, company){
   set('org_name', company); set('staff_name', s.name); set('staff_id', s.id);
   set('job_title', s.title); set('department', s.dept);
   set('phone', s.phone); set('email', s.email);
+  set('hire_date', s.join_date);
+  set('employment_type', employmentLabel(s.employment_type) || 'Full-time');
   photoData = s.photo || ''; logoData = presetLogo || logoData;
   signaturePath = s.signature || presetSignature || '';
   signatureData = assetUrl(signaturePath);
@@ -884,39 +910,45 @@ function previewHRStaff(){
   fillStaffForm(list[0], val('auto_company'));
 }
 async function generateSelected(){
+  if(generateSelected._busy) return;
   const list = hrChecked();
   if(!list.length){ alert('Tick at least one staff member.'); return; }
+  generateSelected._busy = true;
   const company = val('auto_company') || 'Your Company';
   let ok = 0, fail = 0;
-  if($('genMsg')) $('genMsg').textContent = 'Generating 0/' + list.length + '...';
-  for(const s of list){
-    try{
-      const fd = new FormData();
-      fd.append('action','save'); fd.append('id', 0);
-      fd.append('employee_id', s.employee_id || '');
-      fd.append('template_id', currentPresetId);
-      fd.append('org_name', company); fd.append('org_address', '');
-      fd.append('staff_name', s.name); fd.append('staff_id', s.id);
-      fd.append('job_title', s.title); fd.append('department', s.dept);
-      fd.append('phone', s.phone); fd.append('email', s.email);
-      fd.append('template', val('template')); fd.append('layout', 'horizontal');
-      fd.append('color1', val('color1')); fd.append('color2', val('color2'));
-      ['dob','hire_date','employment_type','emergency_contact','address','principal'].forEach(k=>fd.append(k,''));
-      fd.append('layout_json', JSON.stringify(layout));
-      fd.append('labels_json', JSON.stringify(typeof LABELS !== 'undefined' ? collectLabels() : {}));
-      fd.append('back_json', JSON.stringify(typeof BACK !== 'undefined' ? collectBack() : {}));
-      fd.append('code_json', JSON.stringify(typeof CODE !== 'undefined' ? collectCode() : {}));
-      fd.append('labels_json', JSON.stringify(LABELS));
-      fd.append('back_json', JSON.stringify(BACK));
-      fd.append('code_json', JSON.stringify(CODE));
-      if(s.photo) fd.append('photo_path', s.photo);
-      if(presetLogo) fd.append('logo_path', presetLogo);
-      fd.append('signature_path', s.signature || presetSignature || '');
-      const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
-      if(r.ok) ok++; else fail++;
-    }catch(e){ fail++; }
-    if($('genMsg')) $('genMsg').textContent = 'Generating ' + (ok+fail) + '/' + list.length + '...';
+  try{
+    if($('genMsg')) $('genMsg').textContent = 'Generating 0/' + list.length + '...';
+    for(const s of list){
+      try{
+        const fd = new FormData();
+        fd.append('action','save'); fd.append('id', 0);
+        fd.append('employee_id', s.employee_id || '');
+        fd.append('template_id', currentPresetId);
+        fd.append('org_name', company); fd.append('org_address', '');
+        fd.append('staff_name', s.name); fd.append('staff_id', s.id);
+        fd.append('job_title', s.title); fd.append('department', s.dept);
+        fd.append('phone', s.phone); fd.append('email', s.email);
+        fd.append('hire_date', s.join_date || '');
+        fd.append('employment_type', employmentLabel(s.employment_type) || '');
+        fd.append('template', val('template'));
+        fd.append('color1', val('color1')); fd.append('color2', val('color2'));
+        ['dob','emergency_contact','address','principal'].forEach(k=>fd.append(k,''));
+        fd.append('layout_json', JSON.stringify(layout));
+        fd.append('labels_json', JSON.stringify(LABELS));
+        fd.append('back_json', JSON.stringify(BACK));
+        fd.append('code_json', JSON.stringify(CODE));
+        if(s.photo) fd.append('photo_path', s.photo);
+        if(presetLogo) fd.append('logo_path', presetLogo);
+        if(s.signature || presetSignature) fd.append('signature_path', s.signature || presetSignature);
+        const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
+        const r = await res.json().catch(()=>({}));
+        if(res.ok && r.ok) ok++; else fail++;
+      }catch(e){ fail++; }
+      if($('genMsg')) $('genMsg').textContent = 'Generating ' + (ok+fail) + '/' + list.length + '...';
+    }
+    if($('genMsg')) $('genMsg').textContent = 'Done: ' + ok + ' card(s) produced' + (fail ? ', ' + fail + ' failed (name + ID required)' : '') + '. See Saved Staff Records below.';
+    loadRecords();
+  }finally{
+    generateSelected._busy = false;
   }
-  if($('genMsg')) $('genMsg').textContent = 'Done: ' + ok + ' card(s) produced' + (fail ? ', ' + fail + ' failed (name + ID required)' : '') + '. See Saved Staff Records below.';
-  loadRecords();
 }
