@@ -143,7 +143,8 @@ try {
                 </div>
                 <span class="font-medium">Generate Letter</span>
             </a>
-            <a href="#"
+            <?php if (function_exists('hasPermission') ? hasPermission('recruitment_manage') : (function_exists('isAdmin') && isAdmin())): ?>
+            <a href="recruitment.php"
                 class="p-4 border rounded-lg hover:border-primary hover:text-primary transition-colors text-center group">
                 <div
                     class="w-10 h-10 bg-gray-50 group-hover:bg-blue-50 rounded-full mx-auto flex items-center justify-center mb-2 transition-colors">
@@ -156,6 +157,7 @@ try {
                 </div>
                 <span class="font-medium">Recruitment</span>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 

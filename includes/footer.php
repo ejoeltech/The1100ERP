@@ -35,18 +35,29 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
         const menu = document.getElementById('mobileMenu');
         const overlay = document.getElementById('mobileMenuOverlay');
         const hamburger = document.querySelector('.hamburger');
+        if (!menu || !overlay) return;
 
-        menu.classList.toggle('active');
-        overlay.classList.toggle('active');
+        const isOpen = !menu.classList.contains('active');
+        menu.classList.toggle('active', isOpen);
+        overlay.classList.toggle('active', isOpen);
+        menu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        overlay.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        if ('inert' in menu) menu.inert = !isOpen;
+        if (!isOpen) menu.setAttribute('inert', '');
+        else menu.removeAttribute('inert');
         if (hamburger) {
-            hamburger.classList.toggle('active');
+            hamburger.classList.toggle('active', isOpen);
+            hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
 
         // Prevent body scroll when menu is open
-        if (menu.classList.contains('active')) {
+        if (isOpen) {
             document.body.style.overflow = 'hidden';
+            const first = menu.querySelector('a, button');
+            if (first) first.focus();
         } else {
             document.body.style.overflow = '';
+            if (hamburger) hamburger.focus();
         }
     }
 
@@ -59,6 +70,20 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
                 link.addEventListener('click', function () {
                     toggleMobileMenu();
                 });
+            });
+            mobileMenu.addEventListener('keydown', function (e) {
+                if (e.key !== 'Tab') return;
+                const focusables = Array.from(mobileMenu.querySelectorAll('a[href], button:not([disabled])'));
+                if (!focusables.length) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
             });
         }
     });

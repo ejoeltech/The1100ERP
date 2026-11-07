@@ -32,6 +32,14 @@ if (function_exists('setSecurityHeaders')) {
     if (file_exists(__DIR__ . '/../' . $favicon_path)) {
         echo '<link rel="icon" type="image/png" href="' . $base_path . '/' . $favicon_path . '">';
     }
+
+    // Menu permissions: hide links the current user cannot use.
+    $canHrView = function_exists('hasPermission') ? hasPermission('hr_view') : (function_exists('isAdmin') && isAdmin());
+    $canHrManage = function_exists('hasPermission') ? hasPermission('hr_manage') : (function_exists('isAdmin') && isAdmin());
+    $canPayrollView = function_exists('hasPermission') ? hasPermission('payroll_view') : (function_exists('isAdmin') && isAdmin());
+    $canRecruit = function_exists('hasPermission') ? hasPermission('recruitment_manage') : (function_exists('isAdmin') && isAdmin());
+    $canHrAny = $canHrView || $canHrManage || $canPayrollView || $canRecruit;
+    $isDashboard = !isset($currentPage) || $currentPage === '' || $currentPage === 'dashboard';
     ?>
 
     <!-- Tailwind CSS CDN -->
@@ -85,14 +93,14 @@ if (function_exists('setSecurityHeaders')) {
 <body class="bg-gray-50">
 
     <!-- Mobile Menu Overlay -->
-    <div id="mobileMenuOverlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+    <div id="mobileMenuOverlay" class="mobile-menu-overlay" onclick="toggleMobileMenu()" aria-hidden="true"></div>
 
     <!-- Mobile Menu Drawer -->
-    <div id="mobileMenu" class="mobile-menu">
+    <div id="mobileMenu" class="mobile-menu" role="dialog" aria-modal="true" aria-label="Main menu" aria-hidden="true" inert>
         <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
             <h2 class="text-lg font-bold text-gray-900">Menu</h2>
-            <button onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button type="button" onclick="toggleMobileMenu()" class="text-gray-500 hover:text-gray-700" aria-label="Close menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                     </path>
                 </svg>
@@ -100,9 +108,9 @@ if (function_exists('setSecurityHeaders')) {
         </div>
 
         <?php if (isset($current_user)): ?>
-            <nav class="space-y-1">
+            <nav class="space-y-1" aria-label="Mobile navigation">
                 <a href="<?php echo $base_path; ?>/dashboard.php"
-                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg font-semibold">
+                    class="block px-4 py-3 <?php echo $isDashboard ? 'bg-blue-50 text-primary font-semibold' : 'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?> rounded-lg font-semibold">
                     📊 Dashboard
                 </a>
 
@@ -116,6 +124,10 @@ if (function_exists('setSecurityHeaders')) {
                     <a href="<?php echo $base_path; ?>/pages/store/categories.php"
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         📂 Categories
+                    </a>
+                    <a href="<?php echo $base_path; ?>/pages/accessories/items.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        🧰 Accessories
                     </a>
                 </div>
 
@@ -188,8 +200,10 @@ if (function_exists('setSecurityHeaders')) {
 
                 <!-- HR Section -->
                 <?php $hrActive = isset($currentPage) && strpos($currentPage, 'hr_') === 0; ?>
+                <?php if ($canHrAny): ?>
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">HR Management</p>
+                    <?php if ($canHrView || $canHrManage): ?>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/dashboard.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_dashboard'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         📊 HR Dashboard
@@ -197,10 +211,6 @@ if (function_exists('setSecurityHeaders')) {
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/employees.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_employees'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         👥 Employees
-                    </a>
-                    <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
-                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_departments'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
-                        🏢 Departments
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_attendance'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
@@ -210,17 +220,23 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_leave'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         📅 Leave
                     </a>
-                    <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
-                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_payroll'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
-                        💰 Payroll
+                    <?php endif; ?>
+                    <?php if ($canHrManage): ?>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_departments'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        🏢 Departments
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/voting.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_voting'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🗳️ Staff Voting
                     </a>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/documents.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_documents'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        📄 HR Documents
+                    </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/id-maker.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_idcards'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
-                        🎨 ID Templates
+                        🎨 ID Card Templates
                     </a>
                     <a href="<?php echo $base_path; ?>/modules/hr/pages/id-produce.php"
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_idproduce'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
@@ -234,7 +250,21 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_onboarding'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
                         🚀 Onboarding
                     </a>
+                    <?php endif; ?>
+                    <?php if ($canPayrollView): ?>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_payroll'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        💰 Payroll
+                    </a>
+                    <?php endif; ?>
+                    <?php if ($canRecruit): ?>
+                    <a href="<?php echo $base_path; ?>/modules/hr/pages/recruitment.php"
+                        class="block px-4 py-2 rounded-lg <?php echo ($currentPage ?? '')==='hr_recruitment'?'bg-blue-50 text-primary font-semibold':'text-gray-700 hover:bg-blue-50 hover:text-primary'; ?>">
+                        🧑‍💼 Recruitment
+                    </a>
+                    <?php endif; ?>
                 </div>
+                <?php endif; ?>
 
                 <?php if (function_exists('isAdmin') && isAdmin()): ?>
                     <!-- Admin Section -->
@@ -268,8 +298,8 @@ if (function_exists('setSecurityHeaders')) {
                         </a>
                         <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
                             class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg flex items-center gap-2">
-                            <img src="<?php echo $base_path; ?>/assets/icons/magic.png" class="w-4 h-4" alt="Icon">
-                            Smart Tools
+                            <img src="<?php echo $base_path; ?>/assets/icons/magic.png" class="w-4 h-4" alt="">
+                            AI Settings
                         </a>
                     </div>
                 <?php endif; ?>
@@ -325,12 +355,12 @@ if (function_exists('setSecurityHeaders')) {
 
                 <!-- Navigation -->
                 <?php if (isset($current_user)): ?>
-                    <nav class="hidden md:flex items-center gap-1">
+                    <nav class="hidden md:flex items-center gap-1 max-w-full overflow-x-auto" aria-label="Main navigation">
                         <a href="<?php echo $base_path; ?>/dashboard.php"
-                            class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold transition-colors">Dashboard</a>
+                            class="px-4 py-2 <?php echo $isDashboard ? 'bg-blue-50 text-primary' : 'text-gray-700 hover:text-primary hover:bg-gray-50'; ?> rounded-lg font-semibold transition-colors"<?php echo $isDashboard ? ' aria-current="page"' : ''; ?>>Dashboard</a>
 
                         <!-- Store Dropdown -->
-                        <div class="relative group">
+                        <div class="relative group dropdown">
                             <button
                                 class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
                                 Store
@@ -340,7 +370,7 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <a href="<?php echo $base_path; ?>/pages/store/items.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">Items</div>
@@ -360,7 +390,7 @@ if (function_exists('setSecurityHeaders')) {
                         </div>
 
                         <!-- Inventory Dropdown -->
-                        <div class="relative group">
+                        <div class="relative group dropdown">
                             <button
                                 class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
                                 Inventory
@@ -370,7 +400,7 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <a href="<?php echo $base_path; ?>/pages/products/manage-products.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">Products</div>
@@ -395,7 +425,7 @@ if (function_exists('setSecurityHeaders')) {
                         </div>
 
                         <!-- Documents Dropdown -->
-                        <div class="relative group">
+                        <div class="relative group dropdown">
                             <button
                                 class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
                                 Documents
@@ -405,7 +435,7 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <a href="<?php echo $base_path; ?>/pages/view-quotes.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">Quotes</div>
@@ -440,7 +470,7 @@ if (function_exists('setSecurityHeaders')) {
                         </div>
 
                         <!-- AI Tools Dropdown -->
-                        <div class="relative group">
+                        <div class="relative group dropdown">
                             <button
                                 class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
                                 Tools
@@ -450,7 +480,7 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <a href="<?php echo $base_path; ?>/pages/system-designer.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">🛠️ System Designer</div>
@@ -470,17 +500,20 @@ if (function_exists('setSecurityHeaders')) {
                         </div>
 
                         <!-- HR Dropdown -->
-                        <div class="relative group">
+                        <?php if ($canHrAny): ?>
+                        <div class="relative group dropdown">
                             <button
-                                class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
+                                class="px-4 py-2 <?php echo $hrActive ? 'bg-blue-50 text-primary' : 'text-gray-700 hover:text-primary hover:bg-gray-50'; ?> rounded-lg font-semibold flex items-center gap-1"
+                                aria-haspopup="true" aria-expanded="false">
                                 HR
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                <?php if ($canHrView || $canHrManage): ?>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/dashboard.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                     <div class="font-semibold">📊 HR Dashboard</div>
@@ -490,11 +523,6 @@ if (function_exists('setSecurityHeaders')) {
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">👥 Employees</div>
                                     <div class="text-xs text-gray-500">Manage Staff</div>
-                                </a>
-                                <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">🏢 Departments</div>
-                                    <div class="text-xs text-gray-500">Teams & Job Titles</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/attendance.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
@@ -506,19 +534,26 @@ if (function_exists('setSecurityHeaders')) {
                                     <div class="font-semibold">📅 Leave</div>
                                     <div class="text-xs text-gray-500">Requests & Status</div>
                                 </a>
-                                <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
+                                <?php endif; ?>
+                                <?php if ($canHrManage): ?>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/departments.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">💰 Payroll</div>
-                                    <div class="text-xs text-gray-500">Salaries & Payslips</div>
+                                    <div class="font-semibold">🏢 Departments</div>
+                                    <div class="text-xs text-gray-500">Teams & Job Titles</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/voting.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">🗳️ Staff Voting</div>
                                     <div class="text-xs text-gray-500">Vote for Colleague</div>
                                 </a>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/documents.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">📄 HR Documents</div>
+                                    <div class="text-xs text-gray-500">Generate letters</div>
+                                </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/id-maker.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">🎨 ID Templates</div>
+                                    <div class="font-semibold">🎨 ID Card Templates</div>
                                     <div class="text-xs text-gray-500">Design card templates</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/id-produce.php"
@@ -532,16 +567,32 @@ if (function_exists('setSecurityHeaders')) {
                                     <div class="text-xs text-gray-500">Generate from HR records</div>
                                 </a>
                                 <a href="<?php echo $base_path; ?>/modules/hr/pages/onboarding-admin.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">🚀 Onboarding</div>
                                     <div class="text-xs text-gray-500">Manage Signups</div>
                                 </a>
+                                <?php endif; ?>
+                                <?php if ($canPayrollView): ?>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/payroll.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                    <div class="font-semibold">💰 Payroll</div>
+                                    <div class="text-xs text-gray-500">Salaries & Payslips</div>
+                                </a>
+                                <?php endif; ?>
+                                <?php if ($canRecruit): ?>
+                                <a href="<?php echo $base_path; ?>/modules/hr/pages/recruitment.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    <div class="font-semibold">🧑‍💼 Recruitment</div>
+                                    <div class="text-xs text-gray-500">Manage vacancies</div>
+                                </a>
+                                <?php endif; ?>
                             </div>
                         </div>
+                        <?php endif; ?>
 
                         <?php if (function_exists('isAdmin') && isAdmin()): ?>
                             <!-- Admin Dropdown -->
-                            <div class="relative group">
+                            <div class="relative group dropdown">
                                 <button
                                     class="px-4 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg font-semibold flex items-center gap-1">
                                     Admin
@@ -551,7 +602,7 @@ if (function_exists('setSecurityHeaders')) {
                                     </svg>
                                 </button>
                                 <div
-                                    class="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                    class="absolute right-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                     <a href="<?php echo $base_path; ?>/pages/users/manage-users.php"
                                         class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
                                         <div class="font-semibold">Manage Users</div>
@@ -579,6 +630,11 @@ if (function_exists('setSecurityHeaders')) {
                                         <div class="font-semibold">Audit Log</div>
                                         <div class="text-xs text-gray-500">Activity history</div>
                                     </a>
+                                    <a href="<?php echo $base_path; ?>/pages/system-update.php"
+                                        class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
+                                        <div class="font-semibold">System Update</div>
+                                        <div class="text-xs text-gray-500">Patches & maintenance</div>
+                                    </a>
                                     <a href="<?php echo $base_path; ?>/pages/ai-settings.php"
                                         class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
                                         <div class="font-semibold">AI Settings</div>
@@ -591,7 +647,7 @@ if (function_exists('setSecurityHeaders')) {
                         <span class="text-gray-300">|</span>
 
                         <!-- User Menu -->
-                        <div class="relative group">
+                        <div class="relative group dropdown">
                             <button class="text-gray-600 hover:text-primary font-medium flex items-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -604,7 +660,7 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute right-0 mt-2 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                                 <div class="px-4 py-3 border-b border-gray-200">
                                     <p class="text-xs text-gray-500">Signed in as</p>
                                     <p class="text-sm font-semibold text-gray-900">
@@ -639,7 +695,7 @@ if (function_exists('setSecurityHeaders')) {
                     </nav>
 
                     <!-- Mobile Hamburger Menu Button -->
-                    <button onclick="toggleMobileMenu()" class="md:hidden hamburger" aria-label="Toggle menu">
+                    <button type="button" onclick="toggleMobileMenu()" class="md:hidden hamburger" aria-label="Toggle menu" aria-controls="mobileMenu" aria-expanded="false">
                         <span></span>
                         <span></span>
                         <span></span>
@@ -663,7 +719,65 @@ if (function_exists('setSecurityHeaders')) {
         .group:hover .group-hover\:visible {
             visibility: visible;
         }
+
+        .dropdown-panel {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .dropdown.open > .dropdown-panel {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        @media (max-width: 640px) {
+            .dropdown-panel {
+                max-height: 60vh;
+            }
+        }
     </style>
+
+    <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
+        (function () {
+            const dropdowns = Array.from(document.querySelectorAll('.dropdown'));
+            const closeAll = (except) => {
+                dropdowns.forEach((d) => {
+                    if (d === except) return;
+                    d.classList.remove('open');
+                    const b = d.querySelector('button');
+                    if (b) b.setAttribute('aria-expanded', 'false');
+                });
+            };
+            dropdowns.forEach((d) => {
+                const btn = d.querySelector('button');
+                if (!btn) return;
+                btn.setAttribute('aria-haspopup', 'true');
+                btn.setAttribute('aria-expanded', d.classList.contains('open') ? 'true' : 'false');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const open = d.classList.contains('open');
+                    closeAll();
+                    if (!open) {
+                        d.classList.add('open');
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown')) closeAll();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'Escape') return;
+                const open = document.querySelector('.dropdown.open');
+                closeAll();
+                if (open) {
+                    const b = open.querySelector('button');
+                    if (b) b.focus();
+                }
+            });
+        })();
+    </script>
 
     <!-- Chat Widget -->
     <?php include_once __DIR__ . '/chat-widget.php'; ?>

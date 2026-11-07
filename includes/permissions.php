@@ -401,6 +401,8 @@ function requirePermission($action, $resource = null, $ownerId = null)
             $base_path = '..';
         } elseif (file_exists('../../config.php')) {
             $base_path = '../..';
+        } elseif (file_exists('../../../config.php')) {
+            $base_path = '../../..';
         }
 
         // JSON for API calls

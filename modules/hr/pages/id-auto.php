@@ -4,7 +4,7 @@ require_once '../../../includes/session-check.php';
 requirePermission('hr_manage');
 
 $pageTitle = 'Bulk ID Production | ' . COMPANY_NAME;
-$currentPage = 'hr_idcards';
+$currentPage = 'hr_idauto';
 
 $companyLogo = (defined('COMPANY_LOGO') && COMPANY_LOGO) ? '../../../' . COMPANY_LOGO : '../../../uploads/logo/placeholder_logo.png';
 $companyName = COMPANY_NAME;
@@ -33,7 +33,7 @@ window.ERP_COMPANY = {
 
 <div id="idmaker">
 <div class="im-head">
-  <div><h1>Auto <span>Production</span></h1><small>Page 3 — Pull staff from HR, tick who needs cards, generate in bulk</small></div>
+  <div><h1>Bulk ID <span>Production</span></h1><small>Page 3 — Pull staff from HR, tick who needs cards, generate in bulk</small></div>
   <div><small id="editLabel">Bulk mode</small></div>
 </div>
 <div class="im-main">

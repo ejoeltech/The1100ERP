@@ -25,7 +25,7 @@ window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
 
 <div id="idmaker">
 <div class="im-head">
-  <div><h1>ID Template <span>Maker</span></h1><small>Page 1 — Designs, layout &amp; labels. Preview uses sample staff data.</small></div>
+  <div><h1>ID Card <span>Templates</span></h1><small>Page 1 - Designs, layout &amp; labels. Preview uses sample staff data.</small></div>
   <div><small id="editLabel">New template</small></div>
 </div>
 <div class="im-main">
@@ -79,20 +79,6 @@ window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
     <input type="hidden" id="dob" value="">
     <input type="hidden" id="emergency_contact" value="">
     <input type="hidden" id="principal" value="">
-    <h2 style="margin-top:18px">Customize Layout</h2>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Drag <b>any</b> element directly on the cards, or grab the teal resize handle. Fine-tune with sliders — layout saves with the template.</p>
-    <label>Element</label>
-    <select id="elSelect"></select>
-    <label>Position X — <span id="valX">0</span>px</label>
-    <input id="rngX" type="range" min="-200" max="200" value="0">
-    <label>Position Y — <span id="valY">0</span>px</label>
-    <input id="rngY" type="range" min="-200" max="200" value="0">
-    <label><span id="sizeLabel">Size</span> — <span id="valSize"></span></label>
-    <input id="rngSize" type="range" min="10" max="300" value="100">
-    <div class="row2" style="align-items:end">
-      <div><label><input id="elVisible" type="checkbox" checked style="width:auto"> Visible</label></div>
-      <div><button class="ghost" onclick="resetLayout()" style="width:100%">Reset layout</button></div>
-    </div>
     <h2 style="margin-top:18px">Field Labels</h2>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Rename any field — labels apply to the production forms and the card back, and save with the template.</p>
     <div id="labelGrid" class="row2"></div>

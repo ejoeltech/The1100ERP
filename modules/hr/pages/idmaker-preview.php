@@ -1,3 +1,4 @@
+<?php if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); } ?>
 <?php // Shared ID-maker preview (front/back/corporate). Requires $companyLogo, $companyName set by parent. ?>
 <div class="card">
   <h2>Live Preview — Front</h2>

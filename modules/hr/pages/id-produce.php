@@ -59,7 +59,7 @@ window.IDM_PRESELECT_EMPLOYEE = <?= (int)$preselectEmployeeId ?>;
 
 <div id="idmaker">
 <div class="im-head">
-  <div><h1>Manual <span>Production</span></h1><small>Page 2 — Type staff details or load from employee record</small></div>
+  <div><h1>Produce <span>ID Cards</span></h1><small>Page 2 — Type staff details or load from employee record</small></div>
   <div><small id="editLabel">New card</small></div>
 </div>
 <div class="im-main">

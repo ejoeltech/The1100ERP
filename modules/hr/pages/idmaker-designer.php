@@ -1,4 +1,5 @@
 <?php // Layout customizer controls (drag + sliders), shared by maker/produce pages. ?>
+<?php if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); } ?>
 <h2 style="margin-top:18px">Customize Layout</h2>
 <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Drag <b>any</b> element directly on the cards, or grab the teal resize handle. Fine-tune with sliders — layout saves with the template.</p>
 <label>Element</label>

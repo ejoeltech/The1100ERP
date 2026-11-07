@@ -1,3 +1,4 @@
+<?php if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_response_code(403); exit('Forbidden'); } ?>
 <?php // Shared saved-records panel for ID maker pages. ?>
 <div class="card noprint" id="records">
   <h2>Saved Staff Records</h2>
