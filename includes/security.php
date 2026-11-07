@@ -394,7 +394,7 @@ function setSecurityHeaders() {
     // they are migrated to addEventListener. unsafe-eval is not allowed.
     // Everything else is locked down: no plugins, no foreign frames/forms, no base hijack.
     $nonce = cspNonce();
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com https://ui-avatars.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce' https://cdn.tailwindcss.com https://fonts.googleapis.com https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; img-src 'self' data: https://api.qrserver.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; media-src 'self'; manifest-src 'self'; worker-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests");
 }
 
 // ============================================

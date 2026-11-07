@@ -221,14 +221,23 @@ img.dx-signature{position:absolute;left:50%;top:50%;transform:translate(-50%,-50
 #idmaker input[type=range]{padding:0;accent-color:#14b8a6}
 #elSelect{margin-bottom:4px}
 #idmaker table{width:100%;border-collapse:collapse;font-size:13.5px}
-#idmaker th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+#idmaker th, #idmaker td{padding:8px;border-bottom:1px solid var(--line);text-align:left}
 #idmaker th{color:var(--mut);text-transform:uppercase;font-size:11px;letter-spacing:.6px}
-tr:hover td{background:rgba(13,148,136,.08)}
+#idmaker tr:hover td{background:rgba(13,148,136,.08)}
 .actions{display:flex;gap:6px}
 .actions button{padding:6px 9px;font-size:12px}
-@media(max-width:1000px){main{grid-template-columns:1fr}#editor{position:static;max-height:none;overflow:visible}}
+@media(max-width:1000px){
+  #idmaker .im-main{grid-template-columns:1fr}
+  #editor{position:static;max-height:none;overflow:visible}
+}
 @media print{
-  header, #editor, #records, .noprint{display:none !important}
+  header, #editor, #records, .noprint, #idmaker .im-head, footer{display:none !important}
   body{background:#fff}
   #previewWrap{display:block}
+  #previewWrap .card, .dx-front, .dx-back, .corp-card{
+    break-inside:avoid;
+    page-break-inside:avoid;
+    box-shadow:none !important;
+  }
+  @page{size:auto;margin:8mm}
 }

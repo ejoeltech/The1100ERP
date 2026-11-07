@@ -8,7 +8,7 @@
       <img id="dLogo" data-el="dLogo" src="<?= htmlspecialchars($companyLogo) ?>" alt="company logo">
       <div class="dx-coname" id="dCoName" data-el="dCoName"><?= htmlspecialchars($companyName) ?></div>
     </div>
-    <div class="dx-photo"><img id="dPhoto" data-el="dPhoto" src="https://ui-avatars.com/api/?name=Staff&size=220&background=0e4b8f&color=fff" alt="staff photo"></div>
+    <div class="dx-photo"><img id="dPhoto" data-el="dPhoto" src="../assets/idmaker/staff-placeholder.svg" alt="staff photo"></div>
     <div class="dx-name" id="dName" data-el="dName">EMPLOYEE NAME</div>
     <div class="dx-title" id="dTitle" data-el="dTitle">Job Title</div>
     <div class="dx-bot" data-el="dBot">
@@ -20,7 +20,7 @@
   <div class="corp-card" id="cardCorp" style="display:none">
     <img class="dx-signature" id="cSignature" data-el="cSign" alt="HR signature" style="display:none">
     <div class="corp-logo-wrap"><img id="cLogo" data-el="cLogo" src="<?= htmlspecialchars($companyLogo) ?>" alt="company logo"></div>
-    <div class="corp-photo-wrap"><img class="corp-photo" id="cPhoto" data-el="cPhoto" src="https://ui-avatars.com/api/?name=Staff&size=196&background=0e4b8f&color=fff" alt="staff photo"></div>
+    <div class="corp-photo-wrap"><img class="corp-photo" id="cPhoto" data-el="cPhoto" src="../assets/idmaker/staff-placeholder.svg" alt="staff photo"></div>
     <div class="corp-name" id="cName" data-el="cName">EMPLOYEE NAME</div>
     <div class="corp-role" id="cRole" data-el="cRole">Staff</div>
     <div class="corp-bottom">
@@ -32,8 +32,8 @@
     </div>
   </div>
   <div class="btns noprint">
-    <button class="ghost" onclick="downloadPNG('dxFront','staff-front.png')">Download front PNG</button>
-    <button class="ghost" onclick="downloadPNG('cardCorp','staff-corporate.png')">Download corporate PNG</button>
+    <button class="ghost" id="btnDownloadFront" onclick="downloadPNG('dxFront','staff-front.png')">Download front PNG</button>
+    <button class="ghost" id="btnDownloadCorp" onclick="downloadPNG('cardCorp','staff-corporate.png')">Download corporate PNG</button>
   </div>
 </div>
 
@@ -64,7 +64,7 @@
     <div class="dx-b-bot" data-el="dBBot"></div>
   </div>
   <div class="btns noprint">
-    <button class="ghost" onclick="downloadPNG('dxBack','staff-back.png')">Download back PNG</button>
-    <button class="ghost" onclick="window.print()">Print</button>
+    <button class="ghost" id="btnDownloadBack" onclick="downloadPNG('dxBack','staff-back.png')">Download back PNG</button>
+    <button class="ghost" id="btnPrint" onclick="window.print()">Print</button>
   </div>
 </div>

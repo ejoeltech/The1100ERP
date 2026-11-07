@@ -47,6 +47,20 @@ EL.dSignB = {label:'HR signature (back)', kind:'w', min:50, max:320, def:150, si
 EL.cSign = {label:'HR signature (corporate)', kind:'w', min:50, max:320, def:150, signature:true};
 let layout = {}, selEl = 'dPhoto';
 function layOf(k){ if(!layout[k] || typeof layout[k] !== 'object') layout[k] = {dx:0, dy:0, size:EL[k].def, vis:true}; const L = layout[k]; if(typeof L.dx!=='number')L.dx=0; if(typeof L.dy!=='number')L.dy=0; if(typeof L.size!=='number')L.size=EL[k].def; if(typeof L.vis!=='boolean')L.vis=true; return L; }
+function applyCodeVisibility(){
+  const isCorp = Math.max(1, Math.min(7, parseInt(val('template')||'1',10))) === 7;
+  const front = CODE.front || 'barcode';
+  const back = CODE.back || 'barcode';
+  const set = (id, visible) => {
+    const el = $(id); if(!el) return;
+    const L = layOf(id);
+    el.style.display = (visible && L.vis !== false) ? 'block' : 'none';
+  };
+  set('dBarcode', !isCorp && front === 'barcode');
+  set('dQrFront', !isCorp && front === 'qr');
+  set('dBarcodeB', !isCorp && (back === 'barcode' || back === 'both'));
+  set('dQrB', !isCorp && (back === 'qr' || back === 'both'));
+}
 function applyLayout(){
   Object.keys(EL).forEach(k=>{
     const L = layOf(k), cfg = EL[k];
@@ -58,7 +72,7 @@ function applyLayout(){
       }
       if(cfg.kind === 'w'){
         el.style.width = L.size + 'px';
-        el.style.height = cfg.square ? L.size + 'px' : 'auto';
+        el.style.height = cfg.square ? L.size + 'px' : '';
       } else if(cfg.kind === 'h'){
         el.style.height = (L.size > 0) ? L.size + 'px' : '';
       } else {
@@ -68,6 +82,7 @@ function applyLayout(){
       el.classList.toggle('el-sel', k === selEl);
     });
   });
+  applyCodeVisibility();
   positionHandle();
 }
 function persistLayout(){ try{ localStorage.setItem('erp_idmaker_layout', JSON.stringify(layout)); }catch(e){} }
@@ -487,11 +502,16 @@ function render(){
   if($('dQrFront')) $('dQrFront').style.display = showQrF ? '' : 'none';
   try{
     if($('dQrB') && !isCorp){ $('dQrB').innerHTML = ''; new QRCode($('dQrB'), { text: codeContent(qrText), width:84, height:84 }); }
-  }catch(e){}
+  }catch(e){ if($('dQrB')) $('dQrB').innerHTML = ''; console.warn('Back QR generation failed', e); }
   try{
     if($('dQrFront') && showQrF){ $('dQrFront').innerHTML = ''; new QRCode($('dQrFront'), { text: codeContent(qrText), width:84, height:84 }); }
-  }catch(e){}
-  try{ if(showBarF){ JsBarcode('#dBarcode', frontPayload || staffId, {format:'CODE128', displayValue:false, background:'transparent', lineColor:c1}); } }catch(e){}
+  }catch(e){ if($('dQrFront')) $('dQrFront').innerHTML = ''; console.warn('Front QR generation failed', e); }
+  try{
+    if(showBarF){
+      if($('dBarcode')) $('dBarcode').innerHTML = '';
+      JsBarcode('#dBarcode', frontPayload || staffId, {format:'CODE128', displayValue:false, background:'transparent', lineColor:c1});
+    } else if($('dBarcode')) { $('dBarcode').innerHTML = ''; }
+  }catch(e){ if($('dBarcode')) $('dBarcode').innerHTML = ''; console.warn('Front barcode generation failed', e); }
   const backMode = CODE.back || 'barcode';
   const showBarB = !isCorp && (backMode === 'barcode' || backMode === 'both');
   const showQrB = !isCorp && (backMode === 'qr' || backMode === 'both');
@@ -499,7 +519,12 @@ function render(){
   if($('dQrB')) $('dQrB').style.display = showQrB ? '' : 'none';
   const bcode = $('dBarcodeB') && $('dBarcodeB').parentElement;
   if(bcode) bcode.classList.toggle('both', backMode === 'both');
-  try{ if(showBarB){ JsBarcode('#dBarcodeB', backPayload || staffId, {format:'CODE128', displayValue:false, background:'transparent', lineColor:c1}); } }catch(e){}
+  try{
+    if(showBarB){
+      if($('dBarcodeB')) $('dBarcodeB').innerHTML = '';
+      JsBarcode('#dBarcodeB', backPayload || staffId, {format:'CODE128', displayValue:false, background:'transparent', lineColor:c1});
+    } else if($('dBarcodeB')) { $('dBarcodeB').innerHTML = ''; }
+  }catch(e){ if($('dBarcodeB')) $('dBarcodeB').innerHTML = ''; console.warn('Back barcode generation failed', e); }
   // Corporate card fields (template 7)
   if($('cName')) $('cName').textContent = empName.toUpperCase();
   if($('cRole')) $('cRole').textContent = val('employment_type') || val('job_title') || 'Staff';
@@ -508,28 +533,61 @@ function render(){
   if(logoData && $('cLogo')) $('cLogo').src = logoData;
   try{
     if($('qrcodeCorp') && isCorp){ $('qrcodeCorp').innerHTML = ''; new QRCode($('qrcodeCorp'), { text: qrText, width:92, height:92 }); }
-  }catch(e){}
+  }catch(e){ if($('qrcodeCorp')) $('qrcodeCorp').innerHTML = ''; console.warn('Corporate QR generation failed', e); }
   applyLayout();
+  updatePreviewActions();
+}
+
+function updatePreviewActions(){
+  const isCorp = Math.max(1, Math.min(7, parseInt(val('template')||'1',10))) === 7;
+  const show = (id, on) => { const el = $(id); if(el) el.style.display = on ? '' : 'none'; };
+  show('btnDownloadFront', !isCorp);
+  show('btnDownloadBack', !isCorp);
+  show('btnDownloadCorp', isCorp);
 }
 
 async function downloadPNG(elId, name){
+  if(downloadPNG._busy) return;
+  downloadPNG._busy = true;
   const el = $(elId);
+  if(!el){ downloadPNG._busy = false; return; }
   const prev = el.style.display;
-  if(prev === 'none'){ el.style.display = (elId==='cardCorp' ? 'flex' : 'block'); await new Promise(r=>setTimeout(r,60)); }
-  // Hide editor visuals (selection outline + resize handle) so exports are clean
   const sel = Array.from(document.querySelectorAll('.el-sel'));
-  sel.forEach(x=>x.classList.remove('el-sel'));
   const rh = document.querySelector('.rz-handle');
   const rhPrev = rh ? rh.style.display : '';
-  if(rh) rh.style.display = 'none';
-  let canvas;
-  try{ canvas = await html2canvas(el, {scale:2, useCORS:true, backgroundColor:'#ffffff'}); }
-  catch(err){ alert('PNG export blocked: an image refused cross-origin access. Use Print instead.'); throw err; }
-  sel.forEach(x=>x.classList.add('el-sel'));
-  if(rh) rh.style.display = rhPrev;
-  if(prev === 'none'){ el.style.display = 'none'; }
+  let canvas = null;
+  try{
+    if(prev === 'none'){
+      const flex = el.classList.contains('corp-card') || el.classList.contains('dx-front') || el.classList.contains('dx-back');
+      el.style.display = flex ? 'flex' : 'block';
+      await new Promise(r=>setTimeout(r,80));
+    }
+    // Hide editor visuals (selection outline + resize handle) so exports are clean.
+    sel.forEach(x=>x.classList.remove('el-sel'));
+    if(rh) rh.style.display = 'none';
+    if(el.querySelectorAll('img').length){
+      await Promise.all(Array.from(el.querySelectorAll('img')).map(img =>
+        img.decode ? img.decode().catch(()=>{}) : Promise.resolve()
+      ));
+    }
+    canvas = await html2canvas(el, {scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false});
+  }catch(err){
+    alert('PNG export blocked: an image refused cross-origin access. Use Print instead.');
+  }finally{
+    sel.forEach(x=>x.classList.add('el-sel'));
+    if(rh) rh.style.display = rhPrev;
+    if(prev === 'none') el.style.display = 'none';
+    downloadPNG._busy = false;
+  }
+  if(!canvas) return;
+  let href;
+  try{ href = canvas.toDataURL('image/png'); }
+  catch(err){ alert('PNG export failed while reading the canvas. Use Print instead.'); return; }
   const a = document.createElement('a');
-  a.download = name; a.href = canvas.toDataURL('image/png'); a.click();
+  a.download = name; a.href = href;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 async function save(){

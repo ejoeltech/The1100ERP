@@ -19,7 +19,7 @@ include_once '../../../includes/header.php';
 <script src="../assets/idmaker/vendor/qrcode.min.js"></script>
 <script src="../assets/idmaker/vendor/JsBarcode.all.min.js"></script>
 <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
-window.IDM_FALLBACK_PHOTO = 'https://ui-avatars.com/api/?name=Staff&size=220&background=0e4b8f&color=fff';
+window.IDM_FALLBACK_PHOTO = '../assets/idmaker/staff-placeholder.svg';
 window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
 window.ERP_COMPANY = {
   name: <?= json_encode(COMPANY_NAME) ?>,
