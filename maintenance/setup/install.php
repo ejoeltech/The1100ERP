@@ -181,8 +181,9 @@ function testDatabaseConnection()
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ]);
 
-        // Check if database exists
-        $stmt = $pdo->prepare("SHOW DATABASES LIKE ?");
+        // Check if database exists. SHOW DATABASES LIKE cannot take a
+        // placeholder on MariaDB, so use information_schema with a bound value.
+        $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
         $stmt->execute([$dbname]);
         $exists = $stmt->fetch();
 
@@ -217,7 +218,7 @@ function createDatabase()
         // Shared-hosting DB users often cannot CREATE DATABASE even when the
         // host already provisioned it. Treat an existing database as success
         // so CREATE is optional, not a hard installer requirement.
-        $stmt = $pdo->prepare("SHOW DATABASES LIKE ?");
+        $stmt = $pdo->prepare("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?");
         $stmt->execute([$dbname]);
         if ($stmt->fetch()) {
             $response['success'] = true;
