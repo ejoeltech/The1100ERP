@@ -55,7 +55,6 @@ window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
       <button class="ghost" onclick="saveDefaultDesign()" title="Save the current colors, layout, labels and logo as this template's default">Set as default design</button>
       <button class="ghost" onclick="resetFactoryDefault()" title="Discard the saved default and restore the factory look">Restore factory</button>
     </div>
-    <input type="hidden" id="layout" value="horizontal">
     <div class="row2">
       <div><label>Sample photo (preview)</label><input id="photoFile" type="file" accept="image/*"></div>
       <div><label>Company logo (saved)</label><input id="logoFile" type="file" accept="image/*"></div>
@@ -80,7 +79,7 @@ window.IDM_FALLBACK_LOGO = '<?= addslashes($companyLogo) ?>';
     <input type="hidden" id="emergency_contact" value="">
     <input type="hidden" id="principal" value="">
     <h2 style="margin-top:18px">Field Labels</h2>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Rename any field — labels apply to the production forms and the card back, and save with the template.</p>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Edit the ID prefix and the phone/email/address labels shown on the card back.</p>
     <div id="labelGrid" class="row2"></div>
     <h2 style="margin-top:18px">Card Back Content</h2>
     <p style="color:var(--mut);font-size:12.5px;margin:0 0 6px">Edit the terms heading and body, and add your own custom fields. A field shows its label plus a live value — pick a staff detail or fixed text.</p>

@@ -76,11 +76,11 @@ window.IDM_PRESELECT_EMPLOYEE = <?= (int)$preselectEmployeeId ?>;
       This employee has no department or job title on file. Update the employee record before producing the card.
     </p>
     <input type="hidden" id="employee_id" value="">
-    <input type="hidden" id="template" value="1">
     <input type="hidden" id="color1" value="#0d6b3f">
     <input type="hidden" id="color2" value="#8fd14f">
-    <input type="hidden" id="layout" value="horizontal">
-    <label>Template</label>
+    <label>Base design</label>
+    <select id="template"></select>
+    <label>Saved template</label>
     <select id="presetSelect"><option value="0">— No saved template (default design) —</option></select>
     <div class="row2">
       <div><label>Employee name</label><input id="staff_name" value=""></div>
@@ -131,6 +131,11 @@ window.IDM_PRESELECT_EMPLOYEE = <?= (int)$preselectEmployeeId ?>;
 </div>
 <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 function loadErpEmployee(id) {
+  if (typeof confirmDiscard === 'function' && !confirmDiscard()) {
+    const sel = document.getElementById('erp_employee');
+    if (sel) sel.value = window.__idmLastEmployee || '';
+    return;
+  }
   const e = (window.ERP_EMPLOYEES || {})[id];
   const set = (k, v) => { const el = document.getElementById(k); if (el) el.value = v || ''; };
   const warn = document.getElementById('hrDataWarning');
@@ -148,7 +153,9 @@ function loadErpEmployee(id) {
     photoData = '';
     signaturePath = presetSignature || '';
     signatureData = assetUrl(signaturePath);
+    window.__idmLastEmployee = '';
     render();
+    if (typeof clearDirty === 'function') clearDirty();
     return;
   }
   set('staff_name', e.full_name);
@@ -174,7 +181,9 @@ function loadErpEmployee(id) {
   document.getElementById('org_name').value = window.ERP_COMPANY.name;
   document.getElementById('org_address').value = window.ERP_COMPANY.address;
   if (warn) warn.style.display = (!e.designation || !e.department) ? 'block' : 'none';
+  window.__idmLastEmployee = String(id);
   render();
+  if (typeof clearDirty === 'function') clearDirty();
 }
 </script>
 <script src="../assets/idmaker/app.js"></script>

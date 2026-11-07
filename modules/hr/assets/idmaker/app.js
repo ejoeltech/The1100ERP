@@ -1,6 +1,13 @@
 const $ = id => document.getElementById(id);
 const F = ['employee_id','org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','employment_type','emergency_contact','phone','email','address','principal','template','color1','color2'];
 let photoData = '', logoData = '', editingId = 0;
+let formDirty = false;
+function markDirty(){ formDirty = true; }
+function clearDirty(){ formDirty = false; }
+function confirmDiscard(){
+  if(!formDirty) return true;
+  return confirm('Discard unsaved changes?');
+}
 // HR signature shown behind every card. signaturePath is the saved relative
 // path (sent back to the API); signatureData is what the preview displays
 // (could be a freshly picked data URL before saving).
@@ -85,7 +92,7 @@ function applyLayout(){
   applyCodeVisibility();
   positionHandle();
 }
-function persistLayout(){ try{ localStorage.setItem('erp_idmaker_layout', JSON.stringify(layout)); }catch(e){} }
+function persistLayout(){ try{ localStorage.setItem('erp_idmaker_layout', JSON.stringify(layout)); }catch(e){} markDirty(); }
 function syncPanel(){
   const cfg = EL[selEl], L = layOf(selEl);
   if($('elSelect')) $('elSelect').value = selEl;
@@ -192,14 +199,7 @@ const TPL_NAMES = ['Emerald Geo','Teal Oval','Hospital Blue','Purple Dots','Lime
 
 /* ===== Customizable field labels ===== */
 const LABEL_KEYS = [
-  ['company','Company name'],['company_address','Company address'],
-  ['employee_name','Employee name'],['staff_id','Staff ID'],
-  ['job_title','Job title'],['department','Department'],
-  ['date_joined','Date joined'],['employment_type','Employment type'],
-  ['phone','Phone'],
-  ['dob','DOB (optional)'],['email','Work email'],
-  ['emergency','Emergency contact'],['address','Office / home address'],
-  ['signatory','HR Manager / Signatory'],['id_prefix','ID prefix'],
+  ['id_prefix','ID prefix'],
   ['back_phone','Phone (card back)'],['back_email','Email (card back)'],['back_address','Address (card back)'],
 ];
 const LABEL_DEFAULTS = Object.fromEntries(LABEL_KEYS.map(([k,v])=>[k, k==='id_prefix' ? 'ID ' : v]));
@@ -232,7 +232,10 @@ function idPrefix(){ return LABELS.id_prefix || 'ID '; }
 /* ===== Card back content: editable terms + custom fields ===== */
 const FIELD_SOURCES = [
   ['staff_id','Staff ID'],['name','Employee name'],['title','Job title'],
-  ['department','Department'],['phone','Phone'],['email','Email'],
+  ['department','Department'],['employment_type','Employment type'],
+  ['hire_date','Date joined'],['dob','Date of birth'],
+  ['phone','Phone'],['email','Email'],['address','Address'],
+  ['emergency_contact','Emergency contact'],['principal','Signatory'],
   ['company','Company'],['static','Fixed text'],
 ];
 const BACK_DEFAULT = {
@@ -384,26 +387,37 @@ function applyBaseDefault(n){
   return true;
 }
 async function saveDefaultDesign(){
-  const base = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
-  collectLabels(); collectBack(); collectCode();
-  const fd = new FormData();
-  fd.append('action','default_save');
-  fd.append('base', base);
-  fd.append('color1', val('color1'));
-  fd.append('color2', val('color2'));
-  fd.append('layout_json', JSON.stringify(layout));
-  fd.append('labels_json', JSON.stringify(LABELS));
-  fd.append('back_json', JSON.stringify(BACK));
-  fd.append('code_json', JSON.stringify(CODE));
-  const lf = $('logoFile') && $('logoFile').files[0];
-  if(lf) fd.append('logo', lf);
-  else if(logoData && !String(logoData).startsWith('data:')) fd.append('logo_path', logoData);
-  const sf = $('signatureFile') && $('signatureFile').files[0];
-  if(sf) fd.append('signature', sf);
-  else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
-  const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
-  if(r.ok){ alert('Template ' + base + ' default updated — it now opens with this design.'); fetchDefaults(); }
-  else alert('Save failed: '+(r.error||'unknown'));
+  if(saveDefaultDesign._busy) return;
+  saveDefaultDesign._busy = true;
+  try{
+    const base = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
+    collectLabels(); collectBack(); collectCode();
+    const fd = new FormData();
+    fd.append('action','default_save');
+    fd.append('base', base);
+    fd.append('color1', val('color1'));
+    fd.append('color2', val('color2'));
+    fd.append('layout_json', JSON.stringify(layout));
+    fd.append('labels_json', JSON.stringify(LABELS));
+    fd.append('back_json', JSON.stringify(BACK));
+    fd.append('code_json', JSON.stringify(CODE));
+    const lf = $('logoFile') && $('logoFile').files[0];
+    if(lf) fd.append('logo', lf);
+    else if(logoData && !String(logoData).startsWith('data:')) fd.append('logo_path', logoData);
+    const sf = $('signatureFile') && $('signatureFile').files[0];
+    if(sf) fd.append('signature', sf);
+    else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
+    const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
+    const r = await res.json().catch(()=>({}));
+    if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
+    alert('Template ' + base + ' default updated — it now opens with this design.');
+    fetchDefaults();
+    clearDirty();
+  }catch(e){
+    alert('Save failed: '+(e && e.message ? e.message : 'unknown'));
+  }finally{
+    saveDefaultDesign._busy = false;
+  }
 }
 async function resetFactoryDefault(){
   const base = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
@@ -417,14 +431,16 @@ async function resetFactoryDefault(){
   if($('color1')) $('color1').value = TPLS[base-1][0];
   if($('color2')) $('color2').value = TPLS[base-1][1];
   syncPanel(); render();
+  clearDirty();
 }
 function setLayout(v){
-  $('layout').value = v;
+  const el = $('layout'); if(el) el.value = v;
   document.querySelectorAll('#layoutSeg button').forEach(b=>b.classList.toggle('active', b.dataset.v===v));
   render();
 }
 function randomId(){
   $('staff_id').value = 'EMP-' + new Date().getFullYear() + '-' + String(Math.floor(1000+Math.random()*9000));
+  markDirty();
   render();
 }
 function readFile(input, cb){
@@ -489,7 +505,10 @@ function render(){
   });
   // Back: editable heading/body + custom fields
   const ctx = {staff_id: staffId, name: empName, title: title, department: val('department'),
-    phone: val('phone'), email: val('email'), company: val('org_name')};
+    employment_type: val('employment_type'), hire_date: val('hire_date'), dob: val('dob'),
+    phone: val('phone'), email: val('email'), address: val('address'),
+    emergency_contact: val('emergency_contact'), principal: val('principal'),
+    company: val('org_name')};
   if($('dBHeadT')) $('dBHeadT').textContent = BACK.title || '';
   if($('dBTerms')) $('dBTerms').innerHTML = String(BACK.body || '').split(/\n\s*\n/).filter(p=>p.trim()!=='').map(p=>'<p>'+esc(p.trim()).replace(/\n/g,'<br>')+'</p>').join('');
   if($('dBackFields')) $('dBackFields').innerHTML = (BACK.fields || []).map(f=>'<div class="fb-row"><b>'+esc(f.label||'')+(f.label?':':'')+'</b><span>'+esc(backFieldValue(f, ctx))+'</span></div>').join('');
@@ -618,6 +637,7 @@ async function save(){
     alert('Saved (ID '+r.id+')');
     editingId = 0;
     if($('editLabel')) $('editLabel').textContent='New card';
+    clearDirty();
     loadRecords();
   }catch(e){
     alert('Save failed: '+(e && e.message ? e.message : 'unknown'));
@@ -625,36 +645,55 @@ async function save(){
     save._busy = false;
   }
 }
+let recordsTimer = null, recordsAbort = null;
+function scheduleLoadRecords(){
+  clearTimeout(recordsTimer);
+  recordsTimer = setTimeout(loadRecords, 250);
+}
 async function loadRecords(){
   if(!$('rows')) return;
   const q = $('search') ? $('search').value.trim() : '';
-  const r = await fetch('../api/id-cards.php?action=list&q='+encodeURIComponent(q)).then(r=>r.json());
-  const tb = $('rows'); tb.innerHTML='';
-  (r.cards||[]).forEach(c=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${c.id}</td><td><b>${esc(c.staff_name)}</b><br><small>${esc(c.staff_id)}</small></td>
-      <td>${esc(c.department||'')}</td><td>${esc(c.job_title||'')}</td>
-      <td class="actions">
-        <button class="ghost" data-a="load">Load</button>
-        <button class="ghost" data-a="del">Delete</button>
-      </td>`;
-    tr.querySelector('[data-a=load]').onclick = ()=>loadCard(c.id);
-    tr.querySelector('[data-a=del]').onclick = async ()=>{
-      if(!confirm('Delete #'+c.id+'?')) return;
-      await fetch('../api/id-cards.php?action=delete&id='+c.id, {method:'POST'}).then(r=>r.json());
-      loadRecords();
-    };
-    tb.appendChild(tr);
-  });
-  if($('count')) $('count').textContent = (r.cards||[]).length + ' record(s)';
+  if(recordsAbort) recordsAbort.abort();
+  recordsAbort = new AbortController();
+  const signal = recordsAbort.signal;
+  try{
+    const res = await fetch('../api/id-cards.php?action=list&q='+encodeURIComponent(q), {signal});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const r = await res.json();
+    const tb = $('rows'); tb.innerHTML='';
+    (r.cards||[]).forEach(c=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${c.id}</td><td><b>${esc(c.staff_name)}</b><br><small>${esc(c.staff_id)}</small></td>
+        <td>${esc(c.department||'')}</td><td>${esc(c.job_title||'')}</td>
+        <td class="actions">
+          <button class="ghost" data-a="load">Load</button>
+          <button class="ghost" data-a="del">Delete</button>
+        </td>`;
+      tr.querySelector('[data-a=load]').onclick = ()=>loadCard(c.id);
+      tr.querySelector('[data-a=del]').onclick = async ()=>{
+        if(!confirm('Delete #'+c.id+'?')) return;
+        await fetch('../api/id-cards.php?action=delete&id='+c.id, {method:'POST'}).then(r=>r.json());
+        loadRecords();
+      };
+      tb.appendChild(tr);
+    });
+    if($('count')) $('count').textContent = (r.cards||[]).length + ' record(s)';
+  }catch(e){
+    if(e.name === 'AbortError') return;
+    console.warn('Records load failed', e);
+    if($('rows')) $('rows').innerHTML = '<tr><td colspan="5" style="color:var(--mut)">Unable to load records.</td></tr>';
+    if($('count')) $('count').textContent = '—';
+  }finally{
+    if(recordsAbort && recordsAbort.signal === signal) recordsAbort = null;
+  }
 }
 function esc(s){ return String(s??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 async function loadCard(id){
+  if(!confirmDiscard()) return;
   const r = await fetch('../api/id-cards.php?action=get&id='+id).then(r=>r.json());
   if(!r.card) return;
   const c = r.card; editingId = c.id;
   currentPresetId = c.template_id || 0;
-  const ps = $('presetSelect'); if(ps) ps.value = currentPresetId;
   presetLogo = ''; presetPhoto = '';
   F.forEach(k=>{ if($(k) && c[k]!==undefined && c[k]!==null) $(k).value = c[k]; });
   try{ const l = JSON.parse(c.layout_json || '{}'); layout = (l && typeof l === 'object') ? l : {}; }catch(e){ layout = {}; }
@@ -667,9 +706,18 @@ async function loadCard(id){
   presetSignature = signaturePath;
   setLayout(c.layout||'horizontal');
   $('editLabel').textContent = 'Editing #' + c.id;
+  const ps = $('presetSelect');
+  if(ps){
+    ps.value = '0';
+    loadPresetOptions('presetSelect').then(()=>{
+      if(currentPresetId && [...ps.options].some(o=>o.value==String(currentPresetId))) ps.value = String(currentPresetId);
+    });
+  }
   render(); window.scrollTo({top:0, behavior:'smooth'});
+  clearDirty();
 }
 function resetForm(){
+  if(!confirmDiscard()) return;
   editingId = 0; if($('editLabel')) $('editLabel').textContent='New card';
   ['org_name','org_address','staff_name','staff_id','dob','department','job_title','hire_date','emergency_contact','phone','email','address','principal','employee_id','erp_employee'].forEach(k=>{ if($(k)) $(k).value=''; });
   if($('org_name')) $('org_name').value = (window.ERP_COMPANY && window.ERP_COMPANY.name) || '';
@@ -691,6 +739,7 @@ function resetForm(){
   setTemplate(1); setLayout('horizontal');
   const ps = $('presetSelect') || $('presetSelectAuto');
   if(ps && ps.value && +ps.value > 0) applyPreset(+ps.value);
+  clearDirty();
 }
 
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -698,6 +747,16 @@ window.addEventListener('DOMContentLoaded', ()=>{
   initDesigner();
   buildLabelEditor();
   buildBackEditor();
+  const idmEditRoot = document.getElementById('editor');
+  if(idmEditRoot){
+    idmEditRoot.addEventListener('input', markDirty);
+    idmEditRoot.addEventListener('change', markDirty);
+  }
+  window.addEventListener('beforeunload', (e)=>{
+    if(!formDirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
   const cf = $('code_front'); if(cf) cf.addEventListener('change', ()=>{ collectCode(); render(); });
   const cb = $('code_back'); if(cb) cb.addEventListener('change', ()=>{ collectCode(); render(); });
   const cc = $('code_content'); if(cc) cc.addEventListener('input', ()=>{ collectCode(); render(); });
@@ -706,7 +765,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if($('photoFile')) $('photoFile').addEventListener('change', e=>readFile(e.target, d=>{photoData=d; render();}));
   if($('logoFile')) $('logoFile').addEventListener('change', e=>readFile(e.target, d=>{logoData=d; render();}));
   if($('signatureFile')) $('signatureFile').addEventListener('change', e=>readFile(e.target, d=>{signatureData=d; render();}));
-  if($('search')) $('search').addEventListener('input', loadRecords);
+  if($('search')) $('search').addEventListener('input', scheduleLoadRecords);
   if($('presetSelect')){ loadPresetOptions('presetSelect'); $('presetSelect').addEventListener('change', e=>applyPreset(+e.target.value)); }
   if($('presetSelectAuto')){ loadPresetOptions('presetSelectAuto'); $('presetSelectAuto').addEventListener('change', e=>applyPreset(+e.target.value)); }
   if($('preset_name')) loadTemplateList();
@@ -729,26 +788,40 @@ window.addEventListener('DOMContentLoaded', ()=>{
 let currentPresetId = 0, presetLogo = '', presetPhoto = '', editingPresetId = 0;
 
 async function loadPresetOptions(selId){
-  const s = $(selId); if(!s) return;
+  const s = $(selId); if(!s) return false;
   try{
-    const r = await fetch('../api/id-cards.php?action=template_list').then(r=>r.json());
+    const res = await fetch('../api/id-cards.php?action=template_list');
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const r = await res.json();
+    if(!r.ok) throw new Error(r.error || 'Template list failed');
+    const list = Array.isArray(r.templates) ? r.templates : [];
     const cur = s.value;
-    s.innerHTML = '<option value="0">— No saved template (default design) —</option>';
-    (r.templates||[]).forEach(t=>{
+    s.innerHTML = '<option value="0">' + (list.length ? '— No saved template (default design) —' : '— No saved templates yet —') + '</option>';
+    list.forEach(t=>{
       const o = document.createElement('option');
       o.value = t.id; o.textContent = t.name + ' (base ' + t.base + ' — ' + (TPL_NAMES[t.base-1]||'') + ')';
       s.appendChild(o);
     });
     if(cur && [...s.options].some(o=>o.value==cur)) s.value = cur;
-  }catch(e){}
+    return true;
+  }catch(e){
+    s.innerHTML = '<option value="0">⚠ Template list failed — using default design</option>';
+    console.warn('Template list failed', e);
+    return false;
+  }
 }
 
 async function applyPreset(id){
+  if(!confirmDiscard()){
+    const ps = $('presetSelect') || $('presetSelectAuto');
+    if(ps) ps.value = String(currentPresetId || 0);
+    return;
+  }
   currentPresetId = id || 0; presetLogo = ''; presetPhoto = '';
   if(!id){ const b = Math.max(1, Math.min(7, parseInt(val('template')) || 1)); if(!applyBaseDefault(b)) render(); return; }
   try{
     const r = await fetch('../api/id-cards.php?action=template_get&id='+id).then(r=>r.json());
-    const t = r.template; if(!t) return;
+    const t = r.template; if(!t) { alert('Template not found — it may have been deleted.'); return; }
     if($('template')) $('template').value = t.base;
     if($('color1')) $('color1').value = t.color1;
     if($('color2')) $('color2').value = t.color2;
@@ -761,32 +834,46 @@ async function applyPreset(id){
     presetSignature = t.signature_path || '';
     signaturePath = presetSignature; signatureData = assetUrl(signaturePath);
     render();
-  }catch(e){}
+    clearDirty();
+  }catch(e){ console.warn('Template load failed', e); }
 }
 
 async function savePreset(){
-  const name = val('preset_name');
-  if(!name){ alert('Give the template a name first.'); return; }
-  collectLabels(); collectBack(); collectCode();
-  const fd = new FormData();
-  fd.append('action','template_save');
-  fd.append('id', editingPresetId);
-  fd.append('name', name);
-  fd.append('base', val('template'));
-  fd.append('color1', val('color1'));
-  fd.append('color2', val('color2'));
-  fd.append('layout_json', JSON.stringify(layout));
-  fd.append('labels_json', JSON.stringify(LABELS));
-  fd.append('back_json', JSON.stringify(collectBack()));
-  fd.append('code_json', JSON.stringify(collectCode()));
-  const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
-  const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
-  else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
-  const r = await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
-  if(r.ok){ alert('Template saved (ID '+r.id+')'); editingPresetId = 0; loadTemplateList(); }
-  else alert('Save failed: '+(r.error||'unknown'));
+  if(savePreset._busy) return;
+  savePreset._busy = true;
+  try{
+    const name = val('preset_name');
+    if(!name){ alert('Give the template a name first.'); return; }
+    collectLabels(); collectBack(); collectCode();
+    const fd = new FormData();
+    fd.append('action','template_save');
+    fd.append('id', editingPresetId);
+    fd.append('name', name);
+    fd.append('base', val('template'));
+    fd.append('color1', val('color1'));
+    fd.append('color2', val('color2'));
+    fd.append('layout_json', JSON.stringify(layout));
+    fd.append('labels_json', JSON.stringify(LABELS));
+    fd.append('back_json', JSON.stringify(collectBack()));
+    fd.append('code_json', JSON.stringify(collectCode()));
+    const lf = $('logoFile') && $('logoFile').files[0]; if(lf) fd.append('logo', lf);
+    const sf = $('signatureFile') && $('signatureFile').files[0]; if(sf) fd.append('signature', sf);
+    else if(signaturePath || presetSignature) fd.append('signature_path', signaturePath || presetSignature);
+    const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
+    const r = await res.json().catch(()=>({}));
+    if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
+    alert('Template saved (ID '+r.id+')');
+    editingPresetId = 0;
+    clearDirty();
+    loadTemplateList();
+  }catch(e){
+    alert('Save failed: '+(e && e.message ? e.message : 'unknown'));
+  }finally{
+    savePreset._busy = false;
+  }
 }
 function newPreset(){
+  if(!confirmDiscard()) return;
   editingPresetId = 0;
   if($('preset_name')) $('preset_name').value = '';
   layout = {}; persistLayout(); syncPanel();
@@ -795,10 +882,22 @@ function newPreset(){
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
   CODE = {...CODE_DEFAULT}; fillCodeEditor();
   setTemplate(1); render();
+  clearDirty();
 }
 async function loadTemplateList(){
   const tb = $('trows'); if(!tb) return;
-  const r = await fetch('../api/id-cards.php?action=template_list').then(r=>r.json());
+  let r;
+  try{
+    const res = await fetch('../api/id-cards.php?action=template_list');
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    r = await res.json();
+    if(!r.ok) throw new Error(r.error || 'Template list failed');
+  }catch(e){
+    tb.innerHTML = '<tr><td colspan="4" style="color:var(--mut)">Unable to load templates.</td></tr>';
+    if($('tcount')) $('tcount').textContent = '—';
+    console.warn('Template list failed', e);
+    return;
+  }
   tb.innerHTML = '';
   (r.templates||[]).forEach(t=>{
     const tr = document.createElement('tr');
@@ -824,9 +923,14 @@ async function loadTemplateList(){
     };
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete template "'+t.name+'"?')) return;
-      await fetch('../api/id-cards.php?action=template_delete&id='+t.id, {method:'POST'}).then(r=>r.json());
-      if(editingPresetId === t.id) editingPresetId = 0;
-      loadTemplateList();
+      try{
+        const res = await fetch('../api/id-cards.php?action=template_delete&id='+t.id, {method:'POST'});
+        const r = await res.json().catch(()=>({}));
+        if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
+        if(editingPresetId === t.id) editingPresetId = 0;
+        clearDirty();
+        loadTemplateList();
+      }catch(e){ alert('Delete failed: '+(e && e.message ? e.message : 'unknown')); }
     };
     tb.appendChild(tr);
   });
@@ -925,14 +1029,6 @@ function parseCSVText(){
       employment_type: employmentLabel(g('employment_type')||g('employment_status')),
     };
   }).filter(s=>s.name || s.id);
-  renderHRTable();
-}
-function loadDemoHR(){
-  HR = [
-    {name:'Sample One', id:'EMP-2026-1001', title:'Project Manager', dept:'Projects', phone:'08000000001', email:'sample1@example.com', photo:''},
-    {name:'Sample Two', id:'EMP-2026-1002', title:'Manager', dept:'Sales', phone:'08000000002', email:'sample2@example.com', photo:''},
-    {name:'Sample Three', id:'EMP-2026-1003', title:'Officer', dept:'Operations', phone:'08000000003', email:'sample3@example.com', photo:''},
-  ];
   renderHRTable();
 }
 function renderHRTable(){

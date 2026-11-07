@@ -42,7 +42,6 @@ window.ERP_COMPANY = {
     <input type="hidden" id="template" value="1">
     <input type="hidden" id="color1" value="#0d6b3f">
     <input type="hidden" id="color2" value="#8fd14f">
-    <input type="hidden" id="layout" value="horizontal">
     <input type="hidden" id="org_name" value="<?= htmlspecialchars($companyName) ?>">
     <input type="hidden" id="org_address" value="<?= htmlspecialchars($companyAddr) ?>">
     <input type="hidden" id="staff_name" value="Sample Staff">
@@ -89,10 +88,8 @@ window.ERP_COMPANY = {
       <div><input id="csv_file" type="file" accept=".csv,text/csv"></div>
       <div><button class="ghost" onclick="parseCSVText()" style="width:100%">Load CSV</button></div>
     </div>
-    <div class="btns"><button class="ghost" onclick="loadDemoHR()">Load demo HR data</button></div>
 
     <h2 style="margin-top:18px">Company name (applied to all)</h2>
-    <label>Company name (applied to all)</label>
     <input id="auto_company" value="<?= htmlspecialchars($companyName) ?>">
 
     <h2 style="margin-top:18px">Staff Pulled (<span id="hrCount">0</span>)</h2>
@@ -118,7 +115,8 @@ async function fetchErpStaff() {
     HR = (r.staff || []).map(s => ({
       name: s.name || '', id: s.staff_id || '', title: s.title || '',
       dept: s.dept || '', phone: s.phone || '', email: s.email || '',
-      photo: s.photo || '', signature: s.signature || '', employee_id: s.employee_id || ''
+      photo: s.photo || '', signature: s.signature || '', employee_id: s.employee_id || '',
+      join_date: s.join_date || '', employment_type: s.employment_type || ''
     }));
     renderHRTable();
   } catch (e) { alert('ERP staff fetch failed: ' + e.message); }
