@@ -74,6 +74,34 @@ function idCardDeletablePath($path) {
     return strpos($real, $basePrefix) === 0 ? $real : null;
 }
 
+/**
+ * Check whether an upload path is still used by any card, template or default
+ * row before deleting it.
+ */
+function imagePathReferenced($pdo, $path) {
+    if ($path === '') return true;
+    foreach ([
+        ['hr_id_cards', 'photo_path'],
+        ['hr_id_cards', 'logo_path'],
+        ['hr_id_cards', 'signature_path'],
+        ['hr_id_templates', 'logo_path'],
+        ['hr_id_templates', 'signature_path'],
+        ['hr_id_template_defaults', 'logo_path'],
+        ['hr_id_template_defaults', 'signature_path'],
+    ] as [$table, $column]) {
+        $st = $pdo->prepare("SELECT 1 FROM `$table` WHERE `$column` = ? LIMIT 1");
+        $st->execute([$path]);
+        if ($st->fetchColumn()) return true;
+    }
+    return false;
+}
+
+function deleteCardImageIfUnused($pdo, $path) {
+    $file = idCardDeletablePath($path);
+    if ($file === null) return;
+    if (!imagePathReferenced($pdo, $path)) @unlink($file);
+}
+
 function cleanJson($s) {
     $s = substr(trim($s ?? ''), 0, 20000);
     if ($s === '' || $s === 'null') return '{}';
@@ -118,21 +146,37 @@ try {
         $signature = saveUpload('signature');
         $f = $_POST;
         $id = intval($f['id'] ?? 0);
+        $employeeId = intval($f['employee_id'] ?? 0) ?: null;
+
+        // Editing an existing card must target a real row. For a new
+        // employee-linked card, reuse the existing row instead of inserting a
+        // duplicate when bulk generation is run twice.
+        $existing = null;
+        if ($id > 0) {
+            $st = $pdo->prepare('SELECT * FROM hr_id_cards WHERE id=?');
+            $st->execute([$id]);
+            $existing = $st->fetch(PDO::FETCH_ASSOC);
+            if (!$existing) out(['ok' => false, 'error' => 'Card not found'], 404);
+        } elseif ($employeeId !== null) {
+            $st = $pdo->prepare('SELECT * FROM hr_id_cards WHERE employee_id=? ORDER BY id DESC LIMIT 1');
+            $st->execute([$employeeId]);
+            if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+                $id = (int)$r['id'];
+                $existing = $r;
+            }
+        }
+
         // keep old files / accept preset-provided paths when editing without re-upload
         $oldPhoto = cleanStoredImagePath($f['photo_path'] ?? '');
         $oldLogo = cleanStoredImagePath($f['logo_path'] ?? '');
         $oldSignature = cleanStoredImagePath($f['signature_path'] ?? '');
-        if ($id > 0) {
-            $st = $pdo->prepare('SELECT photo_path, logo_path, signature_path FROM hr_id_cards WHERE id=?');
-            $st->execute([$id]);
-            if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-                if ($oldPhoto === '') $oldPhoto = cleanStoredImagePath($r['photo_path'] ?? '');
-                if ($oldLogo === '') $oldLogo = cleanStoredImagePath($r['logo_path'] ?? '');
-                if ($oldSignature === '') $oldSignature = cleanStoredImagePath($r['signature_path'] ?? '');
-            }
+        if ($existing) {
+            if ($oldPhoto === '') $oldPhoto = cleanStoredImagePath($existing['photo_path'] ?? '');
+            if ($oldLogo === '') $oldLogo = cleanStoredImagePath($existing['logo_path'] ?? '');
+            if ($oldSignature === '') $oldSignature = cleanStoredImagePath($existing['signature_path'] ?? '');
         }
         $data = [
-            'employee_id' => intval($f['employee_id'] ?? 0) ?: null,
+            'employee_id' => $employeeId,
             'org_name' => trim($f['org_name'] ?? ''),
             'org_address' => trim($f['org_address'] ?? ''),
             'staff_name' => trim($f['staff_name'] ?? ''),
@@ -153,7 +197,6 @@ try {
             'code_json' => cleanJson($f['code_json'] ?? ''),
             'template' => max(1, min(7, intval($f['template'] ?? 1))),
             'template_id' => intval($f['template_id'] ?? 0) ?: null,
-            'layout' => (($f['layout'] ?? '') === 'vertical') ? 'vertical' : 'horizontal',
             'color1' => preg_match('/^#[0-9a-fA-F]{6}$/', $f['color1'] ?? '') ? $f['color1'] : '#14b8a6',
             'color2' => preg_match('/^#[0-9a-fA-F]{6}$/', $f['color2'] ?? '') ? $f['color2'] : '#0f766e',
             'photo_path' => $photo ?? $oldPhoto,
@@ -173,7 +216,7 @@ try {
                 emergency_contact=:emergency_contact,
                 phone=:phone, email=:email, address=:address, principal=:principal,
                 layout_json=:layout_json, labels_json=:labels_json, back_json=:back_json, code_json=:code_json, template_id=:template_id,
-                template=:template, layout=:layout, color1=:color1, color2=:color2,
+                template=:template, color1=:color1, color2=:color2,
                 photo_path=:photo_path, logo_path=:logo_path, signature_path=:signature_path WHERE id=:id';
             $st = $pdo->prepare($sql);
             $data['id'] = $id;
@@ -182,11 +225,11 @@ try {
         } else {
             $sql = 'INSERT INTO hr_id_cards (employee_id, org_name, org_address, staff_name, staff_id, dob, department,
                 job_title, hire_date, employment_type, emergency_contact,
-                phone, email, address, principal, layout_json, labels_json, back_json, code_json, template_id, template, layout,
+                phone, email, address, principal, layout_json, labels_json, back_json, code_json, template_id, template,
                 color1, color2, photo_path, logo_path, signature_path)
                 VALUES (:employee_id, :org_name, :org_address, :staff_name, :staff_id, :dob, :department,
                 :job_title, :hire_date, :employment_type, :emergency_contact,
-                :phone, :email, :address, :principal, :layout_json, :labels_json, :back_json, :code_json, :template_id, :template, :layout,
+                :phone, :email, :address, :principal, :layout_json, :labels_json, :back_json, :code_json, :template_id, :template,
                 :color1, :color2, :photo_path, :logo_path, :signature_path)';
             $st = $pdo->prepare($sql);
             $st->execute($data);
@@ -203,9 +246,8 @@ try {
         if (!$row) out(['ok' => false, 'error' => 'Card not found'], 404);
         $st = $pdo->prepare('DELETE FROM hr_id_cards WHERE id=?');
         $st->execute([$id]);
-        foreach (['photo_path', 'logo_path'] as $k) {
-            $file = idCardDeletablePath($row[$k] ?? '');
-            if ($file !== null) @unlink($file);
+        foreach (['photo_path', 'logo_path', 'signature_path'] as $k) {
+            deleteCardImageIfUnused($pdo, $row[$k] ?? '');
         }
         out(['ok' => true]);
     }
@@ -226,13 +268,14 @@ try {
         $id = intval($f['id'] ?? 0);
         $oldLogo = cleanStoredImagePath($f['logo_path'] ?? '');
         $oldSignature = cleanStoredImagePath($f['signature_path'] ?? '');
+        $existingTemplate = null;
         if ($id > 0) {
             $st = $pdo->prepare('SELECT logo_path, signature_path FROM hr_id_templates WHERE id=?');
             $st->execute([$id]);
-            if ($r = $st->fetch(PDO::FETCH_ASSOC)) {
-                if ($oldLogo === '') $oldLogo = cleanStoredImagePath($r['logo_path'] ?? '');
-                if ($oldSignature === '') $oldSignature = cleanStoredImagePath($r['signature_path'] ?? '');
-            }
+            $existingTemplate = $st->fetch(PDO::FETCH_ASSOC);
+            if (!$existingTemplate) out(['ok' => false, 'error' => 'Template not found'], 404);
+            if ($oldLogo === '') $oldLogo = cleanStoredImagePath($existingTemplate['logo_path'] ?? '');
+            if ($oldSignature === '') $oldSignature = cleanStoredImagePath($existingTemplate['signature_path'] ?? '');
         }
         $name = trim($f['name'] ?? '');
         if ($name === '') out(['ok' => false, 'error' => 'Template name is required'], 422);
@@ -262,8 +305,17 @@ try {
     if ($action === 'template_delete') {
         if (!canEditCards()) out(['ok' => false, 'error' => 'Forbidden: admin/manager only'], 403);
         $id = intval($_GET['id'] ?? $_POST['id'] ?? 0);
-        $st = $pdo->prepare('DELETE FROM hr_id_templates WHERE id=?');
+        $st = $pdo->prepare('SELECT logo_path, signature_path FROM hr_id_templates WHERE id=?');
         $st->execute([$id]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) out(['ok' => false, 'error' => 'Template not found'], 404);
+        // Saved cards keep working with the factory design instead of pointing
+        // at a deleted template.
+        $pdo->prepare('UPDATE hr_id_cards SET template_id = NULL WHERE template_id = ?')->execute([$id]);
+        $pdo->prepare('DELETE FROM hr_id_templates WHERE id=?')->execute([$id]);
+        foreach (['logo_path', 'signature_path'] as $k) {
+            deleteCardImageIfUnused($pdo, $row[$k] ?? '');
+        }
         out(['ok' => true]);
     }
 
@@ -316,9 +368,15 @@ try {
     if ($action === 'default_reset') {
         if (!canEditCards()) out(['ok' => false, 'error' => 'Forbidden: admin/manager only'], 403);
         $base = max(1, min(7, intval($_GET['base'] ?? $_POST['base'] ?? 1)));
-        $st = $pdo->prepare('DELETE FROM hr_id_template_defaults WHERE base=?');
+        $st = $pdo->prepare('SELECT logo_path, signature_path FROM hr_id_template_defaults WHERE base=?');
         $st->execute([$base]);
-        out(['ok' => true]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$row) out(['ok' => true, 'base' => $base, 'message' => 'No default design to reset']);
+        $pdo->prepare('DELETE FROM hr_id_template_defaults WHERE base=?')->execute([$base]);
+        foreach (['logo_path', 'signature_path'] as $k) {
+            deleteCardImageIfUnused($pdo, $row[$k] ?? '');
+        }
+        out(['ok' => true, 'base' => $base]);
     }
 
     if ($action === 'default_list') {
@@ -340,7 +398,10 @@ try {
             JOIN users u ON e.user_id = u.id
             LEFT JOIN hr_departments d ON e.department_id = d.id
             LEFT JOIN hr_designations des ON e.designation_id = des.id
+            WHERE u.is_active = 1
+              AND (e.termination_date IS NULL OR e.termination_date = '' OR e.termination_date > CURDATE())
             ORDER BY u.full_name ASC
+            LIMIT 1000
         ")->fetchAll(PDO::FETCH_ASSOC);
         $mapStatus = ['full_time' => 'Full-time', 'part_time' => 'Part-time', 'contract' => 'Contract', 'intern' => 'Intern'];
         $staff = [];

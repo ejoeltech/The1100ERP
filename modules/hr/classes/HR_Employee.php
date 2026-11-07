@@ -20,6 +20,8 @@ class HR_Employee
             JOIN users u ON e.user_id = u.id
             LEFT JOIN hr_departments d ON e.department_id = d.id
             LEFT JOIN hr_designations des ON e.designation_id = des.id
+            WHERE u.is_active = 1
+              AND (e.termination_date IS NULL OR e.termination_date = '' OR e.termination_date > CURDATE())
             ORDER BY u.full_name ASC
             LIMIT :limit OFFSET :offset
         ");
