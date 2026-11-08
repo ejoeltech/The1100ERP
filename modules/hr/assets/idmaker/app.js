@@ -422,7 +422,10 @@ async function saveDefaultDesign(){
 async function resetFactoryDefault(){
   const base = Math.max(1, Math.min(7, parseInt(val('template')) || 1));
   if(!confirm('Restore the factory look for Template ' + base + '? Your saved default will be discarded.')) return;
-  await fetch('../api/id-cards.php?action=default_reset&base='+base, {method:'POST'}).then(r=>r.json());
+  const fd = new FormData();
+  fd.append('action', 'default_reset');
+  fd.append('base', base);
+  await fetch('../api/id-cards.php', {method:'POST', body:fd}).then(r=>r.json());
   delete DEFAULTS[base];
   layout = {}; applyLabels({});
   signatureData = ''; signaturePath = ''; presetSignature = '';
@@ -672,7 +675,12 @@ async function loadRecords(){
       tr.querySelector('[data-a=load]').onclick = ()=>loadCard(c.id);
       tr.querySelector('[data-a=del]').onclick = async ()=>{
         if(!confirm('Delete #'+c.id+'?')) return;
-        await fetch('../api/id-cards.php?action=delete&id='+c.id, {method:'POST'}).then(r=>r.json());
+        const fd = new FormData();
+        fd.append('action','delete');
+        fd.append('id', String(c.id));
+        const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
+        const out = await res.json().catch(()=>({}));
+        if(!res.ok || !out.ok) alert('Delete failed: ' + (out.error || ('HTTP ' + res.status)));
         loadRecords();
       };
       tb.appendChild(tr);
@@ -782,6 +790,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }
   });
   render(); loadRecords();
+  updateTemplateSaveUi();
 });
 
 /* ===== Template presets (Page 1 maker, shared by pages 2 & 3) ===== */
@@ -838,16 +847,23 @@ async function applyPreset(id){
   }catch(e){ console.warn('Template load failed', e); }
 }
 
-async function savePreset(){
+function updateTemplateSaveUi(){
+  const save = $('saveTemplateBtn');
+  const asNew = $('saveAsNewBtn');
+  if(save) save.textContent = editingPresetId ? 'Save to current template' : 'Save as new template';
+  if(asNew) asNew.style.display = editingPresetId ? '' : 'none';
+}
+async function savePreset(asNew){
   if(savePreset._busy) return;
   savePreset._busy = true;
   try{
     const name = val('preset_name');
     if(!name){ alert('Give the template a name first.'); return; }
     collectLabels(); collectBack(); collectCode();
+    const targetId = asNew ? 0 : editingPresetId;
     const fd = new FormData();
     fd.append('action','template_save');
-    fd.append('id', editingPresetId);
+    fd.append('id', targetId);
     fd.append('name', name);
     fd.append('base', val('template'));
     fd.append('color1', val('color1'));
@@ -862,9 +878,11 @@ async function savePreset(){
     const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
     const r = await res.json().catch(()=>({}));
     if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
-    alert('Template saved (ID '+r.id+')');
-    editingPresetId = 0;
+    editingPresetId = r.id;
+    if($('editLabel')) $('editLabel').textContent = 'Editing template #' + r.id;
+    updateTemplateSaveUi();
     clearDirty();
+    alert(targetId ? 'Template updated (ID '+r.id+')' : 'New template saved (ID '+r.id+')');
     loadTemplateList();
   }catch(e){
     alert('Save failed: '+(e && e.message ? e.message : 'unknown'));
@@ -882,6 +900,8 @@ function newPreset(){
   BACK = JSON.parse(JSON.stringify(BACK_DEFAULT)); fillBackEditor();
   CODE = {...CODE_DEFAULT}; fillCodeEditor();
   setTemplate(1); render();
+  if($('editLabel')) $('editLabel').textContent = 'New template';
+  updateTemplateSaveUi();
   clearDirty();
 }
 async function loadTemplateList(){
@@ -919,15 +939,24 @@ async function loadTemplateList(){
       if(g.template.logo_path){ logoData = g.template.logo_path; }
       presetSignature = g.template.signature_path || '';
       signaturePath = presetSignature; signatureData = assetUrl(signaturePath);
+      if($('editLabel')) $('editLabel').textContent = 'Editing template #' + g.template.id;
+      updateTemplateSaveUi();
       render(); window.scrollTo({top:0, behavior:'smooth'});
     };
     tr.querySelector('[data-a=del]').onclick = async ()=>{
       if(!confirm('Delete template "'+t.name+'"?')) return;
       try{
-        const res = await fetch('../api/id-cards.php?action=template_delete&id='+t.id, {method:'POST'});
+        const fd = new FormData();
+        fd.append('action','template_delete');
+        fd.append('id', String(t.id));
+        const res = await fetch('../api/id-cards.php', {method:'POST', body:fd});
         const r = await res.json().catch(()=>({}));
         if(!res.ok || !r.ok) throw new Error(r.error || ('HTTP ' + res.status));
-        if(editingPresetId === t.id) editingPresetId = 0;
+        if(editingPresetId === t.id){
+          editingPresetId = 0;
+          if($('editLabel')) $('editLabel').textContent = 'New template';
+          updateTemplateSaveUi();
+        }
         clearDirty();
         loadTemplateList();
       }catch(e){ alert('Delete failed: '+(e && e.message ? e.message : 'unknown')); }

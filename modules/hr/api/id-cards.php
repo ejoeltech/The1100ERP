@@ -90,9 +90,16 @@ function saveUpload($key, &$error = null) {
 
 try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-    $action = $method === 'POST' ? ($_POST['action'] ?? '') : ($_GET['action'] ?? 'list');
-    if ($method === 'POST' && $action === '') {
-        out(['ok' => false, 'error' => 'Missing action. The upload may exceed the server limit.'], 400);
+    if ($method === 'POST') {
+        $action = (string)($_POST['action'] ?? '');
+        // Some legacy callers put the action in the query string; keep those
+        // working while still requiring the request itself to be POST+CSRF.
+        if ($action === '' && !empty($_GET['action'])) $action = (string)$_GET['action'];
+        if ($action === '') {
+            out(['ok' => false, 'error' => 'Missing action. The upload may exceed the server limit.'], 400);
+        }
+    } else {
+        $action = (string)($_GET['action'] ?? 'list');
     }
 
     // WP4: state-changing actions must be POST. Reads stay on GET.

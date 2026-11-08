@@ -104,7 +104,8 @@ Authorized Use: This card is strictly for official use and must not be shared or
     <label>Code content — use {id} {name} {title} {dept} {phone} {email} {company} (empty = staff ID)</label>
     <input id="code_content" value="{id}" placeholder="{id}">
     <div class="btns">
-      <button class="primary" onclick="savePreset()" style="flex:1">Save template</button>
+      <button class="primary" id="saveTemplateBtn" onclick="savePreset(false)" style="flex:1">Save template</button>
+      <button class="ghost" id="saveAsNewBtn" onclick="savePreset(true)" style="display:none">Save as new</button>
     </div>
     <h2 style="margin-top:18px">Saved Templates</h2>
     <p><small id="tcount"></small></p>
