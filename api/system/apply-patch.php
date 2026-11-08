@@ -2,6 +2,7 @@
 require_once '../../config.php';
 require_once '../../includes/session-check.php';
 require_once '../../includes/invites.php';
+require_once '../../includes/update-manager.php';
 
 requirePermission('manage_settings');
 
@@ -69,39 +70,36 @@ try {
     // Root path
     $rootPath = realpath(__DIR__ . '/../../');
 
-    // WP11: inspect entries BEFORE extraction — traversal rejected, and a
-    // patch archive may never overwrite secrets/config or drop .htaccess.
-    $zip = inspectZipArchive($file['tmp_name'], ['.env', 'config.php', 'config.sample.php', '.htaccess']);
-    try {
-        $zip->extractTo($rootPath);
-    } finally {
-        $zip->close();
+    // Apply through the shared manager: it creates a file backup first, then
+    // inspects, extracts and runs update_script.php. Exceptions trigger an
+    // automatic file rollback.
+    $result = updateApplyArchive($file['tmp_name'], $rootPath, [
+        'source' => 'upload',
+        'user_id' => (int)($_SESSION['user_id'] ?? 0),
+        'release' => '',
+    ]);
+    $scriptOutput = (string)($result['output'] ?? '');
+
+    // Log
+    $details = json_encode([
+        'file' => $file['name'],
+        'backup_id' => $result['backup']['id'] ?? null,
+        'output' => $scriptOutput,
+    ]);
+    $stmt = $pdo->prepare("INSERT INTO audit_log (user_id, action, details, created_at) VALUES (?, 'system_update', ?, NOW())");
+    $stmt->execute([$_SESSION['user_id'], $details]);
+
+    $message = 'Patch applied successfully. ' . strip_tags($scriptOutput);
+    if (!empty($result['schema_errors'])) {
+        $message .= ' Schema warnings were reported — review the output or roll back to the previous files.';
     }
+    echo json_encode([
+        'success' => true,
+        'message' => $message,
+        'backup_id' => $result['backup']['id'] ?? null,
+    ]);
 
-        // Check for post-update script (WP11: RCE-by-design stays, but the
-        // script can only arrive inside an inspected archive — no traversal,
-        // no secrets overwrite — and it is deleted immediately after running).
-        $updateScript = $rootPath . '/update_script.php';
-        $scriptOutput = '';
-
-        if (file_exists($updateScript)) {
-            // Run script
-            ob_start();
-            include $updateScript;
-            $scriptOutput = ob_get_clean();
-
-            // Delete script after run
-            unlink($updateScript);
-        }
-
-        // Log
-        $details = json_encode(['file' => $file['name'], 'output' => $scriptOutput]);
-        $stmt = $pdo->prepare("INSERT INTO audit_log (user_id, action, details, created_at) VALUES (?, 'system_update', ?, NOW())");
-        $stmt->execute([$_SESSION['user_id'], $details]);
-
-        echo json_encode(['success' => true, 'message' => 'Patch applied successfully. ' . strip_tags($scriptOutput)]);
-
-} catch (Exception $e) {
+} catch (Throwable $e) {
     error_log('Apply patch error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Patch failed. Check server logs.']);
 }

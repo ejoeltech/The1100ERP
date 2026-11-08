@@ -10,6 +10,7 @@ include '../../includes/session-check.php';
 require_once '../../config.php';
 require_once '../../includes/version.php';
 require_once '../../includes/updates.php';
+require_once '../../includes/update-manager.php';
 
 // requirePermission exits on failure; returns void on success.
 requirePermission('manage_settings');
@@ -75,6 +76,10 @@ try {
         $latestMessage .= ' (tag only — no GitHub release published yet)';
     }
 
+    $operator = function_exists('canManageUpdates') && canManageUpdates();
+    $found = appFindUpdateAssets($status);
+    $lastBackup = $operator ? updateLastBackup($root) : null;
+
     echo json_encode(array_merge($status, [
         'branch' => $hasGit ? $branch : '',
         'local_commit' => $localCommit,
@@ -84,6 +89,22 @@ try {
         'latest_message' => $latestMessage,
         'last_checked' => date('Y-m-d H:i:s'),
         'repo_url' => 'https://github.com/' . $repo,
+        'can_manage_updates' => $operator,
+        'latest_asset' => ($operator && $found['zip']) ? [
+            'name' => $found['zip']['name'],
+            'url' => $found['zip']['url'],
+            'size' => $found['zip']['size'] ?? 0,
+        ] : null,
+        'latest_checksum' => ($operator && $found['checksum']) ? [
+            'name' => $found['checksum']['name'],
+            'url' => $found['checksum']['url'],
+        ] : null,
+        'last_update_backup' => $lastBackup ? [
+            'id' => $lastBackup['id'],
+            'app_version' => $lastBackup['app_version'] ?? '',
+            'created_at' => $lastBackup['created_at'] ?? '',
+            'file_count' => $lastBackup['file_count'] ?? 0,
+        ] : null,
     ]));
 
 } catch (Exception $e) {

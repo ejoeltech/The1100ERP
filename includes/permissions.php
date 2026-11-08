@@ -108,6 +108,32 @@ function isSuperAdmin()
 }
 
 /**
+ * A developer administrator is a user in the "developer" group (or a legacy
+ * user with the developer role). Used for update/rollback controls.
+ */
+function isDeveloperAdmin()
+{
+    if (isSuperAdmin() || getUserRole() === 'developer') return true;
+    global $pdo;
+    $uid = (int)($_SESSION['user_id'] ?? 0);
+    if (!$uid || !($pdo instanceof PDO)) return false;
+    try {
+        $stmt = $pdo->prepare("SELECT 1 FROM users u JOIN user_groups g ON g.id = u.group_id
+            WHERE u.id = ? AND u.is_active = 1 AND g.name = 'developer' LIMIT 1");
+        $stmt->execute([$uid]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/** Update downloads, apply and rollback are limited to super/developer admins. */
+function canManageUpdates()
+{
+    return isSuperAdmin() || isDeveloperAdmin();
+}
+
+/**
  * Whether the system has at least one active super_admin.
  * Fail-closed (true) when the check itself errors, so bootstrap paths
  * never trigger on a broken query.
