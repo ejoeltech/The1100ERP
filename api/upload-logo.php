@@ -214,7 +214,7 @@ try {
     // Also save favicon path only when a favicon was actually generated.
     if ($faviconGenerated) {
         $stmt = $pdo->prepare("
-            INSERT INTO settings (setting_key, setting_value) 
+            INSERT INTO settings (setting_key, setting_value)
             VALUES ('company_favicon', ?)
             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
         ");
