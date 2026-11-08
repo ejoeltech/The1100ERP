@@ -355,7 +355,7 @@ if (function_exists('setSecurityHeaders')) {
 
                 <!-- Navigation -->
                 <?php if (isset($current_user)): ?>
-                    <nav class="hidden md:flex items-center gap-1 max-w-full overflow-x-auto" aria-label="Main navigation">
+                    <nav class="hidden md:flex items-center gap-1" aria-label="Main navigation">
                         <a href="<?php echo $base_path; ?>/dashboard.php"
                             class="px-4 py-2 <?php echo $isDashboard ? 'bg-blue-50 text-primary' : 'text-gray-700 hover:text-primary hover:bg-gray-50'; ?> rounded-lg font-semibold transition-colors"<?php echo $isDashboard ? ' aria-current="page"' : ''; ?>>Dashboard</a>
 
