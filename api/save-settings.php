@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // Handle logo upload separately if file is present
 if (isset($_FILES['company_logo']) && $_FILES['company_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
-    include 'upload-logo.php';
+    include __DIR__ . '/upload-logo.php';
     exit;
 }
 

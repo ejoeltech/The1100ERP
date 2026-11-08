@@ -1,5 +1,5 @@
 <?php
-include '../includes/session-check.php';
+require_once __DIR__ . '/../includes/session-check.php';
 
 // Only privileged users can upload logo (WP3: manage_settings; the raw
 // role fallback below only runs if the permission system is missing).
@@ -65,6 +65,18 @@ try {
         throw new Exception('Logo resizing needs the GD image library, which is not enabled on this server. Save settings without a logo, or enable the gd extension in cPanel (PHP Selector).');
     }
 
+    // Read dimensions before decoding: huge images can exhaust memory and
+    // produce an uncatchable 500 on shared hosting.
+    $imageInfo = @getimagesize($file['tmp_name']);
+    if (!$imageInfo || empty($imageInfo[0]) || empty($imageInfo[1])) {
+        throw new Exception('Could not read the image dimensions.');
+    }
+    $orig_width = (int)$imageInfo[0];
+    $orig_height = (int)$imageInfo[1];
+    if ($orig_width > 6000 || $orig_height > 6000 || ($orig_width * $orig_height) > 24000000) {
+        throw new Exception('The logo image is too large. Use an image under 24 megapixels and 6000 px per side.');
+    }
+
     // Load image
     switch ($mime_type) {
         case 'image/jpeg':
@@ -84,10 +96,6 @@ try {
         throw new Exception('Could not read the image file. It may be corrupt — try another file.');
     }
 
-    // Get original dimensions
-    $orig_width = imagesx($source);
-    $orig_height = imagesy($source);
-
     // Resize logo (max 300px width, maintain aspect ratio)
     $max_width = 300;
     if ($orig_width > $max_width) {
@@ -101,6 +109,9 @@ try {
 
     // Create resized image
     $resized = imagecreatetruecolor($new_width, $new_height);
+    if ($resized === false) {
+        throw new Exception('Could not create the resized logo.');
+    }
 
     // Preserve transparency for PNG and GIF
     if ($mime_type === 'image/png' || $mime_type === 'image/gif') {
@@ -113,25 +124,29 @@ try {
     imagecopyresampled($resized, $source, 0, 0, 0, 0, $new_width, $new_height, $orig_width, $orig_height);
 
     // Save resized logo
+    $saved = false;
     switch ($mime_type) {
         case 'image/jpeg':
         case 'image/jpg':
-            imagejpeg($resized, $filepath, 90);
+            $saved = imagejpeg($resized, $filepath, 90);
             break;
         case 'image/png':
-            imagepng($resized, $filepath, 9);
+            $saved = imagepng($resized, $filepath, 9);
             break;
         case 'image/gif':
-            imagegif($resized, $filepath);
+            $saved = imagegif($resized, $filepath);
             break;
     }
+    if (!$saved) {
+        throw new Exception('Could not save the resized logo. Check upload folder permissions.');
+    }
 
-    imagedestroy($source);
-    imagedestroy($resized);
-
-    // Create favicon (32x32)
-    $favicon_source = imagecreatefromstring(file_get_contents($filepath));
+    // Create favicon (32x32) from the already-resized resource; do not decode
+    // the file again, which doubles memory use.
     $favicon = imagecreatetruecolor(32, 32);
+    if ($favicon === false) {
+        throw new Exception('Could not create the favicon.');
+    }
 
     // Preserve transparency
     if ($mime_type === 'image/png' || $mime_type === 'image/gif') {
@@ -141,10 +156,14 @@ try {
         imagefilledrectangle($favicon, 0, 0, 32, 32, $transparent);
     }
 
-    imagecopyresampled($favicon, $favicon_source, 0, 0, 0, 0, 32, 32, $new_width, $new_height);
-    imagepng($favicon, $upload_dir . 'favicon.png', 9);
+    imagecopyresampled($favicon, $resized, 0, 0, 0, 0, 32, 32, $new_width, $new_height);
+    if (!imagepng($favicon, $upload_dir . 'favicon.png', 9)) {
+        throw new Exception('Could not save the favicon. Check upload folder permissions.');
+    }
     imagedestroy($favicon);
-    imagedestroy($favicon_source);
+
+    imagedestroy($source);
+    imagedestroy($resized);
 
     // Save to settings
     $relative_path = 'uploads/logo/' . $filename;
