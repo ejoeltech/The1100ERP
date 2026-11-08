@@ -24,6 +24,7 @@ $repo = function_exists('getSetting') ? trim((string)getSetting('github_repo', '
 if ($repo === '') $repo = APP_REPO_DEFAULT;
 
 $tmp = null;
+$sumTmp = null;
 try {
     $release = githubLatestRelease($repo);
     if (!appVersionIsNewer($release['version'], APP_VERSION)) {
@@ -37,15 +38,17 @@ try {
     if (!$assets['checksum']) {
         throw new Exception('The latest release is missing the required SHA-256 checksum asset.');
     }
-    if (!appDownloadHostAllowed($assets['zip']['url']) || !appDownloadHostAllowed($assets['checksum']['url'])) {
+    $zipUrl = appAssetApiUrl($repo, $assets['zip']);
+    $sumUrl = appAssetApiUrl($repo, $assets['checksum']);
+    if (!appDownloadHostAllowed($zipUrl) || !appDownloadHostAllowed($sumUrl)) {
         throw new Exception('Release asset URLs are not on an allowed GitHub host.');
     }
 
-    $sumResponse = appHttpGetJson($assets['checksum']['url'], 20);
-    if ($sumResponse['status'] !== 200 || $sumResponse['body'] === '') {
-        throw new Exception('Could not download the update checksum.');
-    }
-    if (!preg_match('/\b([a-f0-9]{64})\b/i', (string)$sumResponse['body'], $m)) {
+    $sumTmp = tempnam(sys_get_temp_dir(), 'erp-sum-');
+    if ($sumTmp === false) throw new Exception('Could not create a temporary checksum file.');
+    appHttpDownloadFile($sumUrl, $sumTmp, 1024 * 1024, 20);
+    $sumBody = (string)file_get_contents($sumTmp);
+    if (!preg_match('/\b([a-f0-9]{64})\b/i', $sumBody, $m)) {
         throw new Exception('The update checksum file is invalid.');
     }
     $expected = strtolower($m[1]);
@@ -53,7 +56,7 @@ try {
     $tmp = tempnam(sys_get_temp_dir(), 'erp-update-');
     if ($tmp === false) throw new Exception('Could not create a temporary update file.');
 
-    appHttpDownloadFile($assets['zip']['url'], $tmp, 25 * 1024 * 1024, 60);
+    appHttpDownloadFile($zipUrl, $tmp, 25 * 1024 * 1024, 60);
     $actual = strtolower((string)hash_file('sha256', $tmp));
     if (!hash_equals($expected, $actual)) {
         throw new Exception('The downloaded update failed its SHA-256 check.');
@@ -97,4 +100,5 @@ try {
     updateFail($e->getMessage() !== '' ? $e->getMessage() : 'Update failed.', 500);
 } finally {
     if ($tmp && is_file($tmp)) @unlink($tmp);
+    if ($sumTmp && is_file($sumTmp)) @unlink($sumTmp);
 }

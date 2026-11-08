@@ -27,6 +27,18 @@ if (!function_exists('appVersionIsNewer')) {
     }
 }
 
+if (!function_exists('appGithubToken')) {
+    /** Optional read-only GitHub token for private release repositories. */
+    function appGithubToken()
+    {
+        foreach (['GITHUB_TOKEN', 'GH_TOKEN'] as $key) {
+            $token = getenv($key);
+            if ($token !== false && trim((string)$token) !== '') return trim((string)$token);
+        }
+        return '';
+    }
+}
+
 if (!function_exists('appHttpGetJson')) {
     /** Minimal GitHub GET helper: returns [status, body, error]. */
     function appHttpGetJson($url, $timeout = 8)
@@ -36,6 +48,8 @@ if (!function_exists('appHttpGetJson')) {
             'Accept: application/vnd.github+json',
             'X-GitHub-Api-Version: 2022-11-28',
         ];
+        $token = appGithubToken();
+        if ($token !== '') $headers[] = 'Authorization: Bearer ' . $token;
         $status = 0;
         $body = '';
         $error = '';
@@ -111,6 +125,8 @@ if (!function_exists('appHttpDownloadFile')) {
             throw new Exception('Update download URL is not a GitHub-owned HTTPS host.');
         }
         $headers = ['User-Agent: Eleven100-ERP-Updater', 'Accept: application/octet-stream'];
+        $token = appGithubToken();
+        if ($token !== '') $headers[] = 'Authorization: Bearer ' . $token;
 
         if (function_exists('curl_init')) {
             $fp = fopen($dest, 'wb');
@@ -231,6 +247,7 @@ if (!function_exists('githubLatestRelease')) {
                 foreach ((array)($r['assets'] ?? []) as $asset) {
                     if (!is_array($asset) || empty($asset['name']) || empty($asset['browser_download_url'])) continue;
                     $assets[] = [
+                        'id' => (int)($asset['id'] ?? 0),
                         'name' => (string)$asset['name'],
                         'url' => (string)$asset['browser_download_url'],
                         'size' => (int)($asset['size'] ?? 0),
@@ -333,6 +350,17 @@ if (!function_exists('appFindUpdateAssets')) {
             }
         }
         return ['zip' => $zip, 'checksum' => $checksum, 'ready' => (bool)($zip && $checksum)];
+    }
+}
+
+if (!function_exists('appAssetApiUrl')) {
+    /** Prefer the authenticated API asset URL for private repositories. */
+    function appAssetApiUrl($repo, $asset)
+    {
+        if (!empty($asset['id'])) {
+            return 'https://api.github.com/repos/' . $repo . '/releases/assets/' . (int)$asset['id'];
+        }
+        return (string)($asset['url'] ?? '');
     }
 }
 

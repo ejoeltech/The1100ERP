@@ -112,8 +112,8 @@ function aboutSyncButtons(data) {
     const rollback = document.getElementById('about-rollback-btn');
     const asset = data && data.latest_asset ? data.latest_asset : null;
     if (download) {
-        if (asset && asset.url) {
-            download.href = asset.url;
+        if (asset && asset.url && data && data.latest_checksum) {
+            download.href = '../api/system/download-update.php';
             download.style.display = '';
             download.textContent = 'Download update (' + asset.name + ')';
         } else {
