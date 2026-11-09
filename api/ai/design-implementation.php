@@ -10,6 +10,7 @@ require_once '../../includes/db.php';
 require_once '../../includes/groq-config.php';
 require_once '../../includes/ai-rate-limiter.php';
 require_once '../../includes/ai-json.php';
+require_once '../../includes/ai-design-request.php';
 
 header('Content-Type: application/json');
 
@@ -25,10 +26,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
+$rawBody = file_get_contents('php://input', false, null, 0, 65537);
+if ($rawBody === false || strlen($rawBody) > 65536) {
+    http_response_code(413);
+    echo json_encode(['success' => false, 'message' => 'Request body is too large.']);
+    exit;
+}
+$input = json_decode($rawBody, true);
 $startTime = microtime(true);
 
 try {
+    // Validate and normalize before touching rate-limit budget or the AI.
+    $input = normalizeAiDesignRequest($input, 2);
+
     // Initialize rate limiter
     $userId = $_SESSION['user_id'] ?? null;
     $rateLimiter = new AiRateLimiter('system_designer', $userId);
@@ -71,7 +81,10 @@ try {
         'remaining' => $rateLimiter->getRemainingRequests()
     ]);
 
-} catch (Exception $e) {
+} catch (InvalidArgumentException $e) {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+} catch (Throwable $e) {
     // Log failed attempt
     if (isset($rateLimiter)) {
         $processingTime = microtime(true) - $startTime;
@@ -79,8 +92,8 @@ try {
     }
 
     error_log("Design Implementation Error: " . $e->getMessage());
-    http_response_code(429);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Design analysis failed. Please try again.']);
 }
 
 function generateImplementationRecommendation($data)
@@ -129,11 +142,19 @@ function generateImplementationRecommendation($data)
         }
     }
     if ($batteryBank) {
+        // capacity_kwh is per battery; scale it to the full bank so the AI
+        // does not size cables and protection for a single unit.
+        if (isset($batteryBank['capacity_kwh'], $batteryBank['quantity'])) {
+            $batteryBank['total_bank_capacity_kwh'] = round(
+                ((float) $batteryBank['capacity_kwh']) * ((int) $batteryBank['quantity']),
+                2
+            );
+        }
         $systemSpecs['battery_bank'] = $batteryBank;
     }
 
     $batteryGuidance = $batteryBank
-        ? "Battery bank details are provided. Validate the maximum charge/discharge currents, size the battery bank protection and battery-to-inverter cable, and warn about C-rate or chemistry limits."
+        ? "Battery bank details are provided. capacity_kwh is per battery and total_bank_capacity_kwh is the full bank. Validate the maximum charge/discharge currents, size the battery bank protection and battery-to-inverter cable using the total bank capacity, and warn about C-rate or chemistry limits."
         : "No detailed battery bank was supplied; use only the stated battery voltage.";
 
     $prompt = "You are a Professional Solar Installation Engineer. The installer has already purchased {$panelCount} solar panels and needs installation guidance.

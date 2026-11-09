@@ -1305,6 +1305,15 @@ $b = hexdec(substr($hex, 4, 2));
     function applyDatasheet(picker, category, result) {
         const specs = result.specs || {};
         let filled = 0;
+        const filledIds = [];
+        const fill = (id, value) => {
+            if (setFieldValue(id, value)) {
+                filled++;
+                filledIds.push(id);
+                return true;
+            }
+            return false;
+        };
 
         if (category === 'battery') {
             const checked = document.querySelector('input[name="system_type"]:checked');
@@ -1313,9 +1322,7 @@ $b = hexdec(substr($hex, 4, 2));
                 : 'hybrid_battery_voltage';
 
             if (specs.battery_voltage !== undefined && specs.battery_voltage !== null) {
-                if (setFieldValue(voltageField, specs.battery_voltage)) {
-                    filled++;
-                }
+                fill(voltageField, specs.battery_voltage);
             }
 
             let kwh = specs.capacity_kwh;
@@ -1325,40 +1332,35 @@ $b = hexdec(substr($hex, 4, 2));
                 kwh = Math.round((Number(specs.capacity_ah) * Number(specs.battery_voltage) / 1000) * 100) / 100;
             }
             if (kwh !== undefined && kwh !== null) {
-                if (setFieldValue('battery_capacity_kwh', kwh)) {
-                    filled++;
-                }
+                fill('battery_capacity_kwh', kwh);
             }
             if (specs.chemistry) {
-                if (setFieldValue('battery_chemistry', datasheetChemistry(specs.chemistry))) {
-                    filled++;
-                }
+                fill('battery_chemistry', datasheetChemistry(specs.chemistry));
             }
             if (specs.max_charge_current !== undefined && specs.max_charge_current !== null) {
-                if (setFieldValue('battery_max_charge_current', specs.max_charge_current)) {
-                    filled++;
-                }
+                fill('battery_max_charge_current', specs.max_charge_current);
             }
             if (specs.max_discharge_current !== undefined && specs.max_discharge_current !== null) {
-                if (setFieldValue('battery_max_discharge_current', specs.max_discharge_current)) {
-                    filled++;
-                }
+                fill('battery_max_discharge_current', specs.max_discharge_current);
             }
             const quantity = el('battery_quantity');
             if (quantity && String(quantity.value || '').trim() === '') {
                 quantity.value = '1';
                 quantity.dispatchEvent(new Event('input', { bubbles: true }));
+                filledIds.push('battery_quantity');
             }
         } else {
             Object.keys(DATASHEET_FIELDS[category] || {}).forEach((key) => {
                 if (specs[key] === undefined || specs[key] === null || specs[key] === '') {
                     return;
                 }
-                if (setFieldValue(DATASHEET_FIELDS[category][key], specs[key])) {
-                    filled++;
-                }
+                fill(DATASHEET_FIELDS[category][key], specs[key]);
             });
         }
+
+        // Remember exactly which fields this datasheet filled so Clear can
+        // reset them without wiping values the user typed themselves.
+        picker.dataset.dsFilled = JSON.stringify([...new Set(filledIds)]);
 
         const badge = picker.querySelector('[data-datasheet-loaded]');
         const input = picker.querySelector('[data-datasheet-input]');
@@ -1514,9 +1516,18 @@ $b = hexdec(substr($hex, 4, 2));
                         badge.classList.add('hidden');
                         badge.innerHTML = '';
                     }
+                    let ids = [];
+                    try {
+                        ids = JSON.parse(picker.dataset.dsFilled || '[]');
+                    } catch (error) {
+                        ids = [];
+                    }
+                    ids.forEach((id) => setFieldValue(id, ''));
+                    delete picker.dataset.dsFilled;
                     picker.classList.remove('is-loaded');
                     input.value = '';
                     input.focus();
+                    saveFormData();
                 }
             });
 
@@ -1923,7 +1934,7 @@ $b = hexdec(substr($hex, 4, 2));
 
         const wrapper = 'result-card ' + (extraClass || 'span-all');
 
-        if (typeof arrangement === 'string') {
+        if (typeof arrangement !== 'object' || Array.isArray(arrangement)) {
             return `
             <div class="${wrapper}">
                 <h4 class="font-bold text-base mb-2">&#128295; Panel Arrangement</h4>
@@ -1959,7 +1970,7 @@ $b = hexdec(substr($hex, 4, 2));
         if (!breaker) {
             return '';
         }
-        const isString = typeof breaker === 'string';
+        const isString = typeof breaker !== 'object' || Array.isArray(breaker);
         const rating = isString ? breaker : breaker.rating;
         const explanation = !isString && breaker.explanation ? breaker.explanation : '';
 
@@ -1982,7 +1993,7 @@ $b = hexdec(substr($hex, 4, 2));
 
         const wrapper = 'result-card ' + (extraClass || '');
 
-        if (typeof wiring === 'string') {
+        if (typeof wiring !== 'object' || Array.isArray(wiring)) {
             return `
             <div class="${wrapper}">
                 <h4 class="font-bold text-base mb-2">&#128268; Wire Sizing</h4>
@@ -2053,10 +2064,12 @@ $b = hexdec(substr($hex, 4, 2));
                     : (option.max_panels !== undefined && option.max_panels !== null
                         ? option.max_panels + (option.panel_size ? ' \u00d7 ' + option.panel_size : '')
                         : '');
-                const current = option.isc || option.imp;
+                const isc = option.isc ? 'ISC ' + option.isc : '';
+                const imp = option.imp ? 'IMP ' + option.imp : '';
                 const specs = [
                     option.voc ? 'VOC ' + option.voc : '',
-                    current ? 'ISC ' + current : ''
+                    isc,
+                    imp
                 ].filter(Boolean).join(' \u00b7 ');
 
                 return `

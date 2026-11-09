@@ -16,6 +16,18 @@ $specValue = function ($value, $unit = '') {
     return $unit !== '' ? $text . ' ' . $unit : $text;
 };
 
+// The AI can return a scalar where the prompt asked for an object or array.
+$asArray = function ($value) {
+    return is_array($value) ? $value : [];
+};
+$text = function ($value) {
+    return is_scalar($value) || $value === null ? (string) ($value ?? '') : '';
+};
+
+if (!is_array($recommendation)) {
+    $recommendation = [];
+}
+
 $metaRows = [
     ['Design Mode', htmlspecialchars($data['mode_label'] ?? '')],
     ['System Type', htmlspecialchars($data['system_type_label'] ?? '')],
@@ -206,26 +218,30 @@ $html = '
     ';
 
 // Panel Recommendations Section (Mode 1 WITHOUT specific panels)
-if (!empty($recommendation['panel_recommendations'])) {
+$panelRecommendations = $asArray($recommendation['panel_recommendations'] ?? null);
+if (!empty($panelRecommendations)) {
     $html .= '
     <div class="section">
         <div class="section-title">📋 Recommended Panel Options</div>
         <p style="margin-bottom: 10px; font-style: italic;">Based on your system specifications, here are compatible panel configurations:</p>';
 
-    foreach ($recommendation['panel_recommendations'] as $idx => $panel_rec) {
+    foreach ($panelRecommendations as $idx => $panel_rec) {
+        if (!is_array($panel_rec)) {
+            continue;
+        }
         $html .= '
         <div class="panel-option">
-            <div class="panel-option-title">Option ' . ($idx + 1) . ': ' . htmlspecialchars($panel_rec['panel_size']) . '</div>
+            <div class="panel-option-title">Option ' . ($idx + 1) . ': ' . htmlspecialchars($text($panel_rec['panel_size'] ?? '')) . '</div>
             <table>
                 <tr>
                     <td width="25%"><strong>Max Panels:</strong></td>
-                    <td class="highlight">' . htmlspecialchars($panel_rec['max_panels_display']) . '</td>
+                    <td class="highlight">' . htmlspecialchars($text($panel_rec['max_panels_display'] ?? '')) . '</td>
                     <td width="25%"><strong>Total Capacity:</strong></td>
-                    <td class="highlight">' . htmlspecialchars($panel_rec['total_capacity']) . '</td>
+                    <td class="highlight">' . htmlspecialchars($text($panel_rec['total_capacity'] ?? '')) . '</td>
                 </tr>
                 <tr>
                     <td><strong>Configuration:</strong></td>
-                    <td colspan="3">' . htmlspecialchars($panel_rec['arrangement']) . '</td>
+                    <td colspan="3">' . htmlspecialchars($text($panel_rec['arrangement'] ?? '')) . '</td>
                 </tr>
             </table>
         </div>';
@@ -234,7 +250,7 @@ if (!empty($recommendation['panel_recommendations'])) {
 }
 
 // Single Panel Configuration (Mode 1 WITH specific panels OR Mode 2)
-if (!empty($recommendation['max_panels']) && empty($recommendation['panel_recommendations'])) {
+if (!empty($recommendation['max_panels']) && empty($panelRecommendations)) {
     $html .= '
     <div class="section">
         <div class="section-title">☀️ Solar Panel Configuration</div>
@@ -245,19 +261,24 @@ if (!empty($recommendation['max_panels']) && empty($recommendation['panel_recomm
             </tr>
             <tr>
                 <td>Maximum Panels</td>
-                <td class="highlight">' . htmlspecialchars($recommendation['max_panels']) . '</td>
+                <td class="highlight">' . htmlspecialchars($text($recommendation['max_panels'])) . '</td>
             </tr>
             <tr>
                 <td>Total System Capacity</td>
-                <td class="highlight">' . htmlspecialchars($recommendation['total_capacity']) . '</td>
+                <td class="highlight">' . htmlspecialchars($text($recommendation['total_capacity'] ?? '')) . '</td>
             </tr>
         </table>
     </div>';
 }
 
 // Arrangement Section
-if (!empty($recommendation['arrangement'])) {
-    $arr = $recommendation['arrangement'];
+$arrangementRaw = $recommendation['arrangement'] ?? null;
+$arrangement = is_array($arrangementRaw)
+    ? $arrangementRaw
+    : (is_scalar($arrangementRaw) && trim((string) $arrangementRaw) !== ''
+        ? ['configuration' => (string) $arrangementRaw]
+        : []);
+if (!empty($arrangement)) {
     $html .= '
     <div class="section">
         <div class="section-title">🔌 Panel Arrangement & Wiring</div>
@@ -270,22 +291,34 @@ if (!empty($recommendation['arrangement'])) {
                 <th>Total Current</th>
             </tr>
             <tr>
-                <td>' . htmlspecialchars($arr['configuration']) . '</td>
-                <td>' . htmlspecialchars($arr['strings']) . '</td>
-                <td>' . htmlspecialchars($arr['panels_per_string']) . '</td>
-                <td class="highlight">' . htmlspecialchars($arr['total_voc']) . '</td>
-                <td class="highlight">' . htmlspecialchars($arr['total_current']) . '</td>
+                <td>' . htmlspecialchars($text($arrangement['configuration'] ?? '')) . '</td>
+                <td>' . htmlspecialchars($text($arrangement['strings'] ?? '')) . '</td>
+                <td>' . htmlspecialchars($text($arrangement['panels_per_string'] ?? '')) . '</td>
+                <td class="highlight">' . htmlspecialchars($text($arrangement['total_voc'] ?? '')) . '</td>
+                <td class="highlight">' . htmlspecialchars($text($arrangement['total_current'] ?? '')) . '</td>
             </tr>
         </table>
         
         <div class="info-box">
             <strong>Explanation:</strong><br>
-            ' . nl2br(htmlspecialchars($arr['explanation'])) . '
+            ' . nl2br(htmlspecialchars($text($arrangement['explanation'] ?? ''))) . '
         </div>
     </div>';
 }
 
 // Breaker & Wiring Section
+$breakerRaw = $recommendation['breaker'] ?? null;
+$breaker = is_array($breakerRaw)
+    ? $breakerRaw
+    : (is_scalar($breakerRaw) && trim((string) $breakerRaw) !== ''
+        ? ['rating' => (string) $breakerRaw]
+        : []);
+$wiringRaw = $recommendation['wiring'] ?? null;
+$wiring = is_array($wiringRaw)
+    ? $wiringRaw
+    : (is_scalar($wiringRaw) && trim((string) $wiringRaw) !== ''
+        ? ['explanation' => (string) $wiringRaw]
+        : []);
 $html .= '
 <div class="section">
     <div class="section-title">🔧 Component Specifications</div>
@@ -296,32 +329,32 @@ $html .= '
             <th width="60%">Specification</th>
         </tr>';
 
-if (!empty($recommendation['breaker'])) {
+if (!empty($breaker)) {
     $html .= '
         <tr>
             <td><strong>DC Circuit Breaker</strong></td>
-            <td class="highlight">' . htmlspecialchars($recommendation['breaker']['rating']) . '</td>
+            <td class="highlight">' . htmlspecialchars($text($breaker['rating'] ?? '')) . '</td>
         </tr>
         <tr>
             <td colspan="2" style="background: #f9fafb; font-size: 10px;">
-                <em>' . htmlspecialchars($recommendation['breaker']['explanation']) . '</em>
+                <em>' . htmlspecialchars($text($breaker['explanation'] ?? '')) . '</em>
             </td>
         </tr>';
 }
 
-if (!empty($recommendation['wiring'])) {
+if (!empty($wiring)) {
     $html .= '
         <tr>
             <td><strong>PV to Controller Wire</strong></td>
-            <td class="highlight">' . htmlspecialchars($recommendation['wiring']['pv_wire']) . '</td>
+            <td class="highlight">' . htmlspecialchars($text($wiring['pv_wire'] ?? '')) . '</td>
         </tr>
         <tr>
             <td><strong>Battery to Inverter Wire</strong></td>
-            <td class="highlight">' . htmlspecialchars($recommendation['wiring']['battery_wire']) . '</td>
+            <td class="highlight">' . htmlspecialchars($text($wiring['battery_wire'] ?? '')) . '</td>
         </tr>
         <tr>
             <td colspan="2" style="background: #f9fafb; font-size: 10px;">
-                <em>' . htmlspecialchars($recommendation['wiring']['explanation']) . '</em>
+                <em>' . htmlspecialchars($text($wiring['explanation'] ?? '')) . '</em>
             </td>
         </tr>';
 }
@@ -332,25 +365,35 @@ $html .= '
 
 // Summary Section
 if (!empty($recommendation['summary'])) {
+    // The AI summary is HTML; allow only a safe formatting subset.
+    $safeSummary = strip_tags($text($recommendation['summary']), '<p><br><ul><ol><li><strong><em><b><i>');
     $html .= '
     <div class="section">
         <div class="section-title">📝 Summary & Installation Notes</div>
         <div style="padding: 10px;">
-            ' . $recommendation['summary'] . '
+            ' . $safeSummary . '
         </div>
     </div>';
 }
 
 // Warnings
-if (!empty($recommendation['warnings'])) {
+$warnings = $recommendation['warnings'] ?? null;
+if (is_string($warnings)) {
+    $warnings = trim($warnings) !== '' ? [$warnings] : [];
+}
+$warnings = $asArray($warnings);
+if (!empty($warnings)) {
     $html .= '
     <div class="section">
         <div class="section-title">⚠️ Safety Warnings & Considerations</div>';
 
-    foreach ($recommendation['warnings'] as $warning) {
+    foreach ($warnings as $warning) {
+        if (is_array($warning) || is_object($warning)) {
+            continue;
+        }
         $html .= '
         <div class="warning-box">
-            ⚠️ ' . htmlspecialchars($warning) . '
+            ⚠️ ' . htmlspecialchars($text($warning)) . '
         </div>';
     }
     $html .= '</div>';
