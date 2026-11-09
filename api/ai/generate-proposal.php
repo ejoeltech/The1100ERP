@@ -1,7 +1,7 @@
 <?php
 /**
  * AI Proposal Generator Endpoint
- * Generates full project proposals using Groq AI
+ * Generates full project proposals using Groq AI.
  */
 
 header('Content-Type: application/json');
@@ -9,28 +9,48 @@ require_once '../../includes/session-check.php';
 require_once '../../includes/groq-config.php';
 require_once '../../includes/ai-history.php';
 
-// Check permissions
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
     exit;
 }
 
-// Get input
-$data = json_decode(file_get_contents('php://input'), true);
+// Cap the body before decoding.
+$rawBody = file_get_contents('php://input', false, null, 0, 65537);
+if ($rawBody === false || strlen($rawBody) > 65536) {
+    http_response_code(413);
+    echo json_encode(['success' => false, 'error' => 'Request body is too large.']);
+    exit;
+}
 
-// Validate inputs
-if (empty($data['inverter']) || empty($data['batteries'])) {
+$data = json_decode($rawBody, true);
+if (!is_array($data)) {
     http_response_code(400);
-    echo json_encode(['error' => 'Inverter and Battery details are required']);
+    echo json_encode(['success' => false, 'error' => 'Invalid request body.']);
+    exit;
+}
+
+$allowedTypes = ['Residential Home', 'Commercial Office', 'Industrial Facility'];
+$projectType = trim((string) ($data['project_type'] ?? ''));
+if (!in_array($projectType, $allowedTypes, true)) {
+    $projectType = 'Residential Home';
+}
+$inverter = mb_substr(trim((string) ($data['inverter'] ?? '')), 0, 200);
+$batteries = mb_substr(trim((string) ($data['batteries'] ?? '')), 0, 200);
+$panels = mb_substr(trim((string) ($data['panels'] ?? '')), 0, 200);
+$context = mb_substr(trim((string) ($data['context'] ?? '')), 0, 2000);
+
+if ($inverter === '' || $batteries === '') {
+    http_response_code(422);
+    echo json_encode(['success' => false, 'error' => 'Inverter and battery details are required.']);
     exit;
 }
 
 try {
-    // Construct System Prompt
-    $systemPrompt = "You are a Senior Solar Engineer at Eleven100 ERP in Nigeria. 
+    $systemPrompt = "You are a Senior Solar Engineer at Eleven100 ERP in Nigeria.
     Your task is to write a professional, persuasive, and technically accurate solar system proposal in HTML format.
-    
+
     Structure the proposal with these sections:
     1. **Executive Summary**: Brief overview of the solution.
     2. **System Configuration**: List the equipment (Inverter, Batteries, Panels) with technical highlights.
@@ -46,23 +66,27 @@ try {
     - Localize for Nigeria (use 'NEPA/PHCN', 'Generator', 'Fuel scarcity' context).
     - Keep it concise but professional.";
 
-    // Construct User Prompt from Form Data
-    $userPrompt = "Generate a proposal for a {$data['project_type']} project. 
+    $userPrompt = "Generate a proposal for a {$projectType} project.
     Specs:
-    - Inverter: {$data['inverter']}
-    - Batteries: {$data['batteries']}
-    - Solar Panels: " . ($data['panels'] ?: 'None (Backup Only)') . "
-    - Context: " . ($data['context'] ?: 'Standard installation') . ".";
+    - Inverter: {$inverter}
+    - Batteries: {$batteries}
+    - Solar Panels: " . ($panels !== '' ? $panels : 'None (Backup Only)') . "
+    - Context: " . ($context !== '' ? $context : 'Standard installation') . ".";
 
-    // Call Groq API
-    // Using a higher max_tokens for a full document
+    // Higher token budget for a full document.
     $history = getAiBusinessContext($pdo);
-    if ($history !== '') $userPrompt .= "\nBusiness history: $history";
-    $proposalHtml = callGroqAPI($userPrompt, $systemPrompt, ['max_tokens' => 2000]);
+    if ($history !== '') {
+        $userPrompt .= "\nBusiness history: $history";
+    }
+    $proposalHtml = sanitizeRichTextHtml(callGroqAPI($userPrompt, $systemPrompt, ['max_tokens' => 2000]));
+    if ($proposalHtml === '' || trim(strip_tags($proposalHtml)) === '') {
+        throw new RuntimeException('The AI returned an empty proposal.');
+    }
 
     echo json_encode(['success' => true, 'proposal_html' => $proposalHtml]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log('Proposal AI generation failed: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'Could not generate the proposal right now. Please try again.']);
 }

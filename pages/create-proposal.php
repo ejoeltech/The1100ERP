@@ -63,7 +63,27 @@ include '../includes/header.php';
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="font-bold text-lg text-gray-900 mb-4 border-b pb-2">System Specifications</h3>
+            <div class="flex items-center justify-between mb-4 border-b pb-2">
+                <h3 class="font-bold text-lg text-gray-900">System Specifications</h3>
+                <button type="button" onclick="startNewProposal()"
+                    class="text-xs font-semibold text-gray-500 hover:text-primary px-2 py-1 rounded-md hover:bg-gray-50">
+                    New
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label for="draftSelect" class="block text-xs font-semibold text-gray-600 mb-1">Resume a saved draft</label>
+                <div class="flex gap-2">
+                    <select id="draftSelect"
+                        class="flex-1 text-sm border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                        <option value="">No drafts loaded</option>
+                    </select>
+                    <button type="button" onclick="resumeDraft()"
+                        class="px-3 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md border border-gray-300">
+                        Load
+                    </button>
+                </div>
+            </div>
 
             <form id="proposalForm" onsubmit="generateProposal(event)">
                 <?php echo function_exists('csrfField') ? csrfField() : ''; ?>
@@ -77,6 +97,13 @@ include '../includes/header.php';
                             <option value="Commercial Office">Small Office / Commercial</option>
                             <option value="Industrial Facility">Industrial (Factory/Large)</option>
                         </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Customer Name</label>
+                        <input type="text" name="customer_name" maxlength="255"
+                            placeholder="e.g. Chief Adebayo"
+                            class="w-full border-gray-300 rounded-md focus:ring-primary focus:border-primary">
                     </div>
 
                     <div>
@@ -155,6 +182,127 @@ include '../includes/header.php';
 </script>
 <script nonce="<?php echo function_exists('cspNonce') ? cspNonce() : ''; ?>">
 
+    function apiMessage(data, fallback) {
+        return (data && (data.error || data.message)) || fallback;
+    }
+
+    function readSpecs() {
+        const form = document.getElementById('proposalForm');
+        return {
+            project_type: form.project_type.value,
+            customer_name: form.customer_name.value.trim(),
+            inverter: form.inverter.value.trim(),
+            batteries: form.batteries.value.trim(),
+            panels: form.panels.value.trim(),
+            context: form.context.value.trim()
+        };
+    }
+
+    function setEditorHtml(html) {
+        if (proposalQuill) {
+            proposalQuill.setHTML(html || '');
+        }
+    }
+
+    async function loadDraftList() {
+        const select = document.getElementById('draftSelect');
+        if (!select) return;
+
+        try {
+            const response = await fetch('../api/proposals/list.php', {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(apiMessage(data, 'Could not load drafts.'));
+            }
+
+            const drafts = (data.proposals || []).filter((p) => p && p.status !== 'converted');
+            select.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = drafts.length ? 'Select a draft...' : 'No drafts yet';
+            select.appendChild(placeholder);
+
+            drafts.forEach((p) => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                const label = (p.customer_name ? p.customer_name + ' - ' : '') +
+                    (p.title || 'Untitled') +
+                    (p.updated_at ? ' (' + p.updated_at + ')' : '');
+                opt.textContent = label;
+                select.appendChild(opt);
+            });
+        } catch (error) {
+            console.error('Draft list error:', error);
+            select.innerHTML = '<option value="">Could not load drafts</option>';
+        }
+    }
+
+    async function resumeDraft() {
+        const select = document.getElementById('draftSelect');
+        const id = select ? select.value : '';
+        if (!id) {
+            alert('Select a draft to load.');
+            return;
+        }
+
+        try {
+            const response = await fetch('../api/proposals/get.php?id=' + encodeURIComponent(id), {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(apiMessage(data, 'Could not load the draft.'));
+            }
+
+            const p = data.proposal;
+            const specs = p.specs || {};
+            const form = document.getElementById('proposalForm');
+
+            document.getElementById('proposalId').value = p.id;
+            form.project_type.value = specs.project_type || form.project_type.value;
+            form.customer_name.value = p.customer_name || specs.customer_name || '';
+            form.inverter.value = specs.inverter || '';
+            form.batteries.value = specs.batteries || '';
+            form.panels.value = specs.panels || '';
+            form.context.value = specs.context || '';
+
+            setEditorHtml(p.content || '');
+
+            const convertBtn = document.getElementById('convertBtn');
+            convertBtn.classList.remove('hidden');
+            convertBtn.disabled = false;
+            if (p.status === 'converted' && p.converted_quote_id) {
+                convertBtn.textContent = 'Open Quote';
+                convertBtn.dataset.quoteId = p.converted_quote_id;
+            } else {
+                convertBtn.textContent = 'Convert to Quote';
+                delete convertBtn.dataset.quoteId;
+            }
+        } catch (error) {
+            alert('Load Failed: ' + error.message);
+        }
+    }
+
+    function startNewProposal() {
+        if (!confirm('Start a new proposal? Unsaved changes will be lost.')) {
+            return;
+        }
+        const form = document.getElementById('proposalForm');
+        form.reset();
+        document.getElementById('proposalId').value = '';
+        setEditorHtml('<p class="text-gray-400 italic">Generated proposal will appear here...</p>');
+
+        const convertBtn = document.getElementById('convertBtn');
+        convertBtn.classList.add('hidden');
+        convertBtn.textContent = 'Convert to Quote';
+        delete convertBtn.dataset.quoteId;
+
+        const select = document.getElementById('draftSelect');
+        if (select) select.value = '';
+    }
+
     async function getRecommendation() {
         const houseType = document.getElementById('recHouseType').value;
         const appliances = document.getElementById('recAppliances').value;
@@ -187,38 +335,34 @@ include '../includes/header.php';
             });
 
             const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(apiMessage(data, 'The recommender could not respond.'));
+            }
 
-            if (data.success) {
-                const rec = data.recommendation;
+            const rec = data.recommendation || {};
 
-                // Auto-fill form fields
-                document.getElementsByName('inverter')[0].value = rec.inverter;
-                document.getElementsByName('batteries')[0].value = rec.batteries;
-                document.getElementsByName('panels')[0].value = rec.panels;
-                document.getElementsByName('context')[0].value =
-                    `House Type: ${houseType}\nGrid: ${powerHours}hrs/day\nAnalysis: ${rec.context_summary}\nAppliances: ${appliances}`;
+            // Auto-fill form fields
+            document.getElementsByName('inverter')[0].value = rec.inverter || '';
+            document.getElementsByName('batteries')[0].value = rec.batteries || '';
+            document.getElementsByName('panels')[0].value = rec.panels || '';
+            document.getElementsByName('context')[0].value =
+                `House Type: ${houseType}\nGrid: ${powerHours}hrs/day\nAnalysis: ${rec.context_summary || ''}\nAppliances: ${appliances}`;
 
-                // Highlight success
-                btn.classList.remove('bg-indigo-600');
-                btn.classList.add('bg-green-600');
-                btnText.innerText = 'Specs Updated!';
+            // Highlight success
+            btn.classList.remove('bg-indigo-600');
+            btn.classList.add('bg-green-600');
+            btnText.innerText = 'Specs Updated!';
 
-                setTimeout(() => {
-                    btn.classList.remove('bg-green-600');
-                    btn.classList.add('bg-indigo-600');
-                    btnText.innerText = originalText;
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-75');
-                }, 2000);
-
-            } else {
-                alert('AI Error: ' + (data.error || 'Unknown error'));
+            setTimeout(() => {
+                btn.classList.remove('bg-green-600');
+                btn.classList.add('bg-indigo-600');
                 btnText.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-75');
-            }
+            }, 2000);
+
         } catch (error) {
-            alert('Connection Error: ' + error.message);
+            alert('AI Error: ' + error.message);
             btnText.innerText = originalText;
             btn.disabled = false;
             btn.classList.remove('opacity-75');
@@ -230,37 +374,36 @@ include '../includes/header.php';
 
         const btn = document.getElementById('generateBtn');
         const btnText = document.getElementById('btnText');
-        const form = document.getElementById('proposalForm');
+        const specs = readSpecs();
 
         const originalText = btnText.innerText;
         btnText.innerText = 'Generating with AI...';
         btn.disabled = true;
         btn.classList.add('opacity-75', 'cursor-not-allowed');
 
-        const formData = {
-            project_type: form.project_type.value,
-            inverter: form.inverter.value,
-            batteries: form.batteries.value,
-            panels: form.panels.value,
-            context: form.context.value
-        };
-
         try {
             const response = await fetch('../api/ai/generate-proposal.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({
+                    project_type: specs.project_type,
+                    inverter: specs.inverter,
+                    batteries: specs.batteries,
+                    panels: specs.panels,
+                    context: specs.context
+                })
             });
 
             const data = await response.json();
-
-            if (data.success) {
-                if (proposalQuill) proposalQuill.setHTML(data.proposal_html);
-            } else {
-                alert('AI Error: ' + (data.error || 'Unknown error'));
+            if (!response.ok || !data.success) {
+                throw new Error(apiMessage(data, 'The proposal could not be generated.'));
             }
+            if (!proposalQuill) {
+                throw new Error('The editor is still loading. Please try again in a moment.');
+            }
+            setEditorHtml(data.proposal_html);
         } catch (error) {
-            alert('Connection Error: ' + error.message);
+            alert('AI Error: ' + error.message);
         } finally {
             btnText.innerText = originalText;
             btn.disabled = false;
@@ -280,17 +423,12 @@ include '../includes/header.php';
             return;
         }
 
-        const form = document.getElementById('proposalForm');
-        const specs = {
-            project_type: form.project_type.value,
-            inverter: form.inverter.value,
-            batteries: form.batteries.value,
-            panels: form.panels.value,
-            context: form.context.value
-        };
-
+        const specs = readSpecs();
         const proposalId = document.getElementById('proposalId').value;
-        const title = `${specs.inverter} System - ${specs.project_type}`;
+        const baseTitle = specs.customer_name
+            ? specs.customer_name + ' - ' + (specs.inverter || 'Solar System')
+            : (specs.inverter || 'Solar System');
+        const title = baseTitle + ' - ' + specs.project_type;
 
         const btn = document.getElementById('saveDraftBtn');
         const originalText = btn.innerText;
@@ -304,36 +442,42 @@ include '../includes/header.php';
                 body: JSON.stringify({
                     id: proposalId,
                     title: title,
+                    customer_name: specs.customer_name,
                     content: content,
                     specs: specs
                 })
             });
 
             const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(apiMessage(result, 'Could not save the draft.'));
+            }
 
-            if (result.success) {
-                document.getElementById('proposalId').value = result.id;
-                document.getElementById('convertBtn').classList.remove('hidden');
+            document.getElementById('proposalId').value = result.id;
+            document.getElementById('convertBtn').classList.remove('hidden');
 
-                // Show temporary success feedback
-                btn.innerText = 'Saved!';
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                }, 2000);
-            } else {
-                alert('Save Failed: ' + result.error);
+            btn.innerText = 'Saved!';
+            loadDraftList();
+            setTimeout(() => {
                 btn.innerText = originalText;
                 btn.disabled = false;
-            }
+            }, 1500);
         } catch (error) {
-            alert('Connection Error: ' + error.message);
+            alert('Save Failed: ' + error.message);
             btn.innerText = originalText;
             btn.disabled = false;
         }
     }
 
     async function convertToQuote() {
+        const btn = document.getElementById('convertBtn');
+
+        // A loaded converted proposal links straight to its quote.
+        if (btn.dataset.quoteId) {
+            window.location.href = `edit-quote.php?id=${btn.dataset.quoteId}`;
+            return;
+        }
+
         const proposalId = document.getElementById('proposalId').value;
         if (!proposalId) {
             alert('Please save the draft first.');
@@ -342,7 +486,6 @@ include '../includes/header.php';
 
         if (!confirm('Create a new Quote from this proposal?')) return;
 
-        const btn = document.getElementById('convertBtn');
         btn.innerText = 'Converting...';
         btn.disabled = true;
 
@@ -354,20 +497,47 @@ include '../includes/header.php';
             });
 
             const result = await response.json();
-
-            if (result.success) {
-                window.location.href = `edit-quote.php?id=${result.quote_id}`;
-            } else {
-                alert('Conversion Failed: ' + result.error);
-                btn.innerText = 'Convert to Quote';
-                btn.disabled = false;
+            if (!response.ok || !result.success) {
+                throw new Error(apiMessage(result, 'Could not convert the proposal.'));
             }
+
+            window.location.href = `edit-quote.php?id=${result.quote_id}`;
         } catch (error) {
-            alert('Connection Error: ' + error.message);
+            alert('Conversion Failed: ' + error.message);
             btn.innerText = 'Convert to Quote';
             btn.disabled = false;
         }
     }
+
+    function applyRoiHandoff() {
+        if (!/[?&]from=roi\b/.test(window.location.search)) {
+            return;
+        }
+        try {
+            const raw = sessionStorage.getItem('roiHandoff');
+            if (!raw) {
+                return;
+            }
+            sessionStorage.removeItem('roiHandoff');
+            const roi = JSON.parse(raw);
+            const form = document.getElementById('proposalForm');
+            const cost = Number(roi.system_cost || 0);
+            const lines = [
+                'ROI calculator handoff',
+                'System budget: ' + (isFinite(cost) && cost > 0 ? '₦' + cost.toLocaleString() : 'not provided'),
+                'Estimated monthly savings: ' + (roi.monthly_savings || 'n/a'),
+                'Payback: ' + (roi.payback || 'n/a'),
+                '5-year net savings: ' + (roi.five_year || 'n/a'),
+                'Assumed solar offset: ' + (roi.offset_pct || 'n/a') + '%'
+            ];
+            form.context.value = (form.context.value ? form.context.value + '\n' : '') + lines.join('\n');
+        } catch (error) {
+            console.error('Could not apply ROI handoff:', error);
+        }
+    }
+
+    applyRoiHandoff();
+    loadDraftList();
 </script>
 
 <?php include '../includes/footer.php'; ?>

@@ -65,6 +65,24 @@ function requireCsrf()
     }
 }
 
+/**
+ * Allow-list sanitizer for rich text produced by the AI or the editor.
+ * Removes scripts, event handlers and every attribute so stored content
+ * cannot carry XSS into any renderer.
+ */
+function sanitizeRichTextHtml($html)
+{
+    if (!is_string($html) || trim($html) === '') {
+        return '';
+    }
+    $allowed = '<h1><h2><h3><h4><p><br><hr><ul><ol><li><strong><b><em><i><u>'
+        . '<blockquote><table><thead><tbody><tr><th><td><span><div>';
+    $html = strip_tags($html, $allowed);
+    // Drop every attribute (style, src, href, on*, ...) from remaining tags.
+    $html = preg_replace('/<([a-z][a-z0-9]*)\b[^>]*>/i', '<$1>', $html);
+    return trim($html);
+}
+
 // ============================================
 // Upload Validation (WP7)
 // ============================================

@@ -14,26 +14,34 @@ try {
     if (!isset($_SESSION['user_id'])) {
         throw new Exception('Unauthorized', 401);
     }
-
-    $input = json_decode(file_get_contents('php://input'), true);
-    $proposalId = $input['id'] ?? null;
-
-    if (!$proposalId) {
-        throw new Exception('Proposal ID is required');
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        throw new Exception('Method not allowed', 405);
     }
 
-    // Check if Proposal exists
-    $stmt = $pdo->prepare("SELECT * FROM proposals WHERE id = ?");
+    $rawBody = file_get_contents('php://input', false, null, 0, 65537);
+    if ($rawBody === false || strlen($rawBody) > 65536) {
+        throw new Exception('Request body is too large.', 413);
+    }
+    $input = json_decode($rawBody, true);
+    $proposalId = is_array($input) ? filter_var($input['id'] ?? null, FILTER_VALIDATE_INT) : false;
+
+    if ($proposalId === false || $proposalId < 1) {
+        throw new Exception('A valid proposal ID is required.', 422);
+    }
+
+    require_once '../../includes/helpers.php';
+
+    // Lock the proposal row so two concurrent clicks cannot create two quotes.
+    $pdo->beginTransaction();
+
+    $stmt = $pdo->prepare("SELECT * FROM proposals WHERE id = ? FOR UPDATE");
     $stmt->execute([$proposalId]);
     $proposal = $stmt->fetch();
 
     if (!$proposal) {
-        throw new Exception("Proposal not found");
+        throw new Exception("Proposal not found", 404);
     }
 
-    if (($proposal['status'] ?? '') === 'converted') {
-        throw new Exception('This proposal has already been converted');
-    }
     // WP3: converting needs create rights + ownership of the source proposal.
     // Viewers/accountants must not convert other users' proposals.
     requirePermission('create_quote', $proposal, $proposal['created_by'] ?? null);
@@ -44,9 +52,25 @@ try {
         throw new Exception('You do not have permission to use this proposal', 403);
     }
 
-    require_once '../../includes/helpers.php';
-
-    $pdo->beginTransaction();
+    // Idempotent replay: a second click returns the quote already created
+    // instead of failing or duplicating the document.
+    if (($proposal['status'] ?? '') === 'converted') {
+        $existingQuoteId = (int) ($proposal['converted_quote_id'] ?? 0);
+        $pdo->rollBack();
+        ob_end_clean();
+        if ($existingQuoteId > 0) {
+            echo json_encode([
+                'success' => true,
+                'quote_id' => $existingQuoteId,
+                'already_converted' => true,
+                'message' => 'This proposal was already converted.'
+            ]);
+        } else {
+            http_response_code(409);
+            echo json_encode(['success' => false, 'error' => 'This proposal has already been converted.']);
+        }
+        exit;
+    }
 
     // 2a. Get Salesperson Name
     $stmt = $pdo->prepare("SELECT full_name FROM users WHERE id = ?");
@@ -231,9 +255,19 @@ try {
     // Log error for debugging
     error_log("Convert Quote Error: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
 
-    // Clear buffer to remove any partial HTML output
-    ob_end_clean();
+    $status = (int) $e->getCode();
+    if ($status < 400 || $status > 599) {
+        $status = 500;
+    }
 
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    // Clear buffer to remove any partial HTML output
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    http_response_code($status);
+    $message = $status >= 500
+        ? 'Could not convert the proposal. Please try again.'
+        : $e->getMessage();
+    echo json_encode(['success' => false, 'error' => $message]);
 }
