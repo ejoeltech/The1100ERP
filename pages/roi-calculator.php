@@ -27,6 +27,13 @@ include '../includes/public-header.php';
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Solar Offset (% of current spend)</label>
+                        <input type="number" name="offset_pct" value="85" min="0" max="100" step="5"
+                            class="w-full border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                        <p class="text-xs text-gray-500 mt-1">How much of the current generator/grid spend the solar system is expected to displace.</p>
+                    </div>
+
                     <!-- Mode Toggle -->
                     <div class="flex items-center justify-between bg-gray-100 p-2 rounded-lg mb-4">
                         <span class="text-sm font-semibold text-gray-700 px-2">Calculation Mode</span>
@@ -127,7 +134,7 @@ include '../includes/public-header.php';
 
     <!-- Results Display -->
     <div class="lg:col-span-1">
-        <div id="resultsArea" class="hidden h-full">
+        <div id="resultsArea" class="hidden h-full" aria-live="polite">
             <div class="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
                 <h3 class="font-bold text-lg text-gray-900 mb-6 border-b pb-2">Financial Analysis</h3>
 
@@ -140,14 +147,14 @@ include '../includes/public-header.php';
                     <div class="bg-green-50 p-4 rounded-lg border border-green-100 text-center">
                         <p class="text-xs text-green-600 font-bold uppercase">Payback Period</p>
                         <p class="text-2xl font-bold text-gray-900 mt-1" id="paybackPeriod">-</p>
-                        <p class="text-xs text-green-700 mt-1">Months</p>
+                        <p class="text-xs text-green-700 mt-1">Estimated</p>
                     </div>
                 </div>
 
                 <div class="bg-purple-50 p-4 rounded-lg border border-purple-100 mb-6">
                     <div class="flex justify-between items-end">
                         <div class="text-left">
-                            <p class="text-xs text-purple-600 font-bold uppercase">5-Year Projected Savings</p>
+                            <p class="text-xs text-purple-600 font-bold uppercase">5-Year Net Savings (after system cost)</p>
                             <p class="text-3xl font-extrabold text-gray-900 mt-1" id="fiveYearSavings">-</p>
                         </div>
                         <div class="text-4xl">💰</div>
@@ -168,10 +175,15 @@ include '../includes/public-header.php';
                     <h4 class="font-bold text-gray-800 text-sm mb-2 flex items-center gap-2">
                         Financial Analysis
                     </h4>
-                    <div id="aiAnalysis" class="text-sm text-gray-700 prose prose-sm max-w-none">
+                    <div id="aiAnalysis" class="text-sm text-gray-700 prose prose-sm max-w-none whitespace-pre-line">
                         <!-- AI Text goes here -->
                     </div>
                 </div>
+
+                <button type="button" onclick="useInProposal()"
+                    class="mt-4 w-full bg-blue-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                    Use in Proposal
+                </button>
             </div>
         </div>
 
@@ -201,7 +213,7 @@ include '../includes/public-header.php';
             document.getElementById('btnSimple').classList.add('bg-primary', 'text-white');
             document.getElementById('btnSimple').classList.remove('text-gray-500', 'hover:bg-gray-50');
 
-            document.getElementById('btnAdvanced').classList.remove('bg-primary', 'text-white');
+            document.getElementById('btnAdvanced').classList.remove('bg-primary', 'bg-purple-600', 'text-white');
             document.getElementById('btnAdvanced').classList.add('text-gray-500', 'hover:bg-gray-50');
         } else {
             document.getElementById('simpleInputs').classList.add('hidden');
@@ -213,6 +225,24 @@ include '../includes/public-header.php';
             document.getElementById('btnSimple').classList.remove('bg-primary', 'text-white');
             document.getElementById('btnSimple').classList.add('text-gray-500', 'hover:bg-gray-50');
         }
+    }
+
+    function useInProposal() {
+        const form = document.getElementById('roiForm');
+        const data = Object.fromEntries(new FormData(form).entries());
+        const summary = {
+            system_cost: data.system_cost || '',
+            offset_pct: data.offset_pct || '',
+            monthly_savings: document.getElementById('monthlySavings').textContent,
+            payback: document.getElementById('paybackPeriod').textContent,
+            five_year: document.getElementById('fiveYearSavings').textContent
+        };
+        try {
+            sessionStorage.setItem('roiHandoff', JSON.stringify(summary));
+        } catch (error) {
+            console.error('Could not store ROI handoff:', error);
+        }
+        window.location.href = 'create-proposal.php?from=roi';
     }
 
     async function calculateROI(e) {
@@ -239,29 +269,29 @@ include '../includes/public-header.php';
             });
 
             const result = await response.json();
+            if (!response.ok) throw new Error(result.error || ('HTTP ' + response.status));
 
-            if (result.success) {
+            if (result.success && result.data) {
                 // Show results
                 document.getElementById('placeholderState').classList.add('hidden');
                 document.getElementById('resultsArea').classList.remove('hidden');
 
                 // Update metrics
-                document.getElementById('monthlySavings').textContent = result.data.monthly_savings_fmt;
-                document.getElementById('paybackPeriod').textContent = result.data.payback_months;
-                document.getElementById('fiveYearSavings').textContent = result.data.five_year_savings_fmt;
+                document.getElementById('monthlySavings').textContent = result.data.monthly_savings_fmt || '—';
+                document.getElementById('paybackPeriod').textContent = result.data.payback_label || '—';
+                document.getElementById('fiveYearSavings').textContent = result.data.five_year_savings_fmt || '—';
 
                 // Update Breakdown
                 document.getElementById('breakdownText').textContent = result.data.breakdown_text || 'No details available.';
 
-                // Update AI Text (render HTML safely)
+                // Update AI Text (plain text)
                 const aiAnalysisEl = document.getElementById('aiAnalysis');
-                aiAnalysisEl.textContent = result.ai_analysis || '';
-                aiAnalysisEl.style.whiteSpace = 'pre-line';
+                aiAnalysisEl.textContent = result.ai_analysis || result.ai_warning || '';
             } else {
-                alert('Calculation Error: ' + (result.error || 'Unknown error'));
+                throw new Error(result.error || 'The calculator returned an unexpected response.');
             }
         } catch (error) {
-            alert('Connection Error: ' + error.message);
+            alert('Error: ' + error.message);
         } finally {
             btnText.innerText = originalText;
             btn.disabled = false;
