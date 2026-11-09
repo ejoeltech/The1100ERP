@@ -66,6 +66,7 @@ $infoPatterns = [
     '#idmaker-(designer|preview|records)\.php$#',
     '#^docs/#',
     '#^scripts/#',
+    '#^tests/#',
 ];
 
 $skipDirs = ['vendor', '.git', 'tmp', 'uploads', 'logs', 'exports'];

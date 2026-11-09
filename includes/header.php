@@ -45,15 +45,18 @@ if (function_exists('setSecurityHeaders')) {
     $showHrMenu = true; // Attendance and Leave are self-service for every signed-in user.
     $canSales = $canPerm('manage_customers') || $canPerm('manage_leads');
     $canInventory = $canPerm('manage_products') || $canPerm('manage_store') || $canPerm('manage_accessories');
+    $canProposal = $canPerm('create_document') || $canPerm('create_quote');
     $canAdminMenu = $canPerm('manage_users') || $canPerm('manage_access') || $canPerm('manage_settings') || $canPerm('view_audit_log');
     $scriptPath = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
     $isDashboard = (($currentPage ?? '') === 'dashboard') || preg_match('#/(dashboard|index)\.php$#', $scriptPath);
     $isSalesActive = strpos($scriptPath, '/pages/customers/') !== false || strpos($scriptPath, '/pages/leads/') !== false;
-    $isInventoryActive = strpos($scriptPath, '/pages/products/') !== false
+    $isInventoryActive = (strpos($scriptPath, '/pages/products/') !== false
         || strpos($scriptPath, '/pages/store/') !== false
-        || strpos($scriptPath, '/pages/accessories/') !== false;
+        || strpos($scriptPath, '/pages/accessories/') !== false)
+        && strpos($scriptPath, '/pages/products/equipment-datasheets.php') === false;
     $isDocumentsActive = (bool)preg_match('#/pages/(view-|create-|edit-|readymade|payments|archives|email-document)#', $scriptPath);
-    $isToolsActive = (bool)preg_match('#/pages/(system-designer|create-proposal|roi-calculator)\.php$#', $scriptPath);
+    $isToolsActive = (bool)preg_match('#/pages/(system-designer|create-proposal|roi-calculator)\.php$#', $scriptPath)
+        || strpos($scriptPath, '/pages/products/equipment-datasheets.php') !== false;
     $isAdminActive = (bool)preg_match('#/pages/(users/(manage-users|manage-groups|create-user|edit-user|user-permissions|security-settings)|audit-log|settings|system-update|ai-settings)\.php$#', $scriptPath);
     $hrActive = strpos($scriptPath, '/modules/hr/') !== false || strpos(($currentPage ?? ''), 'hr_') === 0;
     $navButtonClass = function ($active) {
@@ -163,10 +166,6 @@ if (function_exists('setSecurityHeaders')) {
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         📦 Products
                     </a>
-                    <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
-                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
-                        📋 Datasheet Catalog
-                    </a>
                     <?php endif; ?>
                     <?php if ($canPerm('manage_store') || $canPerm('manage_accessories')): ?>
                     <p class="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Stock</p>
@@ -229,18 +228,28 @@ if (function_exists('setSecurityHeaders')) {
                 <!-- Tools Section -->
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <p class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Tools</p>
+                    <p class="px-4 pt-1 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Design &amp; Propose</p>
                     <a href="<?php echo $base_path; ?>/pages/system-designer.php"
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         🛠️ System Designer
                     </a>
+                    <?php if ($canProposal): ?>
                     <a href="<?php echo $base_path; ?>/pages/create-proposal.php"
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         ✨ Proposal Creator
                     </a>
+                    <?php endif; ?>
                     <a href="<?php echo $base_path; ?>/pages/roi-calculator.php"
                         class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
                         💰 ROI Calculator
                     </a>
+                    <?php if ($canPerm('manage_products')): ?>
+                    <p class="px-4 pt-2 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Data</p>
+                    <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
+                        class="block px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-lg">
+                        📋 Datasheet Catalog
+                    </a>
+                    <?php endif; ?>
                 </div>
 
                 <!-- HR Section -->
@@ -470,11 +479,6 @@ if (function_exists('setSecurityHeaders')) {
                                     <div class="font-semibold">Products</div>
                                     <div class="text-xs text-gray-500">Manage catalog</div>
                                 </a>
-                                <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
-                                    <div class="font-semibold">Datasheet Catalog</div>
-                                    <div class="text-xs text-gray-500">Inverter, battery &amp; panel specs</div>
-                                </a>
                                 <?php endif; ?>
                                 <?php if ($canPerm('manage_store') || $canPerm('manage_accessories')): ?>
                                 <div class="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-t">Stock</div>
@@ -561,22 +565,33 @@ if (function_exists('setSecurityHeaders')) {
                                 </svg>
                             </button>
                             <div
-                                class="absolute left-0 mt-1 w-56 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                class="absolute left-0 mt-1 w-60 dropdown-panel bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                                <div class="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Design &amp; Propose</div>
                                 <a href="<?php echo $base_path; ?>/pages/system-designer.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-t-lg">
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary">
                                     <div class="font-semibold">🛠️ System Designer</div>
-                                    <div class="text-xs text-gray-500">Compatibility check</div>
+                                    <div class="text-xs text-gray-500">Plan panels, wiring and breakers; export PDF</div>
                                 </a>
+                                <?php if ($canProposal): ?>
                                 <a href="<?php echo $base_path; ?>/pages/create-proposal.php"
                                     class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">✨ Proposal Creator</div>
-                                    <div class="text-xs text-gray-500">Generate with AI</div>
+                                    <div class="text-xs text-gray-500">Draft an AI proposal and convert to a quote</div>
                                 </a>
+                                <?php endif; ?>
                                 <a href="<?php echo $base_path; ?>/pages/roi-calculator.php"
-                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t rounded-b-lg">
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary border-t">
                                     <div class="font-semibold">💰 ROI Calculator</div>
-                                    <div class="text-xs text-gray-500">Solar savings analysis</div>
+                                    <div class="text-xs text-gray-500">Estimate savings and payback</div>
                                 </a>
+                                <?php if ($canPerm('manage_products')): ?>
+                                <div class="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-t">Data</div>
+                                <a href="<?php echo $base_path; ?>/pages/products/equipment-datasheets.php"
+                                    class="block px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-primary rounded-b-lg">
+                                    <div class="font-semibold">📋 Datasheet Catalog</div>
+                                    <div class="text-xs text-gray-500">Inverter, battery and panel specs</div>
+                                </a>
+                                <?php endif; ?>
                             </div>
                         </div>
 
