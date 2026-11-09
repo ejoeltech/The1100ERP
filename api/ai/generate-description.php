@@ -27,10 +27,12 @@ if (empty($productName)) {
 }
 
 try {
+    $companyName = erpCompanyName();
     // Construct Prompt
-    $systemPrompt = "You are a professional sales engineer for a Nigerian solar energy company. 
-    Write a compelling, technical, yet accessible product description (max 2 sentences). 
-    Focus on benefits, durability, and suitability for the Nigerian market (unstable power). 
+    $systemPrompt = "You are a professional sales engineer for {$companyName}, a Nigerian solar energy company.
+    Write a compelling, technical, yet accessible product description (max 2 sentences).
+    Refer to the company as {$companyName}. Never call it Eleven100 ERP, 1100ERP, or any other application/default name.
+    Focus on benefits, durability, and suitability for the Nigerian market (unstable power).
     Use the currency symbol '₦' if mentioning value, but avoid specific prices unless asked.
     Do not use introductory phrases like 'Here is a description'. Just write the description.";
 

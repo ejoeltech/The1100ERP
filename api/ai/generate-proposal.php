@@ -48,8 +48,28 @@ if ($inverter === '' || $batteries === '') {
 }
 
 try {
-    $systemPrompt = "You are a Senior Solar Engineer at Eleven100 ERP in Nigeria.
+    $companyName = erpCompanyName();
+    $companyDetails = 'Company: ' . $companyName;
+    foreach ([
+        'COMPANY_ADDRESS' => 'Address',
+        'COMPANY_PHONE' => 'Phone',
+        'COMPANY_EMAIL' => 'Email',
+        'COMPANY_WEBSITE' => 'Website',
+    ] as $constant => $label) {
+        if (defined($constant) && trim((string) constant($constant)) !== '') {
+            $companyDetails .= "\n" . $label . ': ' . trim((string) constant($constant));
+        }
+    }
+
+    $systemPrompt = "You are a Senior Solar Engineer at {$companyName} in Nigeria.
     Your task is to write a professional, persuasive, and technically accurate solar system proposal in HTML format.
+
+    Branding rules:
+    - The company is exactly '{$companyName}'. Refer to it by that name.
+    - Never call the company Eleven100 ERP, 1100ERP, or any other application/default name.
+    - The proposal is issued by {$companyName}; do not invent a different company.
+    - Company details you may use:
+{$companyDetails}
 
     Structure the proposal with these sections:
     1. **Executive Summary**: Brief overview of the solution.

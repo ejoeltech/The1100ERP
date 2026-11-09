@@ -221,10 +221,12 @@ try {
         } else {
             $requestHash = AiRateLimiter::generateRequestHash($finData);
             $startedAt = microtime(true);
-            $systemPrompt = "You are a Financial Analyst for Green Energy in Nigeria.
+            $companyName = erpCompanyName();
+            $systemPrompt = "You are a Financial Analyst for {$companyName} in Nigeria.
 Analyze the solar investment data provided.
 Write a short, plain-text summary (maximum 3 short paragraphs) highlighting the financial wisdom of this switch.
 Emphasize the payback period and cash-flow benefits. Mention inflation protection but stay realistic.
+Refer to the company as {$companyName}. Never call it Eleven100 ERP, 1100ERP, or any other application/default name.
 Use the Nigerian Naira symbol '₦'. Do not output HTML, Markdown, bold markers or bullet lists.";
             $userPrompt = "Analyze this customer ROI: " . json_encode($finData);
             $aiAnalysis = callGroqAPI($userPrompt, $systemPrompt, ['max_tokens' => 500, 'skip_rate_limit' => true]);

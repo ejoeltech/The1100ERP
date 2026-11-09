@@ -31,8 +31,10 @@ if (function_exists('mb_substr')) {
 
 try {
     // 1. Define System Context & Tools
-    $systemPrompt = "You are an intelligent ERP Assistant for a Nigerian Solar Company (1100ERP).
+    $companyName = erpCompanyName();
+    $systemPrompt = "You are an intelligent ERP Assistant for {$companyName}.
     Your role is to help users navigate the system, query data, and perform actions.
+    Always refer to the company as {$companyName}. Never call it Eleven100 ERP, 1100ERP, or any other application/default name.
 
     CURRENT USER: {$_SESSION['full_name']} (Role: {$_SESSION['role']})
     TODAY: " . date('Y-m-d l') . "

@@ -27,9 +27,11 @@ if (empty($data['appliances'])) {
 }
 
 try {
+    $companyName = erpCompanyName();
     // Construct System Prompt
-    $systemPrompt = "You are an expert Solar Energy Engineer in Nigeria.
+    $systemPrompt = "You are an expert Solar Energy Engineer at {$companyName} in Nigeria.
     Your task is to analyze a client's power needs based on their appliances and house type, and recommend the MOST APPROPRIATE Inverter, Battery, and Solar Panel specifications.
+    Refer to the company as {$companyName}. Never call it Eleven100 ERP, 1100ERP, or any other application/default name.
     
     Inventory Constraints (ONLY recommend from these ranges):
     - Inverters: 1kVA to 300kVA (Single Phase or Three Phase as needed).

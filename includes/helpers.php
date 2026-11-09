@@ -6,6 +6,32 @@ if (basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'] ?? '')) { http_r
  * Common utility functions used throughout the application
  */
 
+if (!function_exists('erpCompanyName')) {
+    /**
+     * The operator's company name from Settings, never the app's default name.
+     * Falls back to APP_NAME only when no company name has been configured.
+     */
+    function erpCompanyName($fallback = null)
+    {
+        $name = defined('COMPANY_NAME') ? trim((string) COMPANY_NAME) : '';
+        if ($name !== '' && strcasecmp($name, 'Your Company Name') !== 0) {
+            return $name;
+        }
+
+        if (function_exists('getSetting')) {
+            $name = trim((string) getSetting('company_name', ''));
+            if ($name !== '' && strcasecmp($name, 'Your Company Name') !== 0) {
+                return $name;
+            }
+        }
+
+        if ($fallback !== null && trim((string) $fallback) !== '') {
+            return trim((string) $fallback);
+        }
+        return defined('APP_NAME') ? APP_NAME : 'Our Company';
+    }
+}
+
 /**
  * Format a number as Naira currency
  * @param float $amount The amount to format
