@@ -205,7 +205,7 @@ Return ONLY valid JSON with NO markdown formatting:
     // aiCallJson: normalises fences/prose/truncation and retries bigger.
     $recommendation = aiCallJson($prompt, 'You are a solar installation planner. Output strict JSON.', ['max_tokens' => 4000, 'skip_rate_limit' => true]);
 
-    return $recommendation;
+    return aiEnforceDesignSafety($recommendation, $data);
 }
 
 ?>

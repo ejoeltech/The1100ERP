@@ -79,3 +79,103 @@ function normalizeAiDesignRequest($input, $mode)
 
     return $out;
 }
+
+/**
+ * Recompute the safety-critical parts of an AI recommendation. The model is
+ * never trusted to do its own voltage/current arithmetic; any violation is
+ * appended to the warnings and forces safe=false.
+ */
+function aiEnforceDesignSafety($recommendation, $input)
+{
+    if (!is_array($recommendation) || !is_array($input)) {
+        return $recommendation;
+    }
+
+    $warnings = $recommendation['warnings'] ?? [];
+    if (is_string($warnings)) {
+        $warnings = trim($warnings) !== '' ? [$warnings] : [];
+    }
+    if (!is_array($warnings)) {
+        $warnings = [];
+    }
+
+    $panelVoc = isset($input['panel_voc']) ? (float) $input['panel_voc'] : null;
+    $panelIsc = isset($input['panel_isc']) ? (float) $input['panel_isc'] : null;
+    $maxVoltage = isset($input['max_voltage']) ? (float) $input['max_voltage'] : null;
+    $maxCurrent = isset($input['max_current']) ? (float) $input['max_current'] : null;
+    $arrangement = $recommendation['arrangement'] ?? null;
+
+    $unsafe = false;
+    $perString = null;
+    $strings = null;
+
+    if (is_array($arrangement)) {
+        $perString = filter_var($arrangement['panels_per_string'] ?? null, FILTER_VALIDATE_INT);
+        $strings = filter_var($arrangement['strings'] ?? null, FILTER_VALIDATE_INT);
+        if ($perString === false || $perString < 1) {
+            $perString = null;
+        }
+        if ($strings === false || $strings < 1) {
+            $strings = null;
+        }
+    }
+
+    if ($perString !== null && $panelVoc !== null && $maxVoltage !== null) {
+        // 1.15 covers the usual cold-temperature VOC rise above STC.
+        $vocDesign = $perString * $panelVoc * 1.15;
+        if ($vocDesign > $maxVoltage) {
+            $unsafe = true;
+            $warnings[] = sprintf(
+                'Calculated string VOC is %.1f V (%d panels × %.1f V, including a 15%% cold-temperature margin), which exceeds the %.1f V controller limit. Reduce panels per string.',
+                $vocDesign,
+                $perString,
+                $panelVoc,
+                $maxVoltage
+            );
+        }
+    }
+
+    if ($strings !== null && $panelIsc !== null && $maxCurrent !== null) {
+        $currentTotal = $strings * $panelIsc;
+        if ($currentTotal > $maxCurrent) {
+            $unsafe = true;
+            $warnings[] = sprintf(
+                'Calculated array current is %.1f A (%d strings × %.1f A), which exceeds the %.1f A controller limit. Reduce parallel strings.',
+                $currentTotal,
+                $strings,
+                $panelIsc,
+                $maxCurrent
+            );
+        }
+    }
+
+    if (isset($input['panel_count'], $perString, $strings)
+        && $perString !== null && $strings !== null) {
+        $expected = (int) $input['panel_count'];
+        $calculated = $perString * $strings;
+        if ($calculated !== $expected) {
+            $warnings[] = sprintf(
+                'The arrangement uses %d panels but %d were entered. Confirm the string count before installing.',
+                $calculated,
+                $expected
+            );
+        }
+    }
+
+    if ($unsafe) {
+        $recommendation['safe'] = false;
+    }
+
+    $clean = [];
+    foreach ($warnings as $warning) {
+        if (is_scalar($warning)) {
+            $value = trim((string) $warning);
+            if ($value !== '') {
+                $clean[$value] = true;
+            }
+        }
+    }
+    $recommendation['warnings'] = array_keys($clean);
+
+    return $recommendation;
+}
