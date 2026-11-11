@@ -1,9 +1,11 @@
 <?php
 include '../includes/session-check.php';
+require_once '../includes/document-export.php';
 
-$receipt_id = $_GET['id'] ?? null;
+$receipt_id = (int) ($_GET['id'] ?? 0);
 
-if (!$receipt_id) {
+if ($receipt_id <= 0) {
+    http_response_code(400);
     die('Receipt ID required');
 }
 
@@ -19,6 +21,7 @@ $stmt->execute([$receipt_id]);
 $receipt = $stmt->fetch();
 
 if (!$receipt) {
+    http_response_code(404);
     die('Receipt not found');
 }
 
@@ -29,7 +32,7 @@ if (function_exists('canViewDocument') && !canViewDocument($receipt)) {
 }
 
 // Map invoice fields to receipt fields if needed for template compatibility
-$receipt['grand_total'] = $receipt['invoice_grand_total']; // Receipts don't have grand_total, use invoice's
+$receipt['grand_total'] = $receipt['invoice_grand_total'];
 
 // Show the parent invoice's line items (receipts carry no items of their own).
 $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORDER BY item_number");
@@ -44,6 +47,8 @@ if (!empty($receipt['invoice_id'])) {
     $parent_invoice = $stmt->fetch();
 }
 
-// Render the same compact layout as the PDF export (single source of truth).
-$html = include '../includes/receipt-pdf-template.php';
+$html = documentHtmlForBrowser('receipt', $receipt, $line_items, $parent_invoice);
+
+header('Content-Type: text/html; charset=UTF-8');
+header('Content-Disposition: inline; filename="' . $receipt['document_number'] . '.html"');
 echo $html;

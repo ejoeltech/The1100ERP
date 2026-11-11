@@ -90,6 +90,14 @@ include '../includes/header.php';
         class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
         📄 Export PDF
     </a>
+    <a href="../api/export-invoice-jpeg.php?id=<?php echo $invoice_id; ?>" target="_blank"
+        class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold">
+        🖼️ Export JPEG
+    </a>
+    <a href="../api/export-invoice-html.php?id=<?php echo $invoice_id; ?>" target="_blank"
+        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+        🌐 Export HTML
+    </a>
     <?php if (function_exists('hasPermission') && hasPermission('email_document')): ?>
         <a href="email-document.php?id=<?php echo $invoice_id; ?>&type=invoice"
             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">

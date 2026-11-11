@@ -1,22 +1,25 @@
 <?php
 include '../includes/session-check.php';
+require_once '../includes/document-export.php';
 
-$invoice_id = $_GET['id'] ?? null;
+$invoice_id = (int) ($_GET['id'] ?? 0);
 
-if (!$invoice_id) {
+if ($invoice_id <= 0) {
+    http_response_code(400);
     die('Invoice ID required');
 }
 
 // Fetch invoice
 $stmt = $pdo->prepare("
-    SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date 
-    FROM invoices 
+    SELECT *, invoice_number as document_number, invoice_title as quote_title, invoice_date as quote_date
+    FROM invoices
     WHERE id = ? AND deleted_at IS NULL
 ");
 $stmt->execute([$invoice_id]);
 $invoice = $stmt->fetch();
 
 if (!$invoice) {
+    http_response_code(404);
     die('Invoice not found');
 }
 
@@ -31,6 +34,8 @@ $stmt = $pdo->prepare("SELECT * FROM invoice_line_items WHERE invoice_id = ? ORD
 $stmt->execute([$invoice_id]);
 $line_items = $stmt->fetchAll();
 
-// Render the same compact layout as the PDF export (single source of truth).
-$html = include '../includes/invoice-pdf-template.php';
+$html = documentHtmlForBrowser('invoice', $invoice, $line_items);
+
+header('Content-Type: text/html; charset=UTF-8');
+header('Content-Disposition: inline; filename="' . $invoice['document_number'] . '.html"');
 echo $html;
